@@ -1,0 +1,135 @@
+body, html {
+    font-family: 'Helvetica', 'Arial', 'sans-serif';
+    margin: 0;
+    padding: 0;
+  }
+    
+  header {
+    background: #3b6caa;
+    box-shadow: 0px 2px 4px #888;
+    width: 100%;
+  }
+  header .inner {
+    margin: 0px auto;
+  }
+  
+  @media (min-width: 960px) {
+    header .inner {
+      max-width: 1024px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+  
+  .content {
+    max-width: 1024px;
+    margin: 0px auto;
+    padding: 0px 20px;
+  }
+  
+  footer {
+    width: 100vw;
+    background: #daecfd;
+    position: fixed;
+    bottom: 0;
+    color: #444;
+  }
+  footer .inner {
+    max-width: 1024px;
+    margin: 10px auto;
+    display: flex;
+    flex-direction: row;
+  }
+  
+  footer .copyright {
+    text-align: center;
+    width: 100%;
+  }
+  
+  .nav-brand {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0px;
+  }
+  .nav-brand__label {
+    color: #fff;
+    font-size: 1em;
+    font-weight: 800;
+    text-align: center;
+  }
+  .nav-brand__slogan {
+    display: none;
+    color: #fff;
+  }
+  
+  @media (min-width: 960px){
+    .nav-brand__label {
+      font-size: 2.5em;
+      text-align: left;
+    }
+    .nav-brand__slogan {
+      display: block;
+      text-align: left;
+    }
+  }
+  
+  .desktop-menu {
+    display: none;
+    flex: 1;
+    color: #fff;
+  }
+  @media (min-width: 960px){
+    .desktop-menu {
+      display: block;
+    }
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+      color: #666;
+  }
+  
+  h1 {
+    font-size: 1.25em;
+  }
+  
+  @media (min-width: 960px){
+    h1 {
+      font-size: 1.8em;
+    }
+  }
+  
+  .well {
+    background: var(--color-well);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px #e4e4e9;
+    border-radius: 5px;
+  }
+  .well h1, .well h2, .well h3, .well h4 {
+    margin-top: 0px;
+    color: #444;
+  }
+  
+  .network__property {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .network__item {
+    min-width: 290px;
+  }
+  
+  @media (min-width: 640px) {
+    .network__list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-evenly;
+      align-items: center;
+    }
+    .network__item {
+      width: auto;
+    }
+  }
