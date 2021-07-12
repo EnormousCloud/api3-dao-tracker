@@ -1,15 +1,19 @@
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
-use warp::Filter;
-use warp::Reply;
-use web3::types::H160;
+use crate::inject;
 use client::screens;
 use client::state::AppState;
 use sauron::prelude::*;
-use crate::inject;
+use std::str::FromStr;
+use std::sync::{Arc, Mutex};
 use tracing::info;
+use warp::Filter;
+use warp::Reply;
+use web3::types::H160;
 
-pub fn render_html(static_dir: &str, app: &AppState, component: Box<dyn Render>) -> impl warp::Reply {
+pub fn render_html(
+    static_dir: &str,
+    app: &AppState,
+    component: Box<dyn Render>,
+) -> impl warp::Reply {
     let file = format!("{}/index.html", static_dir);
     info!("content file {:?}", file);
     let content = std::fs::read_to_string(file.as_str()).expect("index.html not found");
@@ -28,8 +32,15 @@ pub fn render_html(static_dir: &str, app: &AppState, component: Box<dyn Render>)
 }
 
 pub fn render_err(static_dir: &str, app: &AppState, msg: &'static str) -> warp::reply::Response {
-    let screen = screens::failure::Screen{ msg: msg.to_owned(), state: app.clone() };
-    warp::reply::with_status(render_html(static_dir.to_owned().as_str(), app, Box::new(screen.view())), warp::http::StatusCode::BAD_REQUEST).into_response()
+    let screen = screens::failure::Screen {
+        msg: msg.to_owned(),
+        state: app.clone(),
+    };
+    warp::reply::with_status(
+        render_html(static_dir.to_owned().as_str(), app, Box::new(screen.view())),
+        warp::http::StatusCode::BAD_REQUEST,
+    )
+    .into_response()
 }
 
 pub fn routes(
@@ -43,7 +54,9 @@ pub fn routes(
         let d = dir.clone();
         move || {
             let state = state_rc.lock().unwrap();
-            let screen = screens::wallets::Screen{ state: state.clone().app };
+            let screen = screens::wallets::Screen {
+                state: state.clone().app,
+            };
             render_html(&d, &state.app, Box::new(screen.view()))
         }
     });
@@ -52,7 +65,9 @@ pub fn routes(
         let d = dir.clone();
         move || {
             let state = state_rc.lock().unwrap();
-            let screen = screens::votings::Screen{ state: state.clone().app };
+            let screen = screens::votings::Screen {
+                state: state.clone().app,
+            };
             render_html(&d, &state.app, Box::new(screen.view())).into_response()
         }
     });
@@ -63,39 +78,56 @@ pub fn routes(
             let state = state_rc.lock().unwrap();
             if let Ok(addr) = H160::from_str(id.clone().as_str()) {
                 if let Some(_) = state.app.wallets.get(&addr) {
-                    let screen = screens::wallet::Screen{ addr, state: state.clone().app };
+                    let screen = screens::wallet::Screen {
+                        addr,
+                        state: state.clone().app,
+                    };
                     render_html(&d, &state.app, Box::new(screen.view())).into_response()
                 } else {
-                    render_err(&d, &state.app, "Not a member of the DAO")    
+                    render_err(&d, &state.app, "Not a member of the DAO")
                 }
             } else {
                 render_err(&d, &state.app, "Invalid Ethereum address")
             }
         }
     });
-    let voting = warp::path!("votings" / u64).map({
+    let voting = warp::path!("votings" / String).map({
         let state_rc = state.clone();
         let d = dir.clone();
-        move |id: u64| {
+        move |id: String| {
+            let (agent, vote_id) = client::events::voting_from_str(&id);
+            let vote_ref = client::events::voting_to_u64(&agent, vote_id);
             let state = state_rc.lock().unwrap();
-            if let Some(_) = state.app.votings.get(&id) {
-                let screen = screens::voting::Screen{ id, state: state.clone().app };
+            if let Some(_) = state.app.votings.get(&vote_ref) {
+                let screen = screens::voting::Screen {
+                    agent,
+                    vote_id,
+                    state: state.clone().app,
+                };
                 render_html(&d, &state.app, Box::new(screen.view())).into_response()
             } else {
-                render_err(&d, &state.app, "Invalid voting ID")    
+                render_err(&d, &state.app, "Invalid voting ID")
             }
         }
     });
-    let home = warp::path::end().map({
-        let state_rc = state.clone();
-        let d = dir.clone();
-        move || {
-            let state = state_rc.lock().unwrap();
-            let screen = screens::home::Screen{ state: state.clone().app };
-            render_html(&d, &state.app, Box::new(screen.view())).into_response()
-        }
-    }).or(warp::fs::dir(static_dir.clone()));
-    
+    let home = warp::path::end()
+        .map({
+            let state_rc = state.clone();
+            let d = dir.clone();
+            move || {
+                let state = state_rc.lock().unwrap();
+                let screen = screens::home::Screen {
+                    state: state.clone().app,
+                };
+                render_html(&d, &state.app, Box::new(screen.view())).into_response()
+            }
+        })
+        .or(warp::fs::dir(static_dir.clone()));
+
     let liveness = warp::path!("_liveness").map(|| format!("# API3 DAO Tracker"));
-    home.or(liveness).or(wallet).or(wallets).or(voting).or(votings)
+    home.or(liveness)
+        .or(wallet)
+        .or(wallets)
+        .or(voting)
+        .or(votings)
 }

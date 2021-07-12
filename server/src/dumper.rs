@@ -1,5 +1,6 @@
 use crate::reader;
-use client::events;
+use client::events::Api3;
+use client::state::OnChainEvent;
 use std::collections::BTreeMap;
 use web3::types::H256;
 
@@ -22,13 +23,13 @@ impl Unknown {
 }
 
 impl reader::EventHandler for Unknown {
-    fn on(&mut self, entry: events::Api3, l: web3::types::Log) -> () {
-        if let events::Api3::Unknown = entry {
+    fn on(&mut self, e: OnChainEvent, l: web3::types::Log) -> () {
+        if let Api3::Unknown = e.entry {
             if !self.unknown_topics.contains_key(&l.topics[0]) {
                 self.unknown_topics
                     .insert(l.topics[0], l.transaction_hash.unwrap());
             }
-            tracing::warn!("{:?} {:?}", l.transaction_hash.unwrap(), entry);
+            tracing::warn!("{:?} {:?}", l.transaction_hash.unwrap(), e.entry);
         }
     }
 }
@@ -42,9 +43,7 @@ impl Events {
 }
 
 impl reader::EventHandler for Events {
-    fn on(&mut self, entry: events::Api3, l: web3::types::Log) -> () {
-        let tx = l.transaction_hash.unwrap();
-        // serde_json::to_string(&entry).unwrap()
-        println!("{:?} {:?}", tx, entry);
+    fn on(&mut self, entry: OnChainEvent, _: web3::types::Log) -> () {
+        println!("{}", serde_json::to_string(&entry).unwrap());
     }
 }

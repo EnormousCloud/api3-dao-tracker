@@ -1,10 +1,16 @@
 use client::events::{Api3, VotingAgent};
+use client::state::OnChainEvent;
 use futures::StreamExt;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tracing::debug;
 use web3::api::Eth;
+use web3::types::{BlockId, FilterBuilder, H160, U256};
 use web3::Transport;
+
+pub trait EventHandler {
+    fn on(&mut self, entry: OnChainEvent, l: web3::types::Log) -> ();
+}
 
 pub async fn get_transport(
     source: String,
@@ -51,12 +57,6 @@ pub async fn get_batches<T: Transport>(
         from = from + batch_size
     }
     res
-}
-
-use web3::types::{FilterBuilder, H160};
-
-pub trait EventHandler {
-    fn on(&mut self, entry: Api3, log: web3::types::Log) -> ();
 }
 
 #[derive(Debug, Clone)]
@@ -121,8 +121,26 @@ impl Scanner {
                 .build();
             let logs = web3.eth().logs(filter).await?;
             for l in logs {
-                if let Ok(evt) = Api3::from_log(self.agent(l.address), &l) {
-                    handler.on(evt, l);
+                if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
+                    let ts: U256 = web3
+                        .eth()
+                        .block(BlockId::Hash(l.block_hash.unwrap()))
+                        .await
+                        .expect("block failure")
+                        .expect("block timestamp failure")
+                        .timestamp;
+
+                    handler.on(
+                        OnChainEvent {
+                            block_number: l.block_number.unwrap().as_u64(),
+                            tx: l.transaction_hash.unwrap(),
+                            log_index: l.log_index.unwrap().as_u64(),
+                            entry,
+                            // tm: get_block_timestamp(web3, l.block_hash.unwrap()).await,
+                            tm: ts.as_u64(),
+                        },
+                        l,
+                    );
                 }
             }
             last_block = b.to;
@@ -152,8 +170,25 @@ impl Scanner {
             tracing::info!("waiting for entries");
             let l: web3::types::Log = logs_stream.next().await.unwrap().unwrap();
             tracing::info!("entry {:?}", l);
-            if let Ok(evt) = Api3::from_log(self.agent(l.address), &l) {
-                handler_mux.lock().unwrap().on(evt, l);
+            if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
+                let ts: U256 = web3
+                        .eth()
+                        .block(BlockId::Hash(l.block_hash.unwrap()))
+                        .await
+                        .expect("block failure")
+                        .expect("block timestamp failure")
+                        .timestamp;
+
+                handler_mux.lock().unwrap().on(
+                    OnChainEvent {
+                        block_number: l.block_number.unwrap().as_u64(),
+                        tx: l.transaction_hash.unwrap(),
+                        log_index: l.log_index.unwrap().as_u64(),
+                        entry,
+                        tm: ts.as_u64(), //get_block_timestamp(web3, l.block_hash.unwrap()).await,
+                    },
+                    l,
+                );
             }
         }
     }

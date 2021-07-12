@@ -2,11 +2,9 @@ pub mod args;
 pub mod dumper;
 pub mod endpoints;
 pub mod inject;
-pub mod pool;
 pub mod reader;
 
 use args::DumpMode;
-use client::events;
 use client::state::{AppState, OnChainEvent};
 use futures::{FutureExt, StreamExt};
 use std::collections::HashMap;
@@ -44,36 +42,27 @@ impl State {
 }
 
 impl reader::EventHandler for State {
-    fn on(&mut self, entry: events::Api3, log: web3::types::Log) -> () {
-        if self.verbose {
-            // it becomes verbose in watching mode
-            tracing::info!("{:?}", entry);
-        }
+    fn on(&mut self, e: OnChainEvent, log: web3::types::Log) -> () {
+        // if self.verbose {
+        // it becomes verbose in watching mode
+        tracing::info!("{}", serde_json::to_string(&e).unwrap());
+        // }
         log.block_number.map(|block_number| {
             self.app.last_block = block_number.as_u64();
         });
-        entry.get_wallets().iter().for_each(|wallet| {
+        e.entry.get_wallets().iter().for_each(|wallet| {
             if !self.app.wallets.contains_key(&wallet) {
                 // tracing::info!("{:?} {:?}", wallet, entry);
                 self.app.wallets.insert(wallet.clone(), vec![]);
             }
-            self.app
-                .wallets
-                .get_mut(&wallet)
-                .unwrap()
-                .push(OnChainEvent {
-                    entry: entry.clone(),
-                    log: log.clone(),
-                });
+            self.app.wallets.get_mut(&wallet).unwrap().push(e.clone());
         });
-        entry.get_voting().map(|id| {
+        e.entry.get_voting().map(|id| {
+            tracing::info!("voting ref {}", id.to_string());
             if !self.app.votings.contains_key(&id) {
-                self.app.votings.insert(id, vec![]);
+                self.app.votings.insert(id.clone(), vec![]);
             }
-            self.app.votings.get_mut(&id).unwrap().push(OnChainEvent {
-                entry: entry.clone(),
-                log: log.clone(),
-            });
+            self.app.votings.get_mut(&id).unwrap().push(e.clone());
         });
         if self.verbose {
             futures::executor::block_on(async {
@@ -81,8 +70,9 @@ impl reader::EventHandler for State {
                 // tracing::info!("sending to {:?} subscribers", list.len());
                 // broadcasting event to all subscribers
                 for (&subscriber_id, tx) in list.iter() {
-                    tracing::debug!("<sent to #{}> {:?}", subscriber_id, entry);
-                    if let Err(err) = tx.send(Ok(Message::text(format!("{:?}", entry)))) {
+                    let json_msg = serde_json::to_string(&e).unwrap();
+                    tracing::debug!("<sent to #{}> {}", subscriber_id, json_msg);
+                    if let Err(err) = tx.send(Ok(Message::text(json_msg))) {
                         tracing::warn!("<disconnected #{}> {}", subscriber_id, err);
                     }
                 }
@@ -232,10 +222,14 @@ async fn main() -> anyhow::Result<()> {
             },
         );
         let routes = endpoints::routes(args.static_dir.clone(), state).or(chat);
-        warp::serve(routes.with(warp::trace::request())).run(socket_addr).await;
+        warp::serve(routes.with(warp::trace::request()))
+            .run(socket_addr)
+            .await;
     } else {
         let routes = endpoints::routes(args.static_dir.clone(), state);
-        warp::serve(routes.with(warp::trace::request())).run(socket_addr).await;
+        warp::serve(routes.with(warp::trace::request()))
+            .run(socket_addr)
+            .await;
     }
     Ok(())
 }
