@@ -1,13 +1,14 @@
 pub mod args;
 pub mod dumper;
 pub mod endpoints;
+pub mod inject;
 pub mod pool;
 pub mod reader;
 
 use args::DumpMode;
 use client::events;
+use client::state::{AppState, OnChainEvent};
 use futures::{FutureExt, StreamExt};
-use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::path::Path;
 use std::str::FromStr;
@@ -23,21 +24,13 @@ static NEXT_ID: AtomicUsize = AtomicUsize::new(1);
 type Subscribers = Arc<RwLock<HashMap<usize, mpsc::UnboundedSender<Result<Message, warp::Error>>>>>;
 
 #[derive(Debug, Clone)]
-pub struct EventLog {
-    pub entry: events::Api3,
-    pub log: web3::types::Log,
-}
-
-#[derive(Debug, Clone)]
 pub struct State {
-    /// wheher to log incoming messages
+    /// whether to log incoming messages
     pub verbose: bool,
-    /// log of events, grouped by votings
-    pub votings: BTreeMap<u64, Vec<EventLog>>,
-    /// log of events, groupped by wallets
-    pub wallets: BTreeMap<H160, Vec<EventLog>>,
-    // subscribers of the chat
+    /// subscribers of the chat
     pub subscribers: Subscribers,
+    /// client application state
+    pub app: AppState,
 }
 
 impl State {
@@ -45,35 +38,39 @@ impl State {
         Self {
             subscribers,
             verbose: false,
-            votings: BTreeMap::new(),
-            wallets: BTreeMap::new(),
+            app: AppState::new(),
         }
     }
 }
 
-// use async_trait::async_trait;
-// #[async_trait]
 impl reader::EventHandler for State {
     fn on(&mut self, entry: events::Api3, log: web3::types::Log) -> () {
         if self.verbose {
             // it becomes verbose in watching mode
             tracing::info!("{:?}", entry);
         }
+        log.block_number.map(|block_number| {
+            self.app.last_block = block_number.as_u64();
+        });
         entry.get_wallets().iter().for_each(|wallet| {
-            if !self.wallets.contains_key(&wallet) {
+            if !self.app.wallets.contains_key(&wallet) {
                 // tracing::info!("{:?} {:?}", wallet, entry);
-                self.wallets.insert(wallet.clone(), vec![]);
+                self.app.wallets.insert(wallet.clone(), vec![]);
             }
-            self.wallets.get_mut(&wallet).unwrap().push(EventLog {
-                entry: entry.clone(),
-                log: log.clone(),
-            });
+            self.app
+                .wallets
+                .get_mut(&wallet)
+                .unwrap()
+                .push(OnChainEvent {
+                    entry: entry.clone(),
+                    log: log.clone(),
+                });
         });
         entry.get_voting().map(|id| {
-            if !self.votings.contains_key(&id) {
-                self.votings.insert(id, vec![]);
+            if !self.app.votings.contains_key(&id) {
+                self.app.votings.insert(id, vec![]);
             }
-            self.votings.get_mut(&id).unwrap().push(EventLog {
+            self.app.votings.get_mut(&id).unwrap().push(OnChainEvent {
                 entry: entry.clone(),
                 log: log.clone(),
             });
@@ -91,7 +88,6 @@ impl reader::EventHandler for State {
                 }
             });
         }
-        // tracing::info!("block_on accomplished");
     }
 }
 
@@ -215,8 +211,8 @@ async fn main() -> anyhow::Result<()> {
         let s = rc.lock().unwrap();
         tracing::info!(
             "found: {} wallets, {} votings",
-            s.wallets.len(),
-            s.votings.len()
+            s.app.wallets.len(),
+            s.app.votings.len()
         );
         last_block
     };
@@ -235,11 +231,11 @@ async fn main() -> anyhow::Result<()> {
                 ws.on_upgrade(move |socket| ws_connected(socket, subscribers))
             },
         );
-        let routes = endpoints::routes(state).or(chat);
-        warp::serve(routes).run(socket_addr).await;
+        let routes = endpoints::routes(args.static_dir.clone(), state).or(chat);
+        warp::serve(routes.with(warp::trace::request())).run(socket_addr).await;
     } else {
-        let routes = endpoints::routes(state);
-        warp::serve(routes).run(socket_addr).await;
+        let routes = endpoints::routes(args.static_dir.clone(), state);
+        warp::serve(routes.with(warp::trace::request())).run(socket_addr).await;
     }
     Ok(())
 }

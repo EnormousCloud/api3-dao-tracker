@@ -27,6 +27,7 @@ dependencies = [
  "futures",
  "hex",
  "hex-literal",
+ "sauron",
  "serde",
  "serde_json",
  "structopt",

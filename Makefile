@@ -10,4 +10,8 @@ run:
 		--mount type=bind,source=$(shell pwd)/server/.env.mainnet,target=/usr/src/app/.env \
 		-e RPC_ENDPOINT=/ethereum/geth.ipc \
 		api3tracker
+	docker logs -f api3tracker-mainnet
+
+stop:
+	docker rm -f api3tracker-mainnet
 

@@ -4,12 +4,13 @@ use serde::{Deserialize, Serialize};
 use web3::types::{H160, U256};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum VotingType {
+pub enum VotingAgent {
     Primary,
     Secondary,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum Api3 {
     // Pool contract events
     SetDaoApps {
@@ -123,15 +124,35 @@ pub enum Api3 {
     },
 
     // Voting
-    StartVote(VotingType, U256, H160, String),
-    CastVote(VotingType, U256, H160, bool, U256),
-    ExecuteVote(VotingType, U256),
+    StartVote {
+        agent: VotingAgent,
+        vote_id: U256,
+        creator: H160,
+        metadata: String,
+    },
+    CastVote {
+        agent: VotingAgent,
+        vote_id: U256,
+        voter: H160,
+        supports: bool,
+        stake: U256,
+    },
+    ExecuteVote {
+        agent: VotingAgent,
+        vote_id: U256,
+    },
+
     // ChangeSupportRequired(U64), // 903b617f, never happened yet
     // ChangeMinQuorum(U64), // 3172f2e9, never happened yet
 
     // Convenience contract events
-    SetErc20Addresses(Vec<H160>),
-    OwnershipTransferred(H160, H160),
+    SetErc20Addresses {
+        addresses: Vec<H160>,
+    },
+    OwnershipTransferred {
+        from: H160,
+        to: H160,
+    },
 
     // ERC20 events:
     Transfer {
@@ -230,8 +251,19 @@ impl Api3 {
                 total_stake: _,
             } => res.push(recipient.clone()),
 
-            Self::StartVote(_, _, addr, _) => res.push(addr.clone()),
-            Self::CastVote(_, _, addr, _, _) => res.push(addr.clone()),
+            Self::StartVote {
+                agent: _,
+                vote_id: _,
+                creator,
+                metadata: _,
+            } => res.push(creator.clone()),
+            Self::CastVote {
+                agent: _,
+                vote_id: _,
+                voter,
+                supports: _,
+                stake: _,
+            } => res.push(voter.clone()),
             _ => {}
         };
         res
@@ -239,15 +271,26 @@ impl Api3 {
 
     pub fn get_voting(&self) -> Option<u64> {
         match self {
-            Self::StartVote(_, id, _, _) => Some(id.as_u64()),
-            Self::CastVote(_, id, _, _, _) => Some(id.as_u64()),
-            Self::ExecuteVote(_, id) => Some(id.as_u64()),
+            Self::StartVote {
+                agent: _,
+                vote_id,
+                creator: _,
+                metadata: _,
+            } => Some(vote_id.as_u64()),
+            Self::CastVote {
+                agent: _,
+                vote_id,
+                voter: _,
+                supports: _,
+                stake: _,
+            } => Some(vote_id.as_u64()),
+            Self::ExecuteVote { agent: _, vote_id } => Some(vote_id.as_u64()),
             _ => None,
         }
     }
 
     pub fn from_log(
-        voting: Option<VotingType>,
+        voting: Option<VotingAgent>,
         log: &web3::types::Log,
     ) -> Result<Self, EventParseError> {
         let t0 = log.topics[0];
@@ -422,34 +465,42 @@ impl Api3 {
         }
         if t0 == hex!("220c5b95388e82dd8e3a0abed6143750f9bfa4bf73bb6f742e10cf79e551b168").into() {
             let mut r = LogReader::new(&log, 0, None).unwrap();
-            return Ok(Self::SetErc20Addresses(r.addresses()));
+            return Ok(Self::SetErc20Addresses {
+                addresses: r.addresses(),
+            });
         }
         if t0 == hex!("8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0").into() {
             let mut r = LogReader::new(&log, 2, Some(0)).unwrap();
-            return Ok(Self::OwnershipTransferred(r.address(), r.address()));
+            return Ok(Self::OwnershipTransferred {
+                from: r.address(),
+                to: r.address(),
+            });
         }
         if t0 == hex!("4d72fe0577a3a3f7da968d7b892779dde102519c25527b29cf7054f245c791b9").into() {
             let mut r = LogReader::new(&log, 2, None).unwrap();
-            return Ok(Self::StartVote(
-                voting.unwrap(),
-                r.value(),
-                r.address(),
-                r.text(),
-            ));
+            return Ok(Self::StartVote {
+                agent: voting.unwrap(),
+                vote_id: r.value(),
+                creator: r.address(),
+                metadata: r.text(),
+            });
         }
         if t0 == hex!("b34ee265e3d4f5ec4e8b52d59b2a9be8fceca2f274ebc080d8fba797fea9391f").into() {
             let mut r = LogReader::new(&log, 2, Some(2)).unwrap();
-            return Ok(Self::CastVote(
-                voting.unwrap(),
-                r.value(),
-                r.address(),
-                r.bool(),
-                r.value(),
-            ));
+            return Ok(Self::CastVote {
+                agent: voting.unwrap(),
+                vote_id: r.value(),
+                voter: r.address(),
+                supports: r.bool(),
+                stake: r.value(),
+            });
         }
         if t0 == hex!("bf8e2b108bb7c980e08903a8a46527699d5e84905a082d56dacb4150725c8cab").into() {
             let mut r = LogReader::new(&log, 1, Some(0)).unwrap();
-            return Ok(Self::ExecuteVote(voting.unwrap(), r.value()));
+            return Ok(Self::ExecuteVote {
+                agent: voting.unwrap(),
+                vote_id: r.value(),
+            });
         }
 
         if t0 == hex!("9dcff9d94fbfdb4622d11edb383005f95e78efb446c72d92f8e615c6025c4703").into() {

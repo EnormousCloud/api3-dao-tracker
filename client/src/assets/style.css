@@ -1,21 +1,32 @@
 body, html {
-    font-family: 'Helvetica', 'Arial', 'sans-serif';
     margin: 0;
     padding: 0;
-  }
+}
+* {
+  font-family: 'Roboto', 'Helvetica', 'Arial', 'sans-serif';
+}
     
   header {
-    background: #3b6caa;
+    background: var(--color-body);
     box-shadow: 0px 2px 4px #888;
     width: 100%;
   }
-  header .inner {
+  .inner {
     margin: 0px auto;
+  }
+  footer::before {
+    content: ' ';
+    height: 100px;
+  }
+  .inner .mid {
+    flex: 1;
   }
   
   @media (min-width: 960px) {
-    header .inner {
+    .inner {
       max-width: 1024px;
+    }
+    header .inner {
       display: flex;
       flex-direction: row;
       align-items: center;
@@ -31,10 +42,10 @@ body, html {
   
   footer {
     width: 100vw;
-    background: #daecfd;
+    background: var(--color-body);
     position: fixed;
     bottom: 0;
-    color: #444;
+    color: var(--color-text);
   }
   footer .inner {
     max-width: 1024px;
@@ -46,6 +57,7 @@ body, html {
   footer .copyright {
     text-align: center;
     width: 100%;
+    font-size: 0.75rem;
   }
   
   .nav-brand {
@@ -54,14 +66,14 @@ body, html {
     padding: 10px 0px;
   }
   .nav-brand__label {
-    color: #fff;
+    color: var(--color-text);
     font-size: 1em;
-    font-weight: 800;
+    font-weight: 900;
     text-align: center;
   }
   .nav-brand__slogan {
     display: none;
-    color: #fff;
+    color: var(--color-accent);
   }
   
   @media (min-width: 960px){
@@ -77,12 +89,24 @@ body, html {
   
   .desktop-menu {
     display: none;
-    flex: 1;
-    color: #fff;
   }
   @media (min-width: 960px){
     .desktop-menu {
-      display: block;
+      display: flex;
+      align-items: flex-end;
+    }
+    .desktop-menu a {
+      text-decoration: none;
+      color: var(--color-text);
+      background: var(--color-bk);
+      padding: 0px 20px;
+      margin-left: 5px;
+      line-height: 50px;
+      font-weight: bold;
+    }
+    .desktop-menu a:hover {
+      background: var(--color-bk-highlight);
+      color: var(--color-accent);
     }
   }
   
@@ -92,6 +116,7 @@ body, html {
   
   h1 {
     font-size: 1.25em;
+    text-align: center;
   }
   
   @media (min-width: 960px){
@@ -132,4 +157,26 @@ body, html {
     .network__item {
       width: auto;
     }
+  }
+
+  .screen-home .centered {
+    margin: 0px auto;
+    margin-top: 100px;
+    text-align: center;
+  }
+  .screen-home h1 { 
+    font-size: 3em;
+    margin: 0px;
+  }
+  .screen-home h2 { 
+    font-size: 1.5em;
+    margin: 0px;
+    margin-bottom: 40px;
+  }
+  .screen-home .stats-row {
+    line-height: 1.5em;
+  }
+  .screen-home .pad50 {
+    padding-top: 50px;
+    padding-bottom: 50px;
   }

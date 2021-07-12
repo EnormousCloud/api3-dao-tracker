@@ -1,4 +1,4 @@
-use client::events;
+use client::events::{Api3, VotingAgent};
 use futures::StreamExt;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -56,7 +56,7 @@ pub async fn get_batches<T: Transport>(
 use web3::types::{FilterBuilder, H160};
 
 pub trait EventHandler {
-    fn on(&mut self, entry: events::Api3, log: web3::types::Log) -> ();
+    fn on(&mut self, entry: Api3, log: web3::types::Log) -> ();
 }
 
 #[derive(Debug, Clone)]
@@ -92,6 +92,16 @@ impl Scanner {
             batch_size,
         }
     }
+    pub fn agent(&self, address: H160) -> Option<VotingAgent> {
+        let mut v: Option<VotingAgent> = None;
+        if let Some(_) = self.addr_primary.iter().position(|&r| r == address) {
+            v = Some(VotingAgent::Primary);
+        }
+        if let Some(_) = self.addr_secondary.iter().position(|&r| r == address) {
+            v = Some(VotingAgent::Secondary);
+        }
+        v
+    }
 
     pub async fn scan<T>(
         &self,
@@ -111,14 +121,7 @@ impl Scanner {
                 .build();
             let logs = web3.eth().logs(filter).await?;
             for l in logs {
-                let mut v: Option<events::VotingType> = None;
-                if let Some(_) = self.addr_primary.iter().position(|&r| r == l.address) {
-                    v = Some(events::VotingType::Primary);
-                }
-                if let Some(_) = self.addr_secondary.iter().position(|&r| r == l.address) {
-                    v = Some(events::VotingType::Secondary);
-                }
-                if let Ok(evt) = events::Api3::from_log(v, &l) {
+                if let Ok(evt) = Api3::from_log(self.agent(l.address), &l) {
                     handler.on(evt, l);
                 }
             }
@@ -149,14 +152,7 @@ impl Scanner {
             tracing::info!("waiting for entries");
             let l: web3::types::Log = logs_stream.next().await.unwrap().unwrap();
             tracing::info!("entry {:?}", l);
-            let mut v: Option<events::VotingType> = None;
-            if let Some(_) = self.addr_primary.iter().position(|&r| r == l.address) {
-                v = Some(events::VotingType::Primary);
-            }
-            if let Some(_) = self.addr_secondary.iter().position(|&r| r == l.address) {
-                v = Some(events::VotingType::Secondary);
-            }
-            if let Ok(evt) = events::Api3::from_log(v, &l) {
+            if let Ok(evt) = Api3::from_log(self.agent(l.address), &l) {
                 handler_mux.lock().unwrap().on(evt, l);
             }
         }

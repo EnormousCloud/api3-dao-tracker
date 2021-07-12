@@ -11,7 +11,7 @@
 	<meta property="og:type" content="website" />
 	<meta property="og:title" content="API3 DAO Tracker" />
 	<meta property="og:description" content="API3 DAO Tracker" />
-	<meta property="og:url" content="https://enormous.cloud/dao/api3" />
+	<meta property="og:url" content="https://enormous.cloud/dao/api3/tracker" />
 	<meta property="og:site_name" content="Enormous Cloud" />
 	<meta property="og:image" content="https://enormous.cloud/favicon-17b88549a4840abb.jpg" />
 	<meta property="og:image:width" content="64" />
@@ -20,23 +20,32 @@
   <link data-trunk rel="css" href="src/assets/style.css" />
   <link rel="icon" href="https://enormous.cloud/favicon-17b88549a4840abb.jpg" />
 
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" /> 
+
   <base data-trunk-public-url />
 
-  <style type="text/css">
+  <style id="color-theme" class="dark" type="text/css">
     :root {
-      --color-bk: #f3f4f8;
-      --color-link: #3b6caa;
-      --color-accent: #3b6caa;
-      --color-body: #fff;
-      --color-well: #fff;
-      --color-error: #db3742;
-      --color-success: #50b83c;
-      --color-success-dark: #329b1e;
-      --color-grey: #8c8d9c;
-      --color-grey-light: #ced3dc;
+    --color-bk: #333333;
+    --color-bk-highlight: #666;
+    --color-text: #ddd;
+    --color-link: #ffe;
+    --color-accent: lightblue;
+    --color-body: #000;
+    --color-well: #666;
+    --color-error: #db3742;
+    --color-success: #50b83c;
+    --color-success-dark: #329b1e;
+    --color-grey: #8c8d9c;
+    --color-grey-light: #ced3dc;
     }
+  </style>
+  <style type="text/css">
     body, html {
       background: var(--color-bk);
+      color: var(--color-text);
     }
     .preload_spinner {
       top: 100px;
@@ -46,6 +55,7 @@
       display: block;
       opacity: 1;
       min-height: 90px;
+      width: 96px;
       transition: all 250ms ease-out;
     }
 
@@ -110,29 +120,8 @@
 </head>
 
 <body>
-  <header>
-    <div class="inner">
-      <div class="mobile-menu">
-      </div>
-      <div class="nav-brand">
-        <span class="nav-brand__label">
-          API3 DAO Tracker
-        </span>
-      </div>
-      <div class="desktop-menu">
-      </div>
-    </div>
-  </header>
-  <div class="content">
-    <main>
-      <div class="preload_spinner"></div>
-    </main>
-  </div>
-  <footer>
-    <div class="inner">
-      <div class="copyright">&copy; 2021 Enormous Cloud</div>
-    </div>
-  </footer>
+  <main>
+    <div class="preload_spinner"></div>
+  </main>
 </body>
-
 </html>

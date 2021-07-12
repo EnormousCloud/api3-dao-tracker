@@ -16,8 +16,8 @@ pub struct Args {
     #[structopt(long, default_value = "0.0.0.0:8000", env = "LISTEN")]
     pub listen: String,
     // Static folder to serve web client files
-    // #[structopt(long, default_value = "./dist", env = "STATIC_DIR")]
-    // pub static_dir: String,
+    #[structopt(long, default_value = "./../client/dist", env = "STATIC_DIR")]
+    pub static_dir: String,
     /// Ethereum JSON+RPC HTTP address
     #[structopt(long, default_value = "/root/.ethereum/geth.ipc", env = "RPC_ENDPOINT")]
     pub rpc_endpoint: String,
