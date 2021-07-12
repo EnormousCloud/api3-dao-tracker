@@ -1,18 +1,20 @@
+use crate::events::Api3;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use web3::types::{H160, U256};
+use web3::types::{H160, H256, U256};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OnChainEvent {
-    // todo: add time
-    // todo: custom serialization to JSON?
-    pub entry: crate::events::Api3,
-    pub log: web3::types::Log,
+    pub entry: Api3,
+    pub tm: u64,
+    pub block_number: u64,
+    pub tx: H256,
+    pub log_index: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Voting {
-    pub id: u64,
+    pub id: String,
     pub title: String,
     pub command: String,
     pub primary: bool,

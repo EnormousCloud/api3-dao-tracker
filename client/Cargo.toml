@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 anyhow = { version = "1.0" }
 console_error_panic_hook = { version = "0.1"}
+chrono = { version = "0.4", features = ["serde", "wasmbind"] }
 hex = "0.4"
 hex-literal = "0.3"
 log = "0.4"

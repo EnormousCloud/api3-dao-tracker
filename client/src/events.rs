@@ -3,11 +3,50 @@ use hex_literal::hex;
 use serde::{Deserialize, Serialize};
 use web3::types::{H160, U256};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum VotingAgent {
     Primary,
     Secondary,
 }
+
+impl VotingAgent {
+    pub fn as_int(&self) -> u64 {
+        match self {
+            Self::Primary => 0,
+            Self::Secondary => 1,
+        }
+    }
+}
+
+pub fn voting_from_str(str: &str) -> (VotingAgent, u64) {
+    let parts: Vec<&str> = str.split("-").collect();
+    let first_char = parts[0][0..1].to_lowercase();
+    let vote_id= parts[1].parse::<u64>().unwrap_or_default();
+    (
+        if first_char == "p" { VotingAgent::Primary } else { VotingAgent::Secondary },
+        vote_id,
+    )
+}
+
+pub fn voting_to_string(agent: &VotingAgent, vote_id: u64) -> String {
+    let prefix = match agent {
+        VotingAgent::Primary => "p",
+        VotingAgent::Secondary => "s" ,
+    };
+    format!("{}-{}", prefix, vote_id)
+}
+
+pub fn voting_from_u64(src: u64) -> (VotingAgent, u64){
+    (
+        if src % 2 == 0 { VotingAgent::Primary } else { VotingAgent::Secondary },
+        src / 2,
+    )
+}
+
+pub fn voting_to_u64(agent: &VotingAgent, vote_id: u64) -> u64 {
+    vote_id * 2 + agent.as_int() 
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -272,19 +311,21 @@ impl Api3 {
     pub fn get_voting(&self) -> Option<u64> {
         match self {
             Self::StartVote {
-                agent: _,
+                agent,
                 vote_id,
                 creator: _,
                 metadata: _,
-            } => Some(vote_id.as_u64()),
+            } => Some(voting_to_u64(agent, vote_id.as_u64())),
+
             Self::CastVote {
-                agent: _,
+                agent,
                 vote_id,
                 voter: _,
                 supports: _,
                 stake: _,
-            } => Some(vote_id.as_u64()),
-            Self::ExecuteVote { agent: _, vote_id } => Some(vote_id.as_u64()),
+            } => Some(voting_to_u64(agent, vote_id.as_u64())),
+            Self::ExecuteVote { agent, vote_id } => 
+                Some(voting_to_u64(agent, vote_id.as_u64())),
             _ => None,
         }
     }
