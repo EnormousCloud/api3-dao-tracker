@@ -19,8 +19,7 @@ impl Screen {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Msg {
-}
+pub enum Msg {}
 
 impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {

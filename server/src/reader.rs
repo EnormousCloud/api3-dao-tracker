@@ -136,7 +136,6 @@ impl Scanner {
                             tx: l.transaction_hash.unwrap(),
                             log_index: l.log_index.unwrap().as_u64(),
                             entry,
-                            // tm: get_block_timestamp(web3, l.block_hash.unwrap()).await,
                             tm: ts.as_u64(),
                         },
                         l,
@@ -172,12 +171,12 @@ impl Scanner {
             tracing::info!("entry {:?}", l);
             if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
                 let ts: U256 = web3
-                        .eth()
-                        .block(BlockId::Hash(l.block_hash.unwrap()))
-                        .await
-                        .expect("block failure")
-                        .expect("block timestamp failure")
-                        .timestamp;
+                    .eth()
+                    .block(BlockId::Hash(l.block_hash.unwrap()))
+                    .await
+                    .expect("block failure")
+                    .expect("block timestamp failure")
+                    .timestamp;
 
                 handler_mux.lock().unwrap().on(
                     OnChainEvent {
@@ -185,7 +184,7 @@ impl Scanner {
                         tx: l.transaction_hash.unwrap(),
                         log_index: l.log_index.unwrap().as_u64(),
                         entry,
-                        tm: ts.as_u64(), //get_block_timestamp(web3, l.block_hash.unwrap()).await,
+                        tm: ts.as_u64(),
                     },
                     l,
                 );

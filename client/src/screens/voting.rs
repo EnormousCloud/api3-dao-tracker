@@ -1,5 +1,6 @@
 use crate::components::footer;
 use crate::components::header;
+use crate::components::err_box;
 use crate::events::VotingAgent;
 use crate::state::AppState;
 use sauron::prelude::*;
@@ -7,6 +8,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Screen {
+    // ID of the voting
+    pub vote_ref: u64,
     // ID of the voting
     pub vote_id: u64,
     // agent of the voting
@@ -26,6 +29,31 @@ impl Component<Msg> for Screen {
                 <div class="inner">
                     <h1>"API3 DAO Voting"</h1>
                     <h2>{ text(format!("{:?} {:?}", self.agent, self.vote_id )) }</h2>
+                    {
+                        match self.state.votings.get(&self.vote_ref) {
+                            Some(v) => pre(
+                                vec![class("votings-details")],
+                                vec![text(format!("{:?}", serde_json::to_string(&v).unwrap()))]
+                            ),
+                            None => err_box("member wallet was not found")
+                        }
+                    }
+                    {
+                        match self.state.votings_events.get(&self.vote_ref) {
+                            Some(w) => ol(
+                                vec![class("votings-events-list")],
+                                w.iter().map(|v| {
+                                    node!{
+                                        <li class="event">
+                                            { text(format!("{:?}", v)) }
+                                        </li>
+                                    }
+                                }).collect::<Vec<Node<Msg>>>()
+                            ),
+                            None => err_box("voting was not found")
+                        }
+                    }
+
                 </div>
                 { footer::render() }
             </div>

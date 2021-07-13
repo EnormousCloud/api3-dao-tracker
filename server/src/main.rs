@@ -43,27 +43,11 @@ impl State {
 
 impl reader::EventHandler for State {
     fn on(&mut self, e: OnChainEvent, log: web3::types::Log) -> () {
-        // if self.verbose {
-        // it becomes verbose in watching mode
-        tracing::info!("{}", serde_json::to_string(&e).unwrap());
-        // }
-        log.block_number.map(|block_number| {
-            self.app.last_block = block_number.as_u64();
-        });
-        e.entry.get_wallets().iter().for_each(|wallet| {
-            if !self.app.wallets.contains_key(&wallet) {
-                // tracing::info!("{:?} {:?}", wallet, entry);
-                self.app.wallets.insert(wallet.clone(), vec![]);
-            }
-            self.app.wallets.get_mut(&wallet).unwrap().push(e.clone());
-        });
-        e.entry.get_voting().map(|id| {
-            tracing::info!("voting ref {}", id.to_string());
-            if !self.app.votings.contains_key(&id) {
-                self.app.votings.insert(id.clone(), vec![]);
-            }
-            self.app.votings.get_mut(&id).unwrap().push(e.clone());
-        });
+        if self.verbose {
+            // it becomes verbose in watching mode
+            tracing::info!("{}", serde_json::to_string(&e).unwrap());
+        }
+        self.app.update(e.clone(), log);
         if self.verbose {
             futures::executor::block_on(async {
                 let list = self.subscribers.read().await;

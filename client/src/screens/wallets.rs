@@ -21,7 +21,7 @@ impl Component<Msg> for Screen {
                 <div class="inner">
                     <h1>{text(format!("API3 DAO: {} Wallets", self.state.wallets.len()))}</h1>
                     {ol(vec
-                        ![class("wallets-list")], 
+                        ![class("wallets-list")],
                         self.state.wallets.iter().map(|(k, _)| {
                             node!{
                                 <li>
