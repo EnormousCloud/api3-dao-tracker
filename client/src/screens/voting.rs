@@ -1,6 +1,6 @@
+use crate::components::err_box;
 use crate::components::footer;
 use crate::components::header;
-use crate::components::err_box;
 use crate::events::VotingAgent;
 use crate::state::AppState;
 use sauron::prelude::*;
@@ -33,11 +33,12 @@ impl Component<Msg> for Screen {
                         match self.state.votings.get(&self.vote_ref) {
                             Some(v) => pre(
                                 vec![class("votings-details")],
-                                vec![text(format!("{:?}", serde_json::to_string(&v).unwrap()))]
+                                vec![text(format!("{}", serde_json::to_string_pretty(&v).unwrap()))]
                             ),
                             None => err_box("member wallet was not found")
                         }
                     }
+                    <h2>"Events Log"</h2>
                     {
                         match self.state.votings_events.get(&self.vote_ref) {
                             Some(w) => ol(
@@ -45,7 +46,9 @@ impl Component<Msg> for Screen {
                                 w.iter().map(|v| {
                                     node!{
                                         <li class="event">
-                                            { text(format!("{:?}", v)) }
+                                            <pre>
+                                                { text(format!("{}", serde_json::to_string_pretty(&v).unwrap())) }
+                                            </pre>
                                         </li>
                                     }
                                 }).collect::<Vec<Node<Msg>>>()

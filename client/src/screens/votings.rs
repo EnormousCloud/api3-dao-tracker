@@ -20,6 +20,25 @@ impl Component<Msg> for Screen {
                 { header::render("/votings") }
                 <div class="inner">
                     <h1>"API3 DAO Votings"</h1>
+                    {ol(vec
+                        ![class("votings-list")],
+                        self.state.votings.iter().map(|(_, voting)| {
+                            node!{
+                                <li>
+                                    <div class="voting">
+                                        <a href={format!("votings/{}", voting.key()) }>
+                                            { text(format!("{}: {:?}",
+                                                if voting.primary {
+                                                    "Primary"
+                                                } else {
+                                                    "Secondary"
+                                                }, voting.metadata)) }
+                                        </a>
+                                    </div>
+                                </li>
+                            }
+                        }).collect::<Vec<Node<Msg>>>()
+                    )}
                 </div>
                 { footer::render() }
             </div>

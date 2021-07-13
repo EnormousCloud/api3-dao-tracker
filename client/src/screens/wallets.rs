@@ -1,6 +1,7 @@
 use crate::components::footer;
 use crate::components::header;
-use crate::state::AppState;
+use crate::nice;
+use crate::state::{AppState, Wallet};
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -15,18 +16,38 @@ pub enum Msg {}
 
 impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
+        let mut sorted: Vec<Wallet> = self.state.wallets.values().cloned().collect();
+        sorted.sort_by_key(|w| std::cmp::Reverse(w.voting_power));
+        let total = self.state.get_votes_total();
         node! {
             <div class="screen-wallets">
                 { header::render("/wallets") }
                 <div class="inner">
                     <h1>{text(format!("API3 DAO: {} Wallets", self.state.wallets.len()))}</h1>
+                    <h3>
+                        "Total Votes"
+                        { text(nice::amount(total, 18)) }
+                    </h3>
+                    <div class="warn">"votes delegation is not counted yet"</div>
                     {ol(vec
                         ![class("wallets-list")],
-                        self.state.wallets.iter().map(|(k, _)| {
+                        sorted.iter().map(|w: &Wallet| {
                             node!{
                                 <li>
                                     <div class="wallet">
-                                        { text(format!("{:?}", k)) }
+                                        <a class="addr" href={format!("wallets/{:?}", w.address) }>
+                                            { text(format!("{:?}", w.address)) }
+                                        </a>
+                                        " "
+                                        <span class="amt">
+                                            { text(nice::amount(w.voting_power, 18)) }
+                                        </span>
+                                        " "
+                                        <span class="pct">
+                                            "("
+                                            {text(nice::pct_of(w.voting_power, total, 18))}
+                                            "%)"
+                                        </span>
                                     </div>
                                 </li>
                             }

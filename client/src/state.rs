@@ -53,7 +53,7 @@ pub struct Wallet {
     pub withdrawn: U256,
     pub staked: U256,
     pub shares: U256,
-    pub delegated_to: Option<H160>,
+    pub delegated: U256,
     pub voting_power: U256,
     pub votes: u64,
     pub created_at: u64,
@@ -96,13 +96,14 @@ impl AppState {
     }
 
     pub fn get_votes_total(&self) -> U256 {
-        self.wallets.values().map(|w| w.voting_power).fold(U256::from(0), |a, b| {
-            a + b
-        })
+        self.wallets
+            .values()
+            .map(|w| w.voting_power)
+            .fold(U256::from(0), |a, b| a + b)
     }
 
     pub fn update(&mut self, e: OnChainEvent, log: web3::types::Log) -> () {
-        println!("update {:?}", e);
+        // println!("update {:?}", e);
 
         log.block_number.map(|block_number| {
             self.last_block = block_number.as_u64();
@@ -130,6 +131,113 @@ impl AppState {
             }
         });
         match &e.entry {
+            Api3::Deposited {
+                user,
+                amount,
+                user_unstaked: _,
+            } => {
+                if let Some(w) = self.wallets.get_mut(&user) {
+                    w.deposited += *amount;
+                }
+            }
+            Api3::DepositedV0 { user, amount } => {
+                if let Some(w) = self.wallets.get_mut(&user) {
+                    w.deposited += *amount;
+                }
+            }
+            Api3::Withdrawn {
+                user,
+                amount,
+                user_unstaked: _,
+            } => {
+                if let Some(w) = self.wallets.get_mut(&user) {
+                    w.withdrawn += *amount;
+                    //todo: losing voting power
+                }
+            }
+            Api3::WithdrawnV0 { user, amount } => {
+                if let Some(w) = self.wallets.get_mut(&user) {
+                    w.withdrawn += *amount;
+                    //todo: losing voting power
+                }
+            }
+            Api3::Staked {
+                user,
+                amount,
+                minted_shares,
+                user_unstaked: _,
+                user_shares: _,
+                total_shares: _,
+                total_stake: _,
+            } => {
+                if let Some(w) = self.wallets.get_mut(&user) {
+                    w.staked += *amount;
+                    w.voting_power += *minted_shares;
+                }
+            }
+            Api3::StakedV0 {
+                user,
+                amount,
+                minted_shares,
+            } => {
+                if let Some(w) = self.wallets.get_mut(&user) {
+                    w.staked += *amount;
+                    w.voting_power += *minted_shares;
+                }
+            }
+            Api3::Delegated {
+                from,
+                to,
+                shares,
+                total_delegated_to: _,
+            } => {
+                if let Some(w) = self.wallets.get_mut(&from) {
+                    w.delegated += *shares;
+                    // w.voting_power -= *shares;
+                }
+                if let Some(w) = self.wallets.get_mut(&to) {
+                    // w.voting_power += *shares;
+                }
+            }
+            Api3::DelegatedV0 { from, to, shares } => {
+                println!("update {:?}", e);
+                if let Some(w) = self.wallets.get_mut(&from) {
+                    println!("from {:?}", w);
+                    w.delegated += *shares;
+                    // w.voting_power -= *shares;
+                }
+                if let Some(w) = self.wallets.get_mut(&to) {
+                    println!("to {:?}", w);
+                    // w.voting_power += *shares;
+                }
+            }
+            Api3::Undelegated {
+                from,
+                to,
+                shares,
+                total_delegated_to: _,
+            } => {
+                if let Some(w) = self.wallets.get_mut(&from) {
+                    w.delegated -= *shares;
+                    // w.voting_power += *shares;
+                }
+                if let Some(w) = self.wallets.get_mut(&to) {
+                    // w.voting_power -= *shares;
+                }
+            }
+            Api3::UndelegatedV0 { from, to, shares } => {
+                println!("update {:?}", e);
+                if let Some(w) = self.wallets.get_mut(&from) {
+                    println!("from {:?}", w);
+                    w.delegated -= *shares;
+                    // w.voting_power += *shares;
+                }
+                if let Some(w) = self.wallets.get_mut(&to) {
+                    println!("to {:?}", w);
+                    // w.voting_power -= *shares;
+                }
+            }
+
             Api3::StartVote {
                 agent,
                 vote_id,
@@ -153,7 +261,7 @@ impl AppState {
                     executed: false,
                 };
                 self.votings.insert(v.as_u64(), v);
-            },
+            }
             Api3::CastVote {
                 agent,
                 vote_id,
@@ -171,11 +279,8 @@ impl AppState {
                         v.list_no.push(voter.clone())
                     }
                 }
-            },
-            Api3::ExecuteVote {
-                agent,
-                vote_id,
-            } => {
+            }
+            Api3::ExecuteVote { agent, vote_id } => {
                 let key = crate::events::voting_to_u64(agent, vote_id.as_u64());
                 if let Some(v) = self.votings.get_mut(&key) {
                     v.executed = true;

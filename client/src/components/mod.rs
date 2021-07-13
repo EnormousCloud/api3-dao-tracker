@@ -5,5 +5,5 @@ pub mod header;
 use sauron::prelude::*;
 
 pub fn err_box<T>(msg: &str) -> Node<T> {
-    div(vec![class("error-box")],vec![text(msg)])    
+    div(vec![class("error-box")], vec![text(msg)])
 }

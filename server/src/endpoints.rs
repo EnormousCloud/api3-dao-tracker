@@ -102,7 +102,7 @@ pub fn routes(
             warp::reply::json(&wrap_result(&state.app.votings))
         }
     });
-    let api_voting = warp::path!("votings" / String).map({
+    let api_voting = warp::path!("api" / "votings" / String).map({
         let state_rc = state.clone();
         move |id: String| {
             let (agent, vote_id) = client::events::voting_from_str(&id);

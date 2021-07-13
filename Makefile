@@ -1,6 +1,10 @@
 build:
 	docker build -t api3tracker .
 
+fmt:
+	cd ./client && cargo fmt
+	cd ./server && cargo fmt
+	
 # for the case if the local instance is running (geth --syncmode=light)
 run:
 	chmod 0666 ${HOME}/.ethereum/geth.ipc

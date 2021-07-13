@@ -1,6 +1,6 @@
+use crate::components::err_box;
 use crate::components::footer;
 use crate::components::header;
-use crate::components::err_box;
 use crate::state::AppState;
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -29,11 +29,12 @@ impl Component<Msg> for Screen {
                         match self.state.wallets.get(&self.addr) {
                             Some(w) => pre(
                                 vec![class("wallets-details")],
-                                vec![text(format!("{:?}", serde_json::to_string(&w).unwrap()))]
+                                vec![text(format!("{}", serde_json::to_string_pretty(&w).unwrap()))]
                             ),
                             None => err_box("member wallet was not found")
                         }
                     }
+                    <h2>"Events Log"</h2>
                     {
                         match self.state.wallets_events.get(&self.addr) {
                             Some(w) => ol(
@@ -41,7 +42,9 @@ impl Component<Msg> for Screen {
                                 w.iter().map(|v| {
                                     node!{
                                         <li class="event">
-                                            { text(format!("{:?}", v)) }
+                                            <pre>
+                                                { text(format!("{}", serde_json::to_string_pretty(&v).unwrap())) }
+                                            </pre>
                                         </li>
                                     }
                                 }).collect::<Vec<Node<Msg>>>()
