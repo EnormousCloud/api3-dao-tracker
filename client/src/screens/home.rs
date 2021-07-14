@@ -31,14 +31,29 @@ impl Component<Msg> for Screen {
                         <h1>"API3 DAO Tracker"</h1>
                         <h2>"on-chain analytics"</h2>
                         <div class="stats-row">
-                        { text(format!("{} DAO members", self.state.wallets.len())) }
+                            <a href="./wallets">
+                                { text(format!("{}", self.state.wallets.len())) }
+                                " DAO members"
+                            </a>
                         </div>
                         <div class="stats-row">
-                        { text(format!("{} DAO votings", self.state.votings.len())) }
+                            <a href="./votings">
+                                { text(format!("{}", self.state.votings.len())) }
+                                " DAO votings"
+                            </a>
                         </div>
                         <div class="stats-row">
-                        { text(format!("last event at block {}", self.state.last_block)) }
+                            { text(format!("last block {}", self.state.last_block)) }
                         </div>
+                        {if let Some(last_epoch) = self.state.last_epoch {
+                            node! {
+                                <div class="stats-row">
+                                    { text(format!("last epoch {}", last_epoch)) }
+                                </div>  
+                            }
+                        } else {
+                            div(vec![],vec![])
+                        }}
                     </div>
                 </div>
                 { footer::render() }

@@ -7,16 +7,22 @@ body, html {
 }
     
   header {
+    position: fixed;
+    top: 0px;
+    left: 0px;
     background: var(--color-body);
     box-shadow: 0px 2px 4px #888;
     width: 100%;
   }
+
   .inner {
     margin: 0px auto;
   }
-  footer::before {
-    content: ' ';
-    height: 100px;
+  
+  main > div > div.inner,
+  body > div > div.inner {
+    padding-top: 70px;
+    padding-bottom: 50px;
   }
   .inner .mid {
     flex: 1;

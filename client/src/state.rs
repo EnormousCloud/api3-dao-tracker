@@ -57,6 +57,7 @@ pub struct Wallet {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ens: Option<String>,
     pub deposited: U256,
+    #[serde(skip_serializing_if = "U256::is_zero")]
     pub withdrawn: U256,
     pub staked: U256,
     pub shares: U256,
@@ -74,10 +75,19 @@ impl Wallet {
     pub fn update_voting_power(&mut self) {
         self.voting_power = {
             let mut sum = self.shares;
+            sum += self.delegated.values().clone().fold(U256::from(0), |a,b| a + b);
             if let Some(delegates) = &self.delegates {
-                sum -= delegates.shares;
+                if sum >= delegates.shares {
+                    sum -= delegates.shares;
+                } else {
+                    warn!("wallet {:?} delegated {:?}, while owning {:?}", 
+                        self.address, delegates.shares, self.shares)
+                }
+                if self.delegated.len() > 0 {
+                    warn!("wallet {:?} delegates but delegating", self.address);
+                }
             }
-            sum + self.delegated.values().clone().fold(U256::from(0), |a,b| a + b)
+            sum
         };
     }
 }
@@ -86,6 +96,9 @@ impl Wallet {
 pub struct AppState {
     /// the block of the last event
     pub last_block: u64,
+    /// the last epoch
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_epoch: Option<u64>,
     /// map of votings
     pub votings: BTreeMap<u64, Voting>,
     /// log of events, grouped by votings
@@ -102,6 +115,7 @@ impl AppState {
     pub fn new() -> Self {
         Self {
             last_block: 0,
+            last_epoch: None,
             votings: BTreeMap::new(),
             wallets: BTreeMap::new(),
             votings_events: BTreeMap::new(),
@@ -131,38 +145,46 @@ impl AppState {
             .fold(U256::from(0), |a, b| a + b)
     }
 
-    pub fn delegate(&mut self, from: &H160, to: &H160, shares: U256) -> anyhow::Result<()> {
-        // update record of "from"-wallet
-        let w_from = {
-            let w_from = match self.wallets.get_mut(from) {
-                Some(x) => x,
-                None => return Err(anyhow::Error::msg("invalid from- wallet")),
-            };
-            if w_from.voting_power < shares {
-                warn!("wallet {:?}", w_from);
-                return Err(anyhow::Error::msg(format!(
-                    "voting power {:?} is less than delegated",
-                    w_from.voting_power
-                )));
-            }
-            w_from.delegates = Some(Delegation {
-                address: to.clone(),
-                shares,
-            });
-            w_from.update_voting_power();
-            w_from.clone()
-        }; // release first wallet as all modifications are done, immutable now
+    pub fn get_staked_total(&self) -> U256 {
+        self.wallets
+            .values()
+            .map(|w| w.staked)
+            .fold(U256::from(0), |a, b| a + b)
+    }
 
-        if let Some(existing) = &w_from.delegates {
+    pub fn delegate(&mut self, from: &H160, to: &H160, shares: U256) -> anyhow::Result<()> {
+        let (address, delegates) = match self.wallets.get(from) {
+            Some(x) => (x.clone().address, x.clone().delegates),
+            None => return Err(anyhow::Error::msg("invalid from- wallet")),
+        };
+        // info!("delegated from={:?}, to: {:?}, shares: {:?}", from, to, shares);
+        if let Some(existing) = &delegates {
             // remove existing delegation
             match self.wallets.get_mut(&existing.address) {
                 Some(old) => {
-                    let _ = old.delegated.remove(&w_from.address);
+                    let _ = old.delegated.remove(&address);
                     old.update_voting_power();
                 }
                 None => return Err(anyhow::Error::msg("no record of delegation wallet")),
             };
         }
+
+        let w_from = match self.wallets.get_mut(from) {
+            Some(x) => x,
+            None => return Err(anyhow::Error::msg("invalid from- wallet")),
+        };
+        if w_from.shares < shares {
+            warn!("wallet {:?}", w_from);
+            return Err(anyhow::Error::msg(format!(
+                "shares amount {:?} is less than delegated",
+                w_from.shares
+            )));
+        }
+        w_from.delegates = Some(Delegation {
+            address: to.clone(),
+            shares,
+        });
+        w_from.update_voting_power();
 
         // update record of "to"-wallet
         let w_to = match self.wallets.get_mut(to) {
@@ -170,30 +192,17 @@ impl AppState {
             None => return Err(anyhow::Error::msg("invalid to- wallet")),
         };
 
-        w_to.delegated.insert(w_from.address, shares);
+        w_to.delegated.insert(address, shares);
         w_to.update_voting_power();
         Ok(())
     }
 
     pub fn undelegate(&mut self, from: &H160, to: &H160, shares: U256) -> anyhow::Result<()> {
-        let w_from = {
-            let w_from = match self.wallets.get_mut(from) {
-                Some(x) => x,
-                None => return Err(anyhow::Error::msg("invalid from- wallet")),
-            };
-            if w_from.shares < shares {
-                warn!("wallet {:?}", w_from);
-                return Err(anyhow::Error::msg(format!(
-                    "shares amount {:?} is less than undelegated",
-                    w_from.shares
-                )));
-            }
-            w_from.delegates = None;
-            w_from.update_voting_power();
-            w_from.clone()
-        }; // release first wallet as all modifications are done, immutable now
-
-        if let Some(existing) = &w_from.delegates {
+        let delegates = match self.wallets.get(from) {
+            Some(x) => x.clone().delegates,
+            None => return Err(anyhow::Error::msg("invalid from- wallet")),
+        };
+        if let Some(existing) = &delegates {
             if existing.address != *to {
                 return Err(anyhow::Error::msg("undelegate to doesn't match"));
             }
@@ -206,6 +215,45 @@ impl AppState {
                 None => return Err(anyhow::Error::msg("no record of delegation wallet")),
             };
         }
+        
+        let w_from = match self.wallets.get_mut(from) {
+            Some(x) => x,
+            None => return Err(anyhow::Error::msg("invalid from- wallet")),
+        };
+        if w_from.shares < shares {
+            warn!("wallet {:?}", w_from);
+            return Err(anyhow::Error::msg(format!(
+                "shares amount {:?} is less than undelegated",
+                w_from.shares
+            )));
+        }
+        w_from.delegates = None;
+        w_from.update_voting_power();
+        Ok(())
+    }
+
+    pub fn unstake(&mut self, user: &H160, amount: &U256, shares: &U256) -> anyhow::Result<()> {
+        // undelegate?
+        if let Some(w) = self.wallets.get_mut(&user) {
+            if w.staked < *amount {
+                warn!("wallet {:?}", w);
+                return Err(anyhow::Error::msg(format!(
+                    "staked amount {:?} is less than unstaked",
+                    w.staked
+                )));
+            }
+            if w.shares < *shares {
+                warn!("wallet {:?}", w);
+                return Err(anyhow::Error::msg(format!(
+                    "shares amount {:?} is less than unstaked",
+                    w.shares
+                )));
+            }
+            w.delegates = None; // removing delegations
+            w.staked -= *amount;
+            w.shares -= *shares;
+            w.update_voting_power();
+        }
         Ok(())
     }
 
@@ -216,6 +264,12 @@ impl AppState {
             self.last_block = block_number.as_u64();
         });
         self.events.push(e.clone());
+
+        // if e.entry.is_broadcast() {
+        //     self.wallets_events.iter_mut().for_each(|(_, w)| {
+        //         w.push(e.clone());
+        //     });
+        // }
 
         e.entry.get_wallets().iter().for_each(|wallet| {
             if !self.wallets_events.contains_key(&wallet) {
@@ -240,6 +294,21 @@ impl AppState {
             }
         });
         match &e.entry {
+            Api3::MintedReward {
+                epoch_index,
+                amount: _,
+                new_apr: _,
+                total_stake: _,
+            } => {
+                self.last_epoch = Some(epoch_index.as_u64());
+            }
+            Api3::MintedRewardV0 {
+                epoch_index,
+                amount: _,
+                new_apr: _,
+            } => {
+                self.last_epoch = Some(epoch_index.as_u64());
+            }
             Api3::Deposited {
                 user,
                 amount,
@@ -279,7 +348,8 @@ impl AppState {
             } => {
                 if let Some(w) = self.wallets.get_mut(&user) {
                     w.staked += *amount;
-                    w.voting_power += *minted_shares;
+                    w.shares += *minted_shares;
+                    w.update_voting_power();
                 }
             }
             Api3::StakedV0 {
@@ -289,9 +359,34 @@ impl AppState {
             } => {
                 if let Some(w) = self.wallets.get_mut(&user) {
                     w.staked += *amount;
-                    w.voting_power += *minted_shares;
+                    w.shares += *minted_shares;
+                    w.update_voting_power();
                 }
             }
+
+            // TODO: unstaked cases
+            Api3::ScheduledUnstake {
+                user,
+                amount,
+                shares,
+                scheduled_for: _,
+                user_shares: _,
+            } => {
+                // if let Err(err) = self.unstake(user, amount, shares) {
+                //     warn!("{:?} {:?}", err, e);
+                // }
+            }
+            Api3::ScheduledUnstakeV0 {
+                user,
+                amount,
+                shares,
+                scheduled_for: _,
+            } => {
+                // if let Err(err) = self.unstake(user, amount, shares) {
+                //     warn!("{:?} {:?}", err, e);
+                // }
+            }
+            
             Api3::Delegated {
                 from,
                 to,

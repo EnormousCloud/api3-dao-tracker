@@ -214,6 +214,23 @@ pub enum Api3 {
 }
 
 impl Api3 {
+    pub fn is_broadcast(&self) -> bool {
+        match &self {
+            Self::MintedReward{
+                epoch_index: _,
+                amount: _,
+                new_apr: _,
+                total_stake: _,
+            } => true,
+            Self::MintedRewardV0 {
+                epoch_index: _,
+                amount: _,
+                new_apr: _,
+            } => true,
+            _ => false,
+        }
+    }
+
     pub fn get_wallets(&self) -> Vec<H160> {
         let mut res: Vec<H160> = vec![];
         match self {

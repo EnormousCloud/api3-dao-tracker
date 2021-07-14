@@ -2,6 +2,9 @@ use web3::types::U256;
 
 pub fn amount(src: U256, decimals: usize) -> String {
     let str = format!("{}", src);
+    if src == U256::from(0) {
+        return "0".to_owned();
+    }
     if str.len() > decimals {
         let before_dot: String = str.chars().take(str.len() - decimals).collect();
         let after_dot: String = str.chars().rev().take(decimals).collect();

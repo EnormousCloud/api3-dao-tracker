@@ -168,7 +168,6 @@ impl Scanner {
         loop {
             tracing::info!("waiting for entries");
             let l: web3::types::Log = logs_stream.next().await.unwrap().unwrap();
-            tracing::info!("entry {:?}", l);
             if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
                 let ts: U256 = web3
                     .eth()

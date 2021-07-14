@@ -18,7 +18,8 @@ impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
         let mut sorted: Vec<Wallet> = self.state.wallets.values().cloned().collect();
         sorted.sort_by_key(|w| std::cmp::Reverse(w.voting_power));
-        let total = self.state.get_shares_total();
+        let total_shares = self.state.get_shares_total();
+        let total_votes = self.state.get_votes_total();
         node! {
             <div class="screen-wallets">
                 { header::render("/wallets") }
@@ -26,9 +27,16 @@ impl Component<Msg> for Screen {
                     <h1>{text(format!("API3 DAO: {} Wallets", self.state.wallets.len()))}</h1>
                     <h3>
                         "Total Shares"
-                        { text(nice::amount(total, 18)) }
+                        { text(nice::amount(total_shares, 18)) }
+                        { if total_votes == total_shares {
+                            span(vec![], vec![])
+                          } else {
+                            span(vec![], vec![
+                                text(format!("  Power: {}", nice::amount(total_votes, 18)))
+                            ])
+                          }
+                        }
                     </h3>
-                    <div class="warn">"Votes delegation is not counted. Below is shares ownership distribution"</div>
                     {ol(vec
                         ![class("wallets-list")],
                         sorted.iter().map(|w: &Wallet| {
@@ -40,13 +48,29 @@ impl Component<Msg> for Screen {
                                         </a>
                                         " "
                                         <span class="amt">
-                                            { text(nice::amount(w.shares, 18)) }
+                                            { text(nice::amount(w.voting_power, 18)) }
                                         </span>
                                         " "
                                         <span class="pct">
                                             "("
-                                            {text(nice::pct_of(w.shares, total, 18))}
-                                            "%)"
+                                            {text(nice::pct_of(w.voting_power, total_votes, 18))}
+                                            "%"
+                                            {
+                                                span(
+                                                    vec![],
+                                                    if w.voting_power != w.shares {
+                                                        vec![
+                                                            text(", owning "),
+                                                            text(nice::pct_of(w.shares, total_votes, 18)),
+                                                            text("%")
+                                                        ]
+                                                    } else {
+                                                        vec![text("")]
+                                                    },
+                                                
+                                                )                                               
+                                            }
+                                            ")"
                                         </span>
                                     </div>
                                 </li>
