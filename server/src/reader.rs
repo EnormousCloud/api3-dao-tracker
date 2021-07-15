@@ -1,6 +1,7 @@
 use client::events::{Api3, VotingAgent};
 use client::state::OnChainEvent;
 use futures::StreamExt;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tracing::debug;
@@ -8,6 +9,9 @@ use web3::api::Eth;
 use web3::transports::{Either, Http, Ipc};
 use web3::types::{BlockId, FilterBuilder, Log, H160, U256};
 use web3::{Transport, Web3};
+use std::fs::File;
+use std::io::Read;
+use crc32fast::Hasher;
 
 pub trait EventHandler {
     fn on(&mut self, entry: OnChainEvent, l: Log) -> ();
@@ -59,6 +63,7 @@ pub async fn get_batches<T: Transport>(
 
 #[derive(Debug, Clone)]
 pub struct Scanner {
+    cache_dir: String,
     addr_watched: Vec<H160>,
     addr_primary: Vec<H160>,
     addr_secondary: Vec<H160>,
@@ -68,6 +73,7 @@ pub struct Scanner {
 
 impl Scanner {
     pub fn new(
+        cache_dir: &str,
         addr_primary: Vec<H160>,
         addr_secondary: Vec<H160>,
         addr: Vec<H160>,
@@ -83,6 +89,7 @@ impl Scanner {
             .for_each(|x| addr_watched.push(x.clone()));
 
         Self {
+            cache_dir: cache_dir.to_owned(),
             addr_watched,
             addr_primary,
             addr_secondary,
@@ -101,6 +108,36 @@ impl Scanner {
         v
     }
 
+    pub fn cache_fn(&self, chain_id: u64, b: &BlockBatch) -> String {
+        let mut hasher = Hasher::new();
+        self.addr_watched.iter().for_each(|a| {
+            hasher.update(format!("{:?}",a).as_bytes());
+        });
+        let checksum = hasher.finalize();
+        format!("{}/chain{}-{}-{}-{}.json", self.cache_dir, chain_id, b.from, b.to, checksum)
+    }
+
+    pub fn has_logs(&self, chain_id: u64, b: &BlockBatch) -> bool {
+        if self.cache_dir.len() == 0 {
+            return false
+        }
+        Path::new(self.cache_fn(chain_id, b).as_str()).exists()
+    }
+
+    pub async fn get_logs(&self, chain_id: u64, b: &BlockBatch) -> anyhow::Result<Vec<Log>> {
+        let mut f = File::open(self.cache_fn(chain_id, &b)).expect("Unable to open file");
+        let mut data = String::new();
+        f.read_to_string(&mut data).expect("Reading failure");
+        let logs: Vec<Log> = serde_json::from_str(&data).expect("JSON parsing failure");
+        Ok(logs)
+    }
+    
+    pub async fn save_logs(&self, chain_id: u64, b: &BlockBatch, logs: &Vec<Log>) -> anyhow::Result<()> {
+        let f = File::create(self.cache_fn(chain_id, &b)).expect("Unable to create file");
+        serde_json::to_writer(&f, logs)?;
+        Ok(())
+    }
+
     pub async fn scan<T>(
         &self,
         web3: &Web3<T>,
@@ -109,15 +146,23 @@ impl Scanner {
     where
         T: Transport,
     {
+        let chain_id = web3.eth().chain_id().await?.as_u64();
         let mut last_block = self.genesis_block;
         for b in get_batches(web3.eth(), self.genesis_block, self.batch_size).await {
-            tracing::debug!("scanning blocks {}..{}", b.from, b.to);
-            let filter = FilterBuilder::default()
-                .from_block(b.from.into())
-                .to_block(b.to.into())
-                .address(self.addr_watched.clone())
-                .build();
-            let logs = web3.eth().logs(filter).await?;
+            let logs: Vec<Log> = if self.has_logs(chain_id, &b) {
+                tracing::debug!("pulling cached blocks {}..{} chain_id {}", b.from, b.to, chain_id);
+                self.get_logs(chain_id, &b).await?
+            } else {            
+                tracing::debug!("scanning blocks {}..{}", b.from, b.to);
+                let filter = FilterBuilder::default()
+                    .from_block(b.from.into())
+                    .to_block(b.to.into())
+                    .address(self.addr_watched.clone())
+                    .build();
+                let logs: Vec<Log> = web3.eth().logs(filter).await?;
+                self.save_logs(chain_id, &b, &logs).await?;
+                logs
+            };
             for l in logs {
                 if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
                     let ts: U256 = web3

@@ -11,6 +11,7 @@ cached = { version = "0.23" }
 chrono = { version = "0.4", features = ["serde"] }
 client = { path = "../client" }
 clap = { version = "2.33", default-features = false }
+crc32fast = "1.2.1"
 dotenv = "0.15"
 futures = "0.3.13"
 hex = "0.4"

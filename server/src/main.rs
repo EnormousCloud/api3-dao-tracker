@@ -151,6 +151,7 @@ async fn main() -> anyhow::Result<()> {
     let web3 = web3::Web3::new(transport);
 
     let scanner = reader::Scanner::new(
+        args.cache_dir.as_str(),
         vec![addr_voting1, addr_agent1],
         vec![addr_voting2, addr_agent2],
         vec![addr_pool, addr_convenience],

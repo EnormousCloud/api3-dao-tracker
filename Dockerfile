@@ -18,8 +18,10 @@ ENV TZ=Etc/UTC \
     APP_USER=appuser \
     LOG_LEVEL=api3tracker=debug,info \
     STATIC_DIR=/usr/src/app/dist \
+    CACHE_DIR=/cache \
     RUST_BACKTRACE=1
 RUN addgroup -S $APP_USER && adduser -S -g $APP_USER $APP_USER
+VOLUME /cache
 COPY --from=builder /home/rust/src/api3tracker/target/x86_64-unknown-linux-musl/release/api3tracker /usr/src/app/api3tracker
 COPY ./client/dist /usr/src/app/dist
 RUN chown -R $APP_USER:$APP_USER /usr/src/app

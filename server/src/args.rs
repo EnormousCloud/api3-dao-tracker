@@ -15,9 +15,12 @@ pub struct Args {
     /// Net listening address of HTTP server
     #[structopt(long, default_value = "0.0.0.0:8000", env = "LISTEN")]
     pub listen: String,
-    // Static folder to serve web client files
+    /// Static folder to serve web client files
     #[structopt(long, default_value = "./../client/dist", env = "STATIC_DIR")]
     pub static_dir: String,
+    /// Cache folder to store responses from ETH to avoid scan
+    #[structopt(long, default_value = "", env = "CACHE_DIR")]
+    pub cache_dir: String,
     /// Ethereum JSON+RPC HTTP address
     #[structopt(long, default_value = "/root/.ethereum/geth.ipc", env = "RPC_ENDPOINT")]
     pub rpc_endpoint: String,
