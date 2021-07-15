@@ -133,6 +133,9 @@ impl Scanner {
     }
     
     pub async fn save_logs(&self, chain_id: u64, b: &BlockBatch, logs: &Vec<Log>) -> anyhow::Result<()> {
+        if self.cache_dir.len() == 0 {
+            return Ok(());
+        }
         let f = File::create(self.cache_fn(chain_id, &b)).expect("Unable to create file");
         serde_json::to_writer(&f, logs)?;
         Ok(())
