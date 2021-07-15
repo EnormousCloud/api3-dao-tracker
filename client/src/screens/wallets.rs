@@ -67,8 +67,8 @@ impl Component<Msg> for Screen {
                                                     } else {
                                                         vec![text("")]
                                                     },
-                                                
-                                                )                                               
+
+                                                )
                                             }
                                             ")"
                                         </span>

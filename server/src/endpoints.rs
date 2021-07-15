@@ -265,9 +265,7 @@ pub fn routes_loading(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let dir = static_dir.clone();
     let liveness = warp::path!("_liveness").map(|| format!("# API3 DAO Tracker"));
-    liveness.or(warp::get()).map({
-        move |_| {
-            warp::reply::html(LOADING_HTML)
-        }
-    })
+    liveness
+        .or(warp::get())
+        .map({ move |_| warp::reply::html(LOADING_HTML) })
 }

@@ -216,7 +216,7 @@ pub enum Api3 {
 impl Api3 {
     pub fn is_broadcast(&self) -> bool {
         match &self {
-            Self::MintedReward{
+            Self::MintedReward {
                 epoch_index: _,
                 amount: _,
                 new_apr: _,

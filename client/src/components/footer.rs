@@ -6,7 +6,7 @@ pub fn render<T>() -> Node<T> {
             <div class="inner">
                 <div class="copyright">
                     "© 2021 Enormous Cloud | "
-                    <a 
+                    <a
                         target="_blank"
                         href="https://github.com/EnormousCloud/api3-dao-tracker"
                     >

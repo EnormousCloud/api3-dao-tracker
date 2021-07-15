@@ -5,27 +5,25 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tracing::debug;
 use web3::api::Eth;
-use web3::types::{BlockId, FilterBuilder, H160, U256};
-use web3::Transport;
+use web3::transports::{Either, Http, Ipc};
+use web3::types::{BlockId, FilterBuilder, Log, H160, U256};
+use web3::{Transport, Web3};
 
 pub trait EventHandler {
-    fn on(&mut self, entry: OnChainEvent, l: web3::types::Log) -> ();
+    fn on(&mut self, entry: OnChainEvent, l: Log) -> ();
 }
 
-pub async fn get_transport(
-    source: String,
-) -> web3::transports::Either<web3::transports::Http, web3::transports::Ipc> {
+pub async fn get_transport(source: String) -> Either<Http, Ipc> {
     if source.contains(".ipc") {
-        let transport = web3::transports::Ipc::new(source.as_str())
+        let transport = Ipc::new(source.as_str())
             .await
             .expect("Failed to connect to IPC file");
         debug!("Connected to {:?}", source);
-        web3::transports::Either::Right(transport)
+        Either::Right(transport)
     } else {
-        let transport =
-            web3::transports::Http::new(source.as_str()).expect("Invalid RPC HTTP endpoint");
+        let transport = Http::new(source.as_str()).expect("Invalid RPC HTTP endpoint");
         debug!("Connecting to {:?}", source);
-        web3::transports::Either::Left(transport)
+        Either::Left(transport)
     }
 }
 
@@ -105,11 +103,11 @@ impl Scanner {
 
     pub async fn scan<T>(
         &self,
-        web3: &web3::Web3<T>,
+        web3: &Web3<T>,
         handler: &mut impl EventHandler,
     ) -> anyhow::Result<u64>
     where
-        T: web3::Transport,
+        T: Transport,
     {
         let mut last_block = self.genesis_block;
         for b in get_batches(web3.eth(), self.genesis_block, self.batch_size).await {
@@ -148,15 +146,12 @@ impl Scanner {
     }
 
     // continuously watch incoming blocks
-    pub async fn watch<T>(
+    pub async fn watch_ipc(
         &self,
-        web3: &web3::Web3<T>,
+        web3: &Web3<Ipc>,
         from_block: u64,
         handler_mux: Arc<Mutex<impl EventHandler>>,
-    ) -> anyhow::Result<()>
-    where
-        T: web3::Transport,
-    {
+    ) -> anyhow::Result<()> {
         tracing::info!("listening to blocks from {} in real-time", from_block);
         let filter = FilterBuilder::default()
             .from_block(from_block.into())
@@ -167,7 +162,7 @@ impl Scanner {
         futures::pin_mut!(logs_stream);
         loop {
             tracing::info!("waiting for entries");
-            let l: web3::types::Log = logs_stream.next().await.unwrap().unwrap();
+            let l: Log = logs_stream.next().await.unwrap().unwrap();
             if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
                 let ts: U256 = web3
                     .eth()

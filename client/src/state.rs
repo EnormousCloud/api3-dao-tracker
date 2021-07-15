@@ -75,13 +75,19 @@ impl Wallet {
     pub fn update_voting_power(&mut self) {
         self.voting_power = {
             let mut sum = self.shares;
-            sum += self.delegated.values().clone().fold(U256::from(0), |a,b| a + b);
+            sum += self
+                .delegated
+                .values()
+                .clone()
+                .fold(U256::from(0), |a, b| a + b);
             if let Some(delegates) = &self.delegates {
                 if sum >= delegates.shares {
                     sum -= delegates.shares;
                 } else {
-                    warn!("wallet {:?} delegated {:?}, while owning {:?}", 
-                        self.address, delegates.shares, self.shares)
+                    warn!(
+                        "wallet {:?} delegated {:?}, while owning {:?}",
+                        self.address, delegates.shares, self.shares
+                    )
                 }
                 if self.delegated.len() > 0 {
                     warn!("wallet {:?} delegates but delegating", self.address);
@@ -215,7 +221,7 @@ impl AppState {
                 None => return Err(anyhow::Error::msg("no record of delegation wallet")),
             };
         }
-        
+
         let w_from = match self.wallets.get_mut(from) {
             Some(x) => x,
             None => return Err(anyhow::Error::msg("invalid from- wallet")),
@@ -386,7 +392,7 @@ impl AppState {
                 //     warn!("{:?} {:?}", err, e);
                 // }
             }
-            
+
             Api3::Delegated {
                 from,
                 to,

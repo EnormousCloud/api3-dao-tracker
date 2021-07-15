@@ -49,7 +49,7 @@ impl Component<Msg> for Screen {
                             node! {
                                 <div class="stats-row">
                                     { text(format!("last epoch {}", last_epoch)) }
-                                </div>  
+                                </div>
                             }
                         } else {
                             div(vec![],vec![])
