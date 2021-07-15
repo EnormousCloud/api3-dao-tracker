@@ -201,3 +201,73 @@ pub fn routes(
     let liveness = warp::path!("_liveness").map(|| format!("# API3 DAO Tracker"));
     liveness.or(api).or(pages)
 }
+
+const LOADING_HTML: &'static str = r#"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+  <title>API3 DAO Tracker</title>
+  <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0" />
+  <meta name="description" content="API3 DAO: shares, votings, onchain events analytics" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="API3 DAO Tracker" />
+  <meta property="og:description" content="API3 DAO Tracker" />
+  <meta property="og:url" content="https://enormous.cloud/dao/api3/tracker" />
+  <meta property="og:site_name" content="Enormous Cloud" />
+  <meta property="og:image" content="https://enormous.cloud/favicon-17b88549a4840abb.jpg" />
+  <meta property="og:image:width" content="64" />
+  <meta property="og:image:height" content="64" />
+  <link rel="icon" href="https://enormous.cloud/favicon-17b88549a4840abb.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" /> 
+
+  <style id="color-theme" class="dark" type="text/css">
+    :root {
+    --color-bk: #333333;
+    --color-bk-highlight: #666;
+    --color-text: #ddd;
+    --color-link: #ffe;
+    --color-accent: lightblue;
+    --color-body: #000;
+    --color-well: #666;
+    --color-error: #db3742;
+    --color-success: #50b83c;
+    --color-success-dark: #329b1e;
+    --color-grey: #8c8d9c;
+    --color-grey-light: #ced3dc;
+    }
+  </style>
+  <style type="text/css">
+    body, html {
+      font-family: Roboto, sans;
+      background: var(--color-bk);
+      color: var(--color-text);
+    }
+    a {
+      color: var(--color-link);
+    }
+  </style>
+</head>
+<body>
+  <center>
+    <h1>API3 DAO Tracker is reading blockchain data</h1>
+    <div>Please wait, it takes a few minutes for the service to be launched</div>
+  </center>
+</body>
+</html>
+"#;
+
+pub fn routes_loading(
+    static_dir: String,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    let dir = static_dir.clone();
+    let liveness = warp::path!("_liveness").map(|| format!("# API3 DAO Tracker"));
+    liveness.or(warp::get()).map({
+        move |_| {
+            warp::reply::html(LOADING_HTML)
+        }
+    })
+}

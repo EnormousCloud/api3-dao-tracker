@@ -18,6 +18,7 @@ use warp::ws::{Message, WebSocket};
 use warp::Filter;
 use web3::types::H160;
 
+
 static NEXT_ID: AtomicUsize = AtomicUsize::new(1);
 type Subscribers = Arc<RwLock<HashMap<usize, mpsc::UnboundedSender<Result<Message, warp::Error>>>>>;
 
@@ -158,6 +159,16 @@ async fn main() -> anyhow::Result<()> {
         args.rpc_batch_size,
     );
 
+    // starting a "loading" only server 
+    let socket_addr: std::net::SocketAddr = args.listen.parse().expect("invalid bind to listen");
+    let static_dir = args.static_dir.clone();
+    let loading_server = tokio::spawn(async move {
+        let routes = endpoints::routes_loading(static_dir);
+        warp::serve(routes.with(warp::trace::request()))
+            .run(socket_addr)
+            .await;
+    });
+
     if let Some(mode) = &args.dump {
         match mode {
             DumpMode::Unknown => {
@@ -191,7 +202,7 @@ async fn main() -> anyhow::Result<()> {
         last_block
     };
 
-    let socket_addr: std::net::SocketAddr = args.listen.parse().expect("invalid bind to listen");
+    loading_server.abort();
     if args.watch {
         // This is unstable so far
         let rc = state.clone();
