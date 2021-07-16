@@ -28,6 +28,8 @@ pub enum Msg {}
 
 impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
+        let prev_epoch = self.state.epoch_index - 1;
+        let last_epoch = self.state.epochs.get(&prev_epoch);
         node! {
             <div class="screen-home">
                 { header::render("") }
@@ -53,54 +55,35 @@ impl Component<Msg> for Screen {
                         } else {
                             no_node()
                         }}
-                        {if let Some(last_epoch) = self.state.last_epoch {
+                        {if let Some(last_epoch) = last_epoch {
                             node! {
-                                <div class="stats-row">
-                                    {
-                                      if let Some(last_minted) = self.state.last_minted {
-                                        text(format!("{} API3 tokens minted", nice::int(nice::dec(last_minted, 18))))
-                                      } else {
-                                        text("")
-                                      }
-                                    }
-                                    "during last epoch"
-                                    { text(nice::int(last_epoch)) }
-                                </div>
-                            }
-                        } else {
-                            no_node()
-                        }}
-                        {if let Some(last_apr) = self.state.last_apr {
-                            node! {
-                                <div class="stats-row">
-                                    { text(format!("APR: {:.2}%", 100.0*last_apr)) }
-                                </div>
-                            }
-                        } else {
-                            no_node()
-                        }}
-                        {if let Some(last_apy) = self.state.last_apy {
-                            node! {
-                                <div class="stats-row">
-                                    { text(format!("APY: {:.2}%", 100.0*last_apy)) }
-                                </div>
-                            }
-                        } else {
-                            no_node()
-                        }}
-
-                        {if let Some(total_stake) = self.state.total_stake {
-                            node! {
-                                <div class="stats-row">
-                                    "Total Stake "
-                                    { text(nice::int(nice::dec(total_stake, 18))) }
+                                <div>
+                                    <div class="stats-row">
+                                        <strong>
+                                            { text(nice::int(nice::dec(last_epoch.minted, 18))) }
+                                        </strong>
+                                        "API3 tokens minted during last epoch"
+                                        { text(nice::int(last_epoch.index)) }
+                                    </div>
+                                    <div class="stats-row">
+                                        { text(format!("Last Epoch APR: {:.2}%", 100.0*last_epoch.apr)) }
+                                    </div>
+                                    <div class="stats-row">
+                                        { text(format!("Last Epoch APY: {:.2}%", 100.0*last_epoch.apy)) }
+                                    </div>
+                                    <div class="stats-row">
+                                        "Last Epoch Stake "
+                                        <strong>
+                                            { text(nice::int(nice::dec(last_epoch.total, 18))) }
+                                        </strong>
+                                    </div>
                                 </div>
                             }
                         } else {
                             no_node()
                         }}
                         <div class="stats-row">
-                            { text("Last processed block")}
+                            { text("Last block with events")}
                             { text(nice::int(self.state.last_block)) }
                         </div>
                     </div>

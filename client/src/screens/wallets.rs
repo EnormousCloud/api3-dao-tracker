@@ -20,6 +20,7 @@ impl Component<Msg> for Screen {
         sorted.sort_by_key(|w| std::cmp::Reverse(w.voting_power));
         let total_shares = self.state.get_shares_total();
         let total_votes = self.state.get_votes_total();
+        let total_minted = self.state.get_minted_total();
         node! {
             <div class="screen-wallets">
                 { header::render("/wallets") }
@@ -37,12 +38,17 @@ impl Component<Msg> for Screen {
                           }
                         }
                     </h3>
+                    <h3>
+                        "Total Minted"
+                        { text(nice::amount(total_minted, 18)) }
+                    </h3>
                     {ol(vec
                         ![class("wallets-list")],
                         sorted.iter().map(|w: &Wallet| {
                             node!{
                                 <li>
                                     <div class="wallet">
+                                        <div>
                                         <a class="addr" href={format!("wallets/{:?}", w.address) }>
                                             { text(format!("{:?}", w.address)) }
                                             {
@@ -60,6 +66,7 @@ impl Component<Msg> for Screen {
                                               }
                                             }
                                         </a>
+                                        </div>
                                         " "
                                         <span class="amt">
                                             { text(nice::amount(w.voting_power, 18)) }

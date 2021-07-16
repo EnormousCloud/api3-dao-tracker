@@ -153,8 +153,8 @@ async fn main() -> anyhow::Result<()> {
 
     let mut addresses = vec![addr_pool, addr_convenience];
     if let Some(addr_supply) = args
-    .address_api3_supply
-    .map(|x| H160::from_str(&x).expect("ADDR_API3_SUPPLY"))
+        .address_api3_supply
+        .map(|x| H160::from_str(&x).expect("ADDR_API3_SUPPLY"))
     {
         addresses.push(addr_supply);
     }
@@ -166,8 +166,7 @@ async fn main() -> anyhow::Result<()> {
         args.genesis_block,
         args.rpc_batch_size,
     );
-    
-    
+
     // starting a "loading" only server
     let socket_addr: std::net::SocketAddr = args.listen.parse().expect("invalid bind to listen");
     let loading_server = tokio::spawn(async move {
@@ -195,7 +194,8 @@ async fn main() -> anyhow::Result<()> {
     // Keep track of all connected users, key is usize, value
     // is a websocket sender.
     let subscribers = Subscribers::default();
-    let state = Arc::new(Mutex::new(State::new(subscribers.clone())));
+    let server_state = State::new(subscribers.clone());
+    let state = Arc::new(Mutex::new(server_state));
 
     // Turn our "state" into a new Filter...
     let subscribers = warp::any().map(move || subscribers.clone());

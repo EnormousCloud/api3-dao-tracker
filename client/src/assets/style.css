@@ -193,3 +193,9 @@ body, html {
   padding-left: 5px;
   padding-right: 5px;
 }
+.pct {
+  white-space: nowrap;
+}
+.amt {
+  padding-left: 10px;
+}

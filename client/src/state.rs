@@ -101,31 +101,64 @@ impl Wallet {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Epoch {
+    /// index of an epoch
+    pub index: u64,
+    /// APR during this epoch
+    pub apr: f64,
+    /// APY, calculated from APR
+    pub apy: f64,
+    /// minted amount in the last MintedReward event
+    pub minted: U256,
+    /// Total stake during the last MintedReward event
+    pub total: U256,
+    /// Staking amount for each wallet
+    pub stake: BTreeMap<H160, U256>,
+}
+
+impl Epoch {
+    pub fn new(
+        index: u64,
+        apr: f64,
+        minted: U256,
+        total_stake: Option<U256>,
+        stake: BTreeMap<H160, U256>,
+    ) -> Self {
+        let total = match total_stake {
+            Some(x) => x,
+            None => stake.values().clone().fold(U256::from(0), |a, b| a + b),
+        };
+        Self {
+            index,
+            apr,
+            apy: (1.0 + apr / 52.0).powf(52.0) - 1.0,
+            minted,
+            total,
+            stake,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppState {
+    /// current epoch index
+    pub epoch_index: u64,
     /// the block of the last event
     pub last_block: u64,
-    /// the last epoch
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub last_epoch: Option<u64>,
-    /// APR after the last MintedReward event
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub last_apr: Option<f64>,
-    /// APY, calculated from APR after the last MintedReward event
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub last_apy: Option<f64>,
-    /// minted amount in the last MintedReward event
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub last_minted: Option<U256>,
-    /// Total stark after the last MintedReward event
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub total_stake: Option<U256>,
+    /// the map of epoch rewards
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub epochs: BTreeMap<u64, Epoch>,
     /// map of votings
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub votings: BTreeMap<u64, Voting>,
     /// log of events, grouped by votings
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub votings_events: BTreeMap<u64, Vec<OnChainEvent>>,
     /// map of wallets
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub wallets: BTreeMap<H160, Wallet>,
     /// log of events, groupped by wallets
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub wallets_events: BTreeMap<H160, Vec<OnChainEvent>>,
     /// list of wallets that are vesting and their balance is excluded from circulating supply
     pub vested: Vec<H160>,
@@ -134,12 +167,9 @@ pub struct AppState {
 impl AppState {
     pub fn new() -> Self {
         Self {
+            epoch_index: 1,
             last_block: 0,
-            last_epoch: None,
-            last_apr: None,
-            last_apy: None,
-            last_minted: None,
-            total_stake: None,
+            epochs: BTreeMap::new(),
             votings: BTreeMap::new(),
             wallets: BTreeMap::new(),
             votings_events: BTreeMap::new(),
@@ -166,6 +196,13 @@ impl AppState {
         self.wallets
             .values()
             .map(|w| w.shares)
+            .fold(U256::from(0), |a, b| a + b)
+    }
+
+    pub fn get_minted_total(&self) -> U256 {
+        self.epochs
+            .values()
+            .map(|epoch| epoch.minted)
             .fold(U256::from(0), |a, b| a + b)
     }
 
@@ -331,13 +368,23 @@ impl AppState {
                 total_stake,
             } => {
                 println!("{:?}", e.entry);
-                self.last_epoch = Some(epoch_index.as_u64());
-                let apr = nice::dec(*new_apr, 14) * 0.0001;
-                let apy = (1.0 + apr / 52.0).powf(52.0) - 1.0;
-                self.last_apr = Some(apr);
-                self.last_apy = Some(apy);
-                self.last_minted = Some(*amount);
-                self.total_stake = Some(*total_stake);
+                let correction: f64 = 52.0 * 7.0 / 365.0;
+                let apr = nice::dec(*new_apr, 14) * correction * 0.0001;
+                let stake: BTreeMap<H160, U256> = self
+                    .wallets
+                    .iter()
+                    .map(|(addr, w)| (*addr, w.staked))
+                    .into_iter()
+                    .collect();
+                let epoch: Epoch = Epoch::new(
+                    epoch_index.as_u64(),
+                    apr,
+                    *amount,
+                    Some(*total_stake),
+                    stake,
+                );
+                self.epochs.insert(epoch.index, epoch.clone());
+                self.epoch_index = epoch.index + 1;
             }
             Api3::MintedRewardV0 {
                 epoch_index,
@@ -345,12 +392,17 @@ impl AppState {
                 new_apr,
             } => {
                 println!("{:?}", e.entry);
-                self.last_epoch = Some(epoch_index.as_u64());
-                self.last_minted = Some(*amount);
-                let apr = nice::dec(*new_apr, 14) * 0.0001;
-                let apy = (1.0 + apr / 52.0).powf(52.0) - 1.0;
-                self.last_apr = Some(apr);
-                self.last_apy = Some(apy);
+                let correction: f64 = 52.0 * 7.0 / 365.0;
+                let apr = nice::dec(*new_apr, 14) * correction * 0.0001;
+                let stake: BTreeMap<H160, U256> = self
+                    .wallets
+                    .iter()
+                    .map(|(addr, w)| (*addr, w.staked))
+                    .into_iter()
+                    .collect();
+                let epoch: Epoch = Epoch::new(epoch_index.as_u64(), apr, *amount, None, stake);
+                self.epochs.insert(epoch.index.clone(), epoch.clone());
+                self.epoch_index = epoch.index + 1;
             }
             Api3::Deposited {
                 user,
@@ -515,7 +567,7 @@ impl AppState {
                     v.executed = true;
                 }
             }
-            Api3::SetVestingAddresses{ addresses } => {
+            Api3::SetVestingAddresses { addresses } => {
                 println!("{:?}", e.entry);
                 self.set_vesting_addresses(addresses);
             }
