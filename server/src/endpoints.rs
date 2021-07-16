@@ -260,12 +260,16 @@ const LOADING_HTML: &'static str = r#"
 </html>
 "#;
 
-pub fn routes_loading(
-    static_dir: String,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    let dir = static_dir.clone();
-    let liveness = warp::path!("_liveness").map(|| format!("# API3 DAO Tracker"));
+pub fn routes_loading() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone
+{
+    let liveness = warp::path!("_liveness").map(|| {
+        warp::reply::with_status(
+            "Syncing in progress",
+            warp::http::StatusCode::INTERNAL_SERVER_ERROR,
+        )
+        .into_response()
+    });
     liveness
         .or(warp::get())
-        .map({ move |_| warp::reply::html(LOADING_HTML) })
+        .map(move |_| warp::reply::html(LOADING_HTML))
 }

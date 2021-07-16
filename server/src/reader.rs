@@ -1,6 +1,9 @@
 use client::events::{Api3, VotingAgent};
 use client::state::OnChainEvent;
+use crc32fast::Hasher;
 use futures::StreamExt;
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -9,9 +12,6 @@ use web3::api::Eth;
 use web3::transports::{Either, Http, Ipc};
 use web3::types::{BlockId, FilterBuilder, Log, H160, U256};
 use web3::{Transport, Web3};
-use std::fs::File;
-use std::io::Read;
-use crc32fast::Hasher;
 
 pub trait EventHandler {
     fn on(&mut self, entry: OnChainEvent, l: Log) -> ();
@@ -111,15 +111,18 @@ impl Scanner {
     pub fn cache_fn(&self, chain_id: u64, b: &BlockBatch) -> String {
         let mut hasher = Hasher::new();
         self.addr_watched.iter().for_each(|a| {
-            hasher.update(format!("{:?}",a).as_bytes());
+            hasher.update(format!("{:?}", a).as_bytes());
         });
         let checksum = hasher.finalize();
-        format!("{}/chain{}-{}-{}-{}.json", self.cache_dir, chain_id, b.from, b.to, checksum)
+        format!(
+            "{}/chain{}-{}-{}-{}.json",
+            self.cache_dir, chain_id, b.from, b.to, checksum
+        )
     }
 
     pub fn has_logs(&self, chain_id: u64, b: &BlockBatch) -> bool {
         if self.cache_dir.len() == 0 {
-            return false
+            return false;
         }
         Path::new(self.cache_fn(chain_id, b).as_str()).exists()
     }
@@ -131,8 +134,13 @@ impl Scanner {
         let logs: Vec<Log> = serde_json::from_str(&data).expect("JSON parsing failure");
         Ok(logs)
     }
-    
-    pub async fn save_logs(&self, chain_id: u64, b: &BlockBatch, logs: &Vec<Log>) -> anyhow::Result<()> {
+
+    pub async fn save_logs(
+        &self,
+        chain_id: u64,
+        b: &BlockBatch,
+        logs: &Vec<Log>,
+    ) -> anyhow::Result<()> {
         if self.cache_dir.len() == 0 {
             return Ok(());
         }
@@ -153,9 +161,14 @@ impl Scanner {
         let mut last_block = self.genesis_block;
         for b in get_batches(web3.eth(), self.genesis_block, self.batch_size).await {
             let logs: Vec<Log> = if self.has_logs(chain_id, &b) {
-                tracing::debug!("pulling cached blocks {}..{} chain_id {}", b.from, b.to, chain_id);
+                tracing::debug!(
+                    "pulling cached blocks {}..{} chain_id {}",
+                    b.from,
+                    b.to,
+                    chain_id
+                );
                 self.get_logs(chain_id, &b).await?
-            } else {            
+            } else {
                 tracing::debug!("scanning blocks {}..{}", b.from, b.to);
                 let filter = FilterBuilder::default()
                     .from_block(b.from.into())

@@ -161,9 +161,8 @@ async fn main() -> anyhow::Result<()> {
 
     // starting a "loading" only server
     let socket_addr: std::net::SocketAddr = args.listen.parse().expect("invalid bind to listen");
-    let static_dir = args.static_dir.clone();
     let loading_server = tokio::spawn(async move {
-        let routes = endpoints::routes_loading(static_dir);
+        let routes = endpoints::routes_loading();
         warp::serve(routes.with(warp::trace::request()))
             .run(socket_addr)
             .await;
@@ -203,6 +202,8 @@ async fn main() -> anyhow::Result<()> {
     };
 
     loading_server.abort();
+    std::thread::sleep(std::time::Duration::from_secs(1)); // wait for server to shutdown
+
     if args.watch {
         // This is unstable so far
         let rc = state.clone();

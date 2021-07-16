@@ -1,4 +1,5 @@
 use crate::events::{Api3, VotingAgent};
+use crate::nice;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use web3::types::{H160, H256, U256};
@@ -105,6 +106,18 @@ pub struct AppState {
     /// the last epoch
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_epoch: Option<u64>,
+    /// APR after the last MintedReward event
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_apr: Option<f64>,
+    /// APY, calculated from APR after the last MintedReward event
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_apy: Option<f64>,
+    /// minted amount in the last MintedReward event
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_minted: Option<U256>,
+    /// Total stark after the last MintedReward event
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_stake: Option<U256>,
     /// map of votings
     pub votings: BTreeMap<u64, Voting>,
     /// log of events, grouped by votings
@@ -113,8 +126,6 @@ pub struct AppState {
     pub wallets: BTreeMap<H160, Wallet>,
     /// log of events, groupped by wallets
     pub wallets_events: BTreeMap<H160, Vec<OnChainEvent>>,
-    /// log of all events, groupped by date
-    pub events: Vec<OnChainEvent>,
 }
 
 impl AppState {
@@ -122,11 +133,14 @@ impl AppState {
         Self {
             last_block: 0,
             last_epoch: None,
+            last_apr: None,
+            last_apy: None,
+            last_minted: None,
+            total_stake: None,
             votings: BTreeMap::new(),
             wallets: BTreeMap::new(),
             votings_events: BTreeMap::new(),
             wallets_events: BTreeMap::new(),
-            events: vec![],
         }
     }
 
@@ -269,7 +283,7 @@ impl AppState {
         log.block_number.map(|block_number| {
             self.last_block = block_number.as_u64();
         });
-        self.events.push(e.clone());
+        // self.events.push(e.clone());
 
         // if e.entry.is_broadcast() {
         //     self.wallets_events.iter_mut().for_each(|(_, w)| {
@@ -302,18 +316,31 @@ impl AppState {
         match &e.entry {
             Api3::MintedReward {
                 epoch_index,
-                amount: _,
-                new_apr: _,
-                total_stake: _,
+                amount,
+                new_apr,
+                total_stake,
             } => {
+                println!("{:?}", e.entry);
                 self.last_epoch = Some(epoch_index.as_u64());
+                let apr = nice::dec(*new_apr, 14) * 0.0001;
+                let apy = (1.0 + apr / 52.0).powf(52.0) - 1.0;
+                self.last_apr = Some(apr);
+                self.last_apy = Some(apy);
+                self.last_minted = Some(*amount);
+                self.total_stake = Some(*total_stake);
             }
             Api3::MintedRewardV0 {
                 epoch_index,
-                amount: _,
-                new_apr: _,
+                amount,
+                new_apr,
             } => {
+                println!("{:?}", e.entry);
                 self.last_epoch = Some(epoch_index.as_u64());
+                self.last_minted = Some(*amount);
+                let apr = nice::dec(*new_apr, 14) * 0.0001;
+                let apy = (1.0 + apr / 52.0).powf(52.0) - 1.0;
+                self.last_apr = Some(apr);
+                self.last_apy = Some(apy);
             }
             Api3::Deposited {
                 user,
