@@ -22,7 +22,8 @@ pub fn amount(src: U256, decimals: usize) -> String {
     }
     if str.len() > decimals {
         let before_dot: String = str.chars().take(str.len() - decimals).collect();
-        let after_dot: String = str.chars().rev().take(decimals).collect();
+        let right_rev: String = str.chars().rev().take(decimals).collect();
+        let after_dot: String = right_rev.chars().rev().collect();
         return format!("{}.{}", with_commas(&before_dot), after_dot);
     }
     let pad_size = decimals - str.len();
@@ -64,10 +65,16 @@ mod tests {
     use super::*;
     use std::str::FromStr;
     #[test]
-    pub fn test_amount() -> Result<(), String> {
+    pub fn test_amount_under_1() -> Result<(), String> {
         let val = U256::from_str("5843424da37c000").unwrap();
-        println!("val= {:?} or {}", val, val);
         assert_eq!(amount(val, 18), "0.397500000000000000");
+        Ok(())
+    }
+
+    #[test]
+    pub fn test_amount_over_1() -> Result<(), String> {
+        let val = U256::from_str("aaa4f9440299734000").unwrap();
+        assert_eq!(amount(val, 18), "3,147.834100000000000000");
         Ok(())
     }
 
