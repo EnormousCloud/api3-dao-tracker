@@ -16,7 +16,7 @@ pub fn it(content: &str, start: &'static str, end: &'static str, replacement: &s
 
 pub fn replace(content: &str, start: &'static str, end: &'static str, replacement: &str) -> String {
     if let Some(start_tag) = content.find(start) {
-        let before: String = content.chars().into_iter().take(start_tag - 1).collect();
+        let before: String = content.chars().into_iter().take(start_tag).collect();
         let after_before: String = content
             .chars()
             .into_iter()

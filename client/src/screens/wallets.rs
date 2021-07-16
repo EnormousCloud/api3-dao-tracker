@@ -45,6 +45,13 @@ impl Component<Msg> for Screen {
                                     <div class="wallet">
                                         <a class="addr" href={format!("wallets/{:?}", w.address) }>
                                             { text(format!("{:?}", w.address)) }
+                                            { 
+                                              if let Some(ens) = &w.ens {
+                                                text(format!(" {:?}", ens))
+                                              } else {
+                                                  text("")
+                                              }
+                                            }
                                         </a>
                                         " "
                                         <span class="amt">

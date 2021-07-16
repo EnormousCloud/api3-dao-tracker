@@ -1,6 +1,7 @@
 pub mod args;
 pub mod dumper;
 pub mod endpoints;
+pub mod ens;
 pub mod inject;
 pub mod reader;
 
@@ -150,6 +151,7 @@ async fn main() -> anyhow::Result<()> {
         .expect("Failed to connect to IPC");
     let web3 = web3::Web3::new(transport);
 
+    let ens = crate::ens::ENS::new(web3.clone(), args.cache_dir.as_str());
     let scanner = reader::Scanner::new(
         args.cache_dir.as_str(),
         vec![addr_voting1, addr_agent1],
@@ -182,6 +184,7 @@ async fn main() -> anyhow::Result<()> {
         };
         std::process::exit(0);
     }
+
     // Keep track of all connected users, key is usize, value
     // is a websocket sender.
     let subscribers = Subscribers::default();
@@ -200,6 +203,17 @@ async fn main() -> anyhow::Result<()> {
         );
         last_block
     };
+
+    {
+        let rc = state.clone();
+        let mut s = rc.lock().unwrap();
+        for (addr, w) in &mut s.app.wallets {
+            if let Some(name) = ens.name(addr.clone()).await {
+                tracing::info!("ENS for {:?} is {:?}", addr, name);
+                w.ens = Some(name);
+            };
+        }
+    }
 
     loading_server.abort();
     std::thread::sleep(std::time::Duration::from_secs(1)); // wait for server to shutdown
