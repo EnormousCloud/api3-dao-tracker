@@ -45,11 +45,18 @@ impl Component<Msg> for Screen {
                                     <div class="wallet">
                                         <a class="addr" href={format!("wallets/{:?}", w.address) }>
                                             { text(format!("{:?}", w.address)) }
-                                            { 
+                                            {
+                                                if w.vested {
+                                                    span(vec![class("vested")],vec![text(" VESTED ")])
+                                                } else {
+                                                    text("")
+                                                }
+                                            }
+                                            {
                                               if let Some(ens) = &w.ens {
                                                 text(format!(" {:?}", ens))
                                               } else {
-                                                  text("")
+                                                text("")
                                               }
                                             }
                                         </a>

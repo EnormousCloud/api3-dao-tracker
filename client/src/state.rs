@@ -57,6 +57,7 @@ pub struct Wallet {
     pub address: H160,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ens: Option<String>,
+    pub vested: bool,
     pub deposited: U256,
     #[serde(skip_serializing_if = "U256::is_zero")]
     pub withdrawn: U256,
@@ -126,6 +127,8 @@ pub struct AppState {
     pub wallets: BTreeMap<H160, Wallet>,
     /// log of events, groupped by wallets
     pub wallets_events: BTreeMap<H160, Vec<OnChainEvent>>,
+    /// list of wallets that are vesting and their balance is excluded from circulating supply
+    pub vested: Vec<H160>,
 }
 
 impl AppState {
@@ -141,6 +144,7 @@ impl AppState {
             wallets: BTreeMap::new(),
             votings_events: BTreeMap::new(),
             wallets_events: BTreeMap::new(),
+            vested: vec![],
         }
     }
 
@@ -170,6 +174,12 @@ impl AppState {
             .values()
             .map(|w| w.staked)
             .fold(U256::from(0), |a, b| a + b)
+    }
+    pub fn set_vesting_addresses(&mut self, addresses: &Vec<H160>) {
+        self.wallets.iter_mut().for_each(|(addr, w)| {
+            w.vested = addresses.contains(addr);
+        });
+        self.vested = addresses.clone();
     }
 
     pub fn delegate(&mut self, from: &H160, to: &H160, shares: U256) -> anyhow::Result<()> {
@@ -399,9 +409,9 @@ impl AppState {
 
             // TODO: unstaked cases
             Api3::ScheduledUnstake {
-                user,
-                amount,
-                shares,
+                user: _,
+                amount: _,
+                shares: _,
                 scheduled_for: _,
                 user_shares: _,
             } => {
@@ -410,9 +420,9 @@ impl AppState {
                 // }
             }
             Api3::ScheduledUnstakeV0 {
-                user,
-                amount,
-                shares,
+                user: _,
+                amount: _,
+                shares: _,
                 scheduled_for: _,
             } => {
                 // if let Err(err) = self.unstake(user, amount, shares) {
@@ -504,6 +514,10 @@ impl AppState {
                 if let Some(v) = self.votings.get_mut(&key) {
                     v.executed = true;
                 }
+            }
+            Api3::SetVestingAddresses{ addresses } => {
+                println!("{:?}", e.entry);
+                self.set_vesting_addresses(addresses);
             }
             _ => {}
         };

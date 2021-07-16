@@ -33,6 +33,9 @@ pub struct Args {
     /// API3 pool contract address
     #[structopt(long, default_value = "", env = "ADDR_API3_POOL")]
     pub address_api3_pool: String,
+    /// API3 contract with supply
+    #[structopt(long, env = "ADDR_API3_SUPPLY")]
+    pub address_api3_supply: Option<String>,
 
     /// API3 convenience contract address
     #[structopt(long, default_value = "", env = "ADDR_API3_CONVENIENCE")]
@@ -58,6 +61,9 @@ pub struct Args {
     /// Continue listening to blockchain events
     #[structopt(short, long)]
     pub watch: bool,
+    /// Disable ENS reserve resolution for the wallets
+    #[structopt(long)]
+    pub no_ens: bool,
 }
 
 pub fn parse() -> anyhow::Result<Args> {

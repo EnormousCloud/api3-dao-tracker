@@ -1,8 +1,8 @@
+use hex_literal::hex;
+use lazy_static::lazy_static;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use hex_literal::hex;
-use lazy_static::lazy_static;
 use tiny_keccak::{Hasher, Keccak};
 use web3::contract::{Contract, Options};
 use web3::types::{Address, H160, H256};
@@ -26,11 +26,9 @@ struct Resolver<T: web3::Transport> {
 
 impl<T: web3::Transport> Resolver<T> {
     async fn new(ens: &ENS<T>, resolver_addr: &str) -> anyhow::Result<Self> {
-        tracing::debug!("resolving {:?}", resolver_addr);
-
+        // tracing::debug!("resolving {:?}", resolver_addr);
         let addr_namehash = H256::from_slice(namehash(resolver_addr).as_slice());
-        tracing::debug!("addr_namehash {:?}", addr_namehash);
-
+        // tracing::debug!("addr_namehash {:?}", addr_namehash);
         let exists: bool = ens
             .contract
             .query(
@@ -102,7 +100,7 @@ impl<T: web3::Transport> ENS<T> {
     }
 
     pub fn cache_fn(&self, address: &str) -> String {
-        format!( "{}/{}.txt", self.cache_dir, address )
+        format!("{}/{}.txt", self.cache_dir, address)
     }
 
     pub fn has_cached(&self, address: &str) -> bool {
@@ -117,18 +115,14 @@ impl<T: web3::Transport> ENS<T> {
         let mut data = String::new();
         f.read_to_string(&mut data).expect("Reading failure");
         let res = data.trim();
-        if res.len() > 0{
+        if res.len() > 0 {
             Ok(res.to_string())
         } else {
             Err(anyhow::Error::msg("empty string".to_string()))
         }
     }
 
-    pub fn save_cached(
-        &self,
-        address: &str,
-        result: &str,
-    ) -> anyhow::Result<()> {
+    pub fn save_cached(&self, address: &str, result: &str) -> anyhow::Result<()> {
         if self.cache_dir.len() == 0 || address.len() == 0 {
             return Ok(());
         }
@@ -152,7 +146,7 @@ impl<T: web3::Transport> ENS<T> {
             Ok(x) => {
                 let _ = self.save_cached(&resolver_addr, &x);
                 Some(x)
-            },
+            }
             Err(_) => return None,
         }
     }

@@ -151,16 +151,23 @@ async fn main() -> anyhow::Result<()> {
         .expect("Failed to connect to IPC");
     let web3 = web3::Web3::new(transport);
 
-    let ens = crate::ens::ENS::new(web3.clone(), args.cache_dir.as_str());
+    let mut addresses = vec![addr_pool, addr_convenience];
+    if let Some(addr_supply) = args
+    .address_api3_supply
+    .map(|x| H160::from_str(&x).expect("ADDR_API3_SUPPLY"))
+    {
+        addresses.push(addr_supply);
+    }
     let scanner = reader::Scanner::new(
         args.cache_dir.as_str(),
         vec![addr_voting1, addr_agent1],
         vec![addr_voting2, addr_agent2],
-        vec![addr_pool, addr_convenience],
+        addresses,
         args.genesis_block,
         args.rpc_batch_size,
     );
-
+    
+    
     // starting a "loading" only server
     let socket_addr: std::net::SocketAddr = args.listen.parse().expect("invalid bind to listen");
     let loading_server = tokio::spawn(async move {
@@ -203,8 +210,8 @@ async fn main() -> anyhow::Result<()> {
         );
         last_block
     };
-
-    {
+    if !args.no_ens {
+        let ens = crate::ens::ENS::new(web3.clone(), args.cache_dir.as_str());
         let rc = state.clone();
         let mut s = rc.lock().unwrap();
         for (addr, w) in &mut s.app.wallets {
