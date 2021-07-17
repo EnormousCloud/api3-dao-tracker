@@ -12,6 +12,4 @@ client/Cargo.lock
 dist/
 .env
 
-run.sh
-
 .cache/

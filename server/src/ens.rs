@@ -48,7 +48,7 @@ impl<T: web3::Transport> Resolver<T> {
             ens.contract
                 .query("resolver", (addr_namehash,), None, Options::default(), None);
         let resolver_addr: Address = result.await.expect("resolver.result.wait()");
-        tracing::debug!("resolver_addr {:?}", resolver_addr);
+        // tracing::debug!("resolver_addr {:?}", resolver_addr);
         if resolver_addr == H160::from(hex!("0000000000000000000000000000000000000000")) {
             return Err(anyhow::Error::msg("no resolver addr"));
         }
