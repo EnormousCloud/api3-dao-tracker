@@ -100,6 +100,8 @@ impl Wallet {
     }
 }
 
+const APR_CORRECTION: f64 = 52.0 * 7.0 / 365.0;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Epoch {
     /// index of an epoch
@@ -143,6 +145,10 @@ impl Epoch {
 pub struct AppState {
     /// current epoch index
     pub epoch_index: u64,
+    /// current epoch APR
+    pub apr: f64,
+    /// current epoch APY
+    pub apy: f64,
     /// the block of the last event
     pub last_block: u64,
     /// the map of epoch rewards
@@ -166,8 +172,11 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
+        let apr: f64 = 0.3875 * APR_CORRECTION;
         Self {
             epoch_index: 1,
+            apr,
+            apy: (1.0 + apr / 52.0).powf(52.0) - 1.0,
             last_block: 0,
             epochs: BTreeMap::new(),
             votings: BTreeMap::new(),
@@ -368,8 +377,6 @@ impl AppState {
                 total_stake,
             } => {
                 println!("{:?}", e.entry);
-                let correction: f64 = 52.0 * 7.0 / 365.0;
-                let apr = nice::dec(*new_apr, 14) * correction * 0.0001;
                 let stake: BTreeMap<H160, U256> = self
                     .wallets
                     .iter()
@@ -378,13 +385,16 @@ impl AppState {
                     .collect();
                 let epoch: Epoch = Epoch::new(
                     epoch_index.as_u64(),
-                    apr,
+                    self.apr,
                     *amount,
                     Some(*total_stake),
                     stake,
                 );
                 self.epochs.insert(epoch.index, epoch.clone());
+                // setting up new epoch
                 self.epoch_index = epoch.index + 1;
+                self.apr = nice::dec(*new_apr, 14) * APR_CORRECTION * 0.0001;
+                self.apy = (1.0 + self.apr / 52.0).powf(52.0) - 1.0;
             }
             Api3::MintedRewardV0 {
                 epoch_index,
@@ -392,17 +402,18 @@ impl AppState {
                 new_apr,
             } => {
                 println!("{:?}", e.entry);
-                let correction: f64 = 52.0 * 7.0 / 365.0;
-                let apr = nice::dec(*new_apr, 14) * correction * 0.0001;
                 let stake: BTreeMap<H160, U256> = self
                     .wallets
                     .iter()
                     .map(|(addr, w)| (*addr, w.staked))
                     .into_iter()
                     .collect();
-                let epoch: Epoch = Epoch::new(epoch_index.as_u64(), apr, *amount, None, stake);
+                let epoch: Epoch = Epoch::new(epoch_index.as_u64(), self.apr, *amount, None, stake);
                 self.epochs.insert(epoch.index.clone(), epoch.clone());
+                // setting up new epoch
                 self.epoch_index = epoch.index + 1;
+                self.apr = nice::dec(*new_apr, 14) * APR_CORRECTION * 0.0001;
+                self.apy = (1.0 + self.apr / 52.0).powf(52.0) - 1.0;
             }
             Api3::Deposited {
                 user,

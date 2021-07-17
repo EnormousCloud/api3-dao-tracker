@@ -55,6 +55,21 @@ impl Component<Msg> for Screen {
                         } else {
                             no_node()
                         }}
+                        <div>
+                            <div class="stats-row">
+                                "Current APR"
+                                <strong>
+                                    { text(format!("{:.2}%", 100.0*self.state.apr)) }
+                                </strong>
+                            </div>
+                            <div class="stats-row">
+                                "Current APY"
+                                <strong>
+                                    { text(format!("{:.2}%", 100.0*self.state.apy)) }
+                                </strong>
+                            </div>
+                        </div>
+
                         {if let Some(last_epoch) = last_epoch {
                             node! {
                                 <div>
@@ -63,13 +78,21 @@ impl Component<Msg> for Screen {
                                             { text(nice::int(nice::dec(last_epoch.minted, 18))) }
                                         </strong>
                                         "API3 tokens minted during last epoch"
-                                        { text(nice::int(last_epoch.index)) }
+                                        <strong>
+                                            { text(nice::int(last_epoch.index)) }
+                                        </strong>
                                     </div>
                                     <div class="stats-row">
-                                        { text(format!("Last Epoch APR: {:.2}%", 100.0*last_epoch.apr)) }
+                                        "Last Epoch APR:"
+                                        <strong>
+                                            { text(format!("{:.2}%", 100.0*last_epoch.apr)) }
+                                        </strong>
                                     </div>
                                     <div class="stats-row">
-                                        { text(format!("Last Epoch APY: {:.2}%", 100.0*last_epoch.apy)) }
+                                        "Last Epoch APY:"
+                                        <strong>
+                                            { text(format!("{:.2}%", 100.0*last_epoch.apy)) }
+                                        </strong>
                                     </div>
                                     <div class="stats-row">
                                         "Last Epoch Stake "

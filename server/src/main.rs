@@ -220,6 +220,7 @@ async fn main() -> anyhow::Result<()> {
                 w.ens = Some(name);
             };
         }
+        tracing::info!("done with ENS");
     }
 
     loading_server.abort();
