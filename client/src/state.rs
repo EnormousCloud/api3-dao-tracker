@@ -48,8 +48,22 @@ impl Voting {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Delegation {
+    // adderss to which share are being delegated
     pub address: H160,
+    // number of delegated shares
     pub shares: U256,
+    // timestamp of the last delegation
+    pub tm: u64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ScheduledUnstake {
+    // amount that is being unstaked
+    pub amount: U256,
+    // number of shares that are unstaking
+    pub shares: U256,
+    // timestamp of the last delegation
+    pub tm: u64,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -62,6 +76,8 @@ pub struct Wallet {
     #[serde(skip_serializing_if = "U256::is_zero")]
     pub withdrawn: U256,
     pub staked: U256,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scheduled_unstake: Option<ScheduledUnstake>,
     pub shares: U256,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub delegates: Option<Delegation>,
@@ -76,25 +92,17 @@ pub struct Wallet {
 impl Wallet {
     pub fn update_voting_power(&mut self) {
         self.voting_power = {
-            let mut sum = self.shares;
+            let mut sum = if let Some(_) = &self.delegates {
+                // no voting power if there is a delegation
+                U256::from(0)
+            } else {
+                self.shares
+            };
             sum += self
                 .delegated
                 .values()
                 .clone()
                 .fold(U256::from(0), |a, b| a + b);
-            if let Some(delegates) = &self.delegates {
-                if sum >= delegates.shares {
-                    sum -= delegates.shares;
-                } else {
-                    warn!(
-                        "wallet {:?} delegated {:?}, while owning {:?}",
-                        self.address, delegates.shares, self.shares
-                    )
-                }
-                if self.delegated.len() > 0 {
-                    warn!("wallet {:?} delegates but delegating", self.address);
-                }
-            }
             sum
         };
     }
@@ -221,6 +229,7 @@ impl AppState {
             .map(|w| w.staked)
             .fold(U256::from(0), |a, b| a + b)
     }
+
     pub fn set_vesting_addresses(&mut self, addresses: &Vec<H160>) {
         self.wallets.iter_mut().for_each(|(addr, w)| {
             w.vested = addresses.contains(addr);
@@ -228,7 +237,7 @@ impl AppState {
         self.vested = addresses.clone();
     }
 
-    pub fn delegate(&mut self, from: &H160, to: &H160, shares: U256) -> anyhow::Result<()> {
+    pub fn delegate(&mut self, from: &H160, to: &H160, tm: u64) -> anyhow::Result<()> {
         let (address, delegates) = match self.wallets.get(from) {
             Some(x) => (x.clone().address, x.clone().delegates),
             None => return Err(anyhow::Error::msg("invalid from- wallet")),
@@ -245,30 +254,26 @@ impl AppState {
             };
         }
 
-        let w_from = match self.wallets.get_mut(from) {
-            Some(x) => x,
-            None => return Err(anyhow::Error::msg("invalid from- wallet")),
+        let w_from = {
+            let w_from = match self.wallets.get_mut(from) {
+                Some(x) => x,
+                None => return Err(anyhow::Error::msg("invalid from- wallet")),
+            };
+            w_from.delegates = Some(Delegation {
+                address: to.clone(),
+                shares: w_from.shares,
+                tm,
+            });
+            w_from.update_voting_power();
+            w_from.clone() // releases self.wallets
         };
-        if w_from.shares < shares {
-            warn!("wallet {:?}", w_from);
-            return Err(anyhow::Error::msg(format!(
-                "shares amount {:?} is less than delegated",
-                w_from.shares
-            )));
-        }
-        w_from.delegates = Some(Delegation {
-            address: to.clone(),
-            shares,
-        });
-        w_from.update_voting_power();
 
         // update record of "to"-wallet
         let w_to = match self.wallets.get_mut(to) {
             Some(x) => x,
             None => return Err(anyhow::Error::msg("invalid to- wallet")),
         };
-
-        w_to.delegated.insert(address, shares);
+        w_to.delegated.insert(address, w_from.shares);
         w_to.update_voting_power();
         Ok(())
     }
@@ -285,7 +290,7 @@ impl AppState {
             // remove existing delegation
             match self.wallets.get_mut(&existing.address) {
                 Some(old) => {
-                    // old.delegated;
+                    old.delegated.remove(&from);
                     old.update_voting_power();
                 }
                 None => return Err(anyhow::Error::msg("no record of delegation wallet")),
@@ -308,28 +313,94 @@ impl AppState {
         Ok(())
     }
 
-    pub fn unstake(&mut self, user: &H160, amount: &U256, shares: &U256) -> anyhow::Result<()> {
-        // undelegate?
-        if let Some(w) = self.wallets.get_mut(&user) {
-            if w.staked < *amount {
-                warn!("wallet {:?}", w);
-                return Err(anyhow::Error::msg(format!(
-                    "staked amount {:?} is less than unstaked",
-                    w.staked
-                )));
-            }
-            if w.shares < *shares {
-                warn!("wallet {:?}", w);
-                return Err(anyhow::Error::msg(format!(
-                    "shares amount {:?} is less than unstaked",
-                    w.shares
-                )));
-            }
-            w.delegates = None; // removing delegations
-            w.staked -= *amount;
-            w.shares -= *shares;
-            w.update_voting_power();
+    pub fn staked(&mut self, user: &H160, amount: &U256, shares: &U256) -> anyhow::Result<()> {
+        let (delegates, amt_delegated) = match self.wallets.get_mut(&user) {
+            Some(w) => {
+                w.staked += *amount;
+                w.shares += *shares;
+                if let Some(d) = &mut w.delegates {
+                    d.shares = w.shares;
+                }
+                w.update_voting_power();
+                // returning shares are delegated
+                (w.delegates.clone(), w.shares)
+            },
+            None => (None, U256::from(0)),
+        };
+
+        if let Some(d) = delegates {
+            if let Some(w) = self.wallets.get_mut(&d.address) {
+                w.delegated.insert(*user, amt_delegated);
+                w.update_voting_power();
+            };
         }
+        Ok(())
+    }
+
+    pub fn scheduled_unstake(&mut self, user: &H160, amount: &U256, shares: &U256, scheduled_for: u64) -> anyhow::Result<()> {
+        let total_stake = self.get_staked_total();
+        let total_shares = self.get_shares_total();
+        let shares_to_unstake = *shares;
+        let mut amount_to_deduct = *shares * total_stake / total_shares;
+        let (delegates, amt_delegated) = match self.wallets.get_mut(user) {
+            Some(w) => {
+                let ww = w.clone();
+                if w.shares < shares_to_unstake {
+                    return Err(anyhow::Error::msg(format!(
+                        "shares {:?} is less than trying to schedule for unstaking, amount {:?}, wallet {:?}",
+                        shares_to_unstake, *amount, &ww,
+                    )));
+                }
+                if w.staked < amount_to_deduct {
+                    amount_to_deduct = w.staked; // what if we'll be fine...
+                }
+                if let Some(_) = w.scheduled_unstake {
+                    // doesn't seems to happend
+                    warn!("SHEDULED UNSTAKE TWICE {:?}", &ww);
+                }
+
+                w.scheduled_unstake = Some(ScheduledUnstake{
+                    amount: amount_to_deduct,
+                    shares: shares_to_unstake,
+                    tm: scheduled_for,
+                });
+                w.staked -= amount_to_deduct;
+                w.shares -= shares_to_unstake;
+                if let Some(d) = &mut w.delegates {
+                    d.shares = w.shares;
+                }
+                w.update_voting_power();
+                (w.delegates.clone(), w.shares)
+            },
+            None => return Err(anyhow::Error::msg("invalid from- wallet")),
+        };
+        if let Some(d) = delegates {
+            if let Some(w) = self.wallets.get_mut(&d.address) {
+                w.delegated.insert(*user, amt_delegated);
+                w.update_voting_power();
+            };
+        }
+        Ok(())
+    }
+
+    pub fn unstaked(&mut self, user: &H160, amount: &U256) -> anyhow::Result<()> {
+        let total_stake = self.get_staked_total();
+        let total_shares = self.get_shares_total();
+        if let Some(w) = self.wallets.get_mut(&user) {
+            let ww = w.clone();
+            let shares = *amount * total_shares / total_stake;
+
+            match &mut w.scheduled_unstake {
+                Some(scheduled) => {
+                    if scheduled.shares != shares {
+                        warn!("unstaking shares {:?} amount {:?} was not scheduled, wallet {:?}", shares, *amount, &ww)
+                    }
+                    w.scheduled_unstake = None;
+                },
+                None => {
+                },
+            };
+        };
         Ok(())
     }
 
@@ -452,10 +523,8 @@ impl AppState {
                 total_shares: _,
                 total_stake: _,
             } => {
-                if let Some(w) = self.wallets.get_mut(&user) {
-                    w.staked += *amount;
-                    w.shares += *minted_shares;
-                    w.update_voting_power();
+                if let Err(err) = self.staked(user, amount, minted_shares) {
+                    warn!("{:?} {:?}", err, e);  
                 }
             }
             Api3::StakedV0 {
@@ -463,48 +532,76 @@ impl AppState {
                 amount,
                 minted_shares,
             } => {
-                if let Some(w) = self.wallets.get_mut(&user) {
-                    w.staked += *amount;
-                    w.shares += *minted_shares;
-                    w.update_voting_power();
+                if let Err(err) = self.staked(user, amount, minted_shares) {
+                    warn!("{:?} {:?}", err, e);  
+                }
+            }
+            Api3::ScheduledUnstake {
+                user,
+                amount,
+                shares,
+                scheduled_for,
+                user_shares: _,
+            } => {
+                if let Err(err) = self.scheduled_unstake(user, amount, shares, scheduled_for.as_u64()) {
+                    warn!("{:?} {:?}", err, e);
+                    std::process::exit(0);
+                }
+            }
+            Api3::ScheduledUnstakeV0 {
+                user,
+                amount,
+                shares,
+                scheduled_for,
+            } => {
+                if let Err(err) = self.scheduled_unstake(user, amount, shares, scheduled_for.as_u64()) {
+                    warn!("{:?} {:?}", err, e);
+                    std::process::exit(0);
                 }
             }
 
-            // TODO: unstaked cases
-            Api3::ScheduledUnstake {
-                user: _,
-                amount: _,
-                shares: _,
-                scheduled_for: _,
-                user_shares: _,
+            Api3::Unstaked {
+                user,
+                amount,
+                user_unstaked: _,
+                total_shares: _,
+                total_stake: _,
             } => {
-                // if let Err(err) = self.unstake(user, amount, shares) {
-                //     warn!("{:?} {:?}", err, e);
-                // }
-            }
-            Api3::ScheduledUnstakeV0 {
-                user: _,
-                amount: _,
-                shares: _,
-                scheduled_for: _,
-            } => {
-                // if let Err(err) = self.unstake(user, amount, shares) {
-                //     warn!("{:?} {:?}", err, e);
-                // }
-            }
-
-            Api3::Delegated {
-                from,
-                to,
-                shares,
-                total_delegated_to: _,
-            } => {
-                if let Err(err) = self.delegate(from, to, *shares) {
+                if let Err(err) = self.unstaked(user, amount) {
                     warn!("{:?} {:?}", err, e);
                 }
             }
-            Api3::DelegatedV0 { from, to, shares } => {
-                if let Err(err) = self.delegate(from, to, *shares) {
+            Api3::UnstakedV0 {
+                user,
+                amount,
+            } => {
+                if let Err(err) = self.unstaked(user, amount) {
+                    warn!("{:?} {:?}", err, e);
+                }
+            }
+
+            // You can't trust amount of shares from this event
+            // as in the case of STAKE+DELEGATE, the order is broken,
+            // and DELEGATE event comes first with amount that is not on stake yet.
+            // https://rinkeby.etherscan.io/tx/0xb9eabaa1704a6a4b0c8d30e342d8fe11bb42c83452c00825ea3a011f9a823bf0#eventlog
+            // Furthermore, when delegation happens, it applies to all amount,
+            // including future shares changes
+            Api3::Delegated {
+                from,
+                to,
+                shares: _,
+                total_delegated_to: _,
+            } => {
+                if let Err(err) = self.delegate(from, to, e.tm) {
+                    warn!("{:?} {:?}", err, e);
+                }
+            }
+            Api3::DelegatedV0 {
+                from,
+                to,
+                shares: _,
+            } => {
+                if let Err(err) = self.delegate(from, to, e.tm) {
                     warn!("{:?} {:?}", err, e);
                 }
             }
