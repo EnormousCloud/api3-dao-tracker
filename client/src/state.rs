@@ -4,6 +4,57 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use web3::types::{H160, H256, U256};
 
+// General API3 Pool information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Api3PoolInfo {
+    /// APR at genesis (min+max) / 2
+    genesis_apr: f64,
+    /// min APR
+    min_apr: f64,
+    /// max APR
+    max_apr: f64,
+    /// coefficient to apply to APR to generate rewards
+    rewards_coeff: f64,
+    /// length of epoch in seconds
+    epoch_length: u64,
+    /// number of epochs before rewards are unlocked 
+    reward_vesting_period: u64,
+    /// staking target
+    stake_target: U256,
+    /// number of seconds before unstaking is allowed after claim
+    unstake_wait_period: u64,
+}
+
+// General API3 Circulation information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Api3Circulation {
+    /// tokens circulating supply
+    circulating_supply: U256,
+    /// tokens, locked by governance
+    locked_by_governance: U256,
+    /// tokens, locked in rewards
+    locked_rewards: U256,
+    /// tokens, locked in vestings
+    locked_vestings: U256,
+    /// time locked tokens
+    time_locked: U256,
+    /// total locked tokens
+    total_locked: U256,
+    /// address of API3 pool contract
+    addr_pool: H160,
+    /// address of API3 token
+    addr_token: H160,
+    /// address of Time lock manager
+    addr_time_lock: H160,
+    /// address of API3 primary treasury
+    addr_primary_treasury: H160,
+    /// address of API3 secondary treasury
+    addr_secondary_treasury: H160,
+    /// address of V1 treasury
+    addr_v1_treasury: H160,
+}
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OnChainEvent {
     pub entry: Api3,
@@ -159,6 +210,10 @@ pub struct AppState {
     pub apy: f64,
     /// the block of the last event
     pub last_block: u64,
+    /// general API3 pool information
+    pub pool_info: Option<Api3PoolInfo>,
+    /// general API3 circulation information
+    pub circulation: Option<Api3Circulation>,
     /// the map of epoch rewards
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub epochs: BTreeMap<u64, Epoch>,
@@ -192,6 +247,8 @@ impl AppState {
             votings_events: BTreeMap::new(),
             wallets_events: BTreeMap::new(),
             vested: vec![],
+            pool_info: None,
+            circulation: None,
         }
     }
 
