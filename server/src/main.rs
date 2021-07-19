@@ -167,14 +167,20 @@ async fn main() -> anyhow::Result<()> {
         args.rpc_batch_size,
     );
 
-    // starting a "loading" only server
     let socket_addr: std::net::SocketAddr = args.listen.parse().expect("invalid bind to listen");
-    let loading_server = tokio::spawn(async move {
-        let routes = endpoints::routes_loading();
-        warp::serve(routes.with(warp::trace::request()))
-            .run(socket_addr)
-            .await;
-    });
+    // starting a "loading" only server
+    // and do not start if we are in dump-mode
+    let loading_server = match args.dump {
+        None => {
+            Some(tokio::spawn(async move {
+                let routes = endpoints::routes_loading();
+                warp::serve(routes.with(warp::trace::request()))
+                    .run(socket_addr)
+                    .await;
+            }))
+        },
+        _ => None,
+    };
 
     if let Some(mode) = &args.dump {
         match mode {
@@ -223,8 +229,10 @@ async fn main() -> anyhow::Result<()> {
         tracing::info!("done with ENS");
     }
 
-    loading_server.abort();
-    std::thread::sleep(std::time::Duration::from_secs(1)); // wait for server to shutdown
+    loading_server.map(|server| {
+        server.abort();
+        std::thread::sleep(std::time::Duration::from_secs(1)); // wait for server to shutdown
+    });
 
     if args.watch {
         // This is unstable so far
