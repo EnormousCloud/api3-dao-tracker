@@ -8,52 +8,51 @@ use web3::types::{H160, H256, U256};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Api3PoolInfo {
     /// APR at genesis (min+max) / 2
-    genesis_apr: f64,
+    pub genesis_apr: f64,
     /// min APR
-    min_apr: f64,
+    pub min_apr: f64,
     /// max APR
-    max_apr: f64,
+    pub max_apr: f64,
     /// coefficient to apply to APR to generate rewards
-    rewards_coeff: f64,
+    pub rewards_coeff: f64,
     /// length of epoch in seconds
-    epoch_length: u64,
-    /// number of epochs before rewards are unlocked 
-    reward_vesting_period: u64,
+    pub epoch_length: u64,
+    /// number of epochs before rewards are unlocked
+    pub reward_vesting_period: u64,
     /// staking target
-    stake_target: U256,
+    pub stake_target: U256,
     /// number of seconds before unstaking is allowed after claim
-    unstake_wait_period: u64,
+    pub unstake_wait_period: u64,
 }
 
 // General API3 Circulation information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Api3Circulation {
     /// tokens circulating supply
-    circulating_supply: U256,
+    pub circulating_supply: U256,
     /// tokens, locked by governance
-    locked_by_governance: U256,
+    pub locked_by_governance: U256,
     /// tokens, locked in rewards
-    locked_rewards: U256,
+    pub locked_rewards: U256,
     /// tokens, locked in vestings
-    locked_vestings: U256,
+    pub locked_vestings: U256,
     /// time locked tokens
-    time_locked: U256,
+    pub time_locked: U256,
     /// total locked tokens
-    total_locked: U256,
+    pub total_locked: U256,
     /// address of API3 pool contract
-    addr_pool: H160,
+    pub addr_pool: H160,
     /// address of API3 token
-    addr_token: H160,
+    pub addr_token: H160,
     /// address of Time lock manager
-    addr_time_lock: H160,
+    pub addr_time_lock: H160,
     /// address of API3 primary treasury
-    addr_primary_treasury: H160,
+    pub addr_primary_treasury: H160,
     /// address of API3 secondary treasury
-    addr_secondary_treasury: H160,
+    pub addr_secondary_treasury: H160,
     /// address of V1 treasury
-    addr_v1_treasury: H160,
+    pub addr_v1_treasury: H160,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OnChainEvent {
@@ -381,7 +380,7 @@ impl AppState {
                 w.update_voting_power();
                 // returning shares are delegated
                 (w.delegates.clone(), w.shares)
-            },
+            }
             None => (None, U256::from(0)),
         };
 
@@ -394,7 +393,13 @@ impl AppState {
         Ok(())
     }
 
-    pub fn scheduled_unstake(&mut self, user: &H160, amount: &U256, shares: &U256, scheduled_for: u64) -> anyhow::Result<()> {
+    pub fn scheduled_unstake(
+        &mut self,
+        user: &H160,
+        amount: &U256,
+        shares: &U256,
+        scheduled_for: u64,
+    ) -> anyhow::Result<()> {
         let total_stake = self.get_staked_total();
         let total_shares = self.get_shares_total();
         let shares_to_unstake = *shares;
@@ -416,7 +421,7 @@ impl AppState {
                     warn!("SHEDULED UNSTAKE TWICE {:?}", &ww);
                 }
 
-                w.scheduled_unstake = Some(ScheduledUnstake{
+                w.scheduled_unstake = Some(ScheduledUnstake {
                     amount: amount_to_deduct,
                     shares: shares_to_unstake,
                     tm: scheduled_for,
@@ -428,7 +433,7 @@ impl AppState {
                 }
                 w.update_voting_power();
                 (w.delegates.clone(), w.shares)
-            },
+            }
             None => return Err(anyhow::Error::msg("invalid from- wallet")),
         };
         if let Some(d) = delegates {
@@ -450,12 +455,14 @@ impl AppState {
             match &mut w.scheduled_unstake {
                 Some(scheduled) => {
                     if scheduled.shares != shares {
-                        warn!("unstaking shares {:?} amount {:?} was not scheduled, wallet {:?}", shares, *amount, &ww)
+                        warn!(
+                            "unstaking shares {:?} amount {:?} was not scheduled, wallet {:?}",
+                            shares, *amount, &ww
+                        )
                     }
                     w.scheduled_unstake = None;
-                },
-                None => {
-                },
+                }
+                None => {}
             };
         };
         Ok(())
@@ -581,7 +588,7 @@ impl AppState {
                 total_stake: _,
             } => {
                 if let Err(err) = self.staked(user, amount, minted_shares) {
-                    warn!("{:?} {:?}", err, e);  
+                    warn!("{:?} {:?}", err, e);
                 }
             }
             Api3::StakedV0 {
@@ -590,7 +597,7 @@ impl AppState {
                 minted_shares,
             } => {
                 if let Err(err) = self.staked(user, amount, minted_shares) {
-                    warn!("{:?} {:?}", err, e);  
+                    warn!("{:?} {:?}", err, e);
                 }
             }
             Api3::ScheduledUnstake {
@@ -600,7 +607,9 @@ impl AppState {
                 scheduled_for,
                 user_shares: _,
             } => {
-                if let Err(err) = self.scheduled_unstake(user, amount, shares, scheduled_for.as_u64()) {
+                if let Err(err) =
+                    self.scheduled_unstake(user, amount, shares, scheduled_for.as_u64())
+                {
                     warn!("{:?} {:?}", err, e);
                     std::process::exit(0);
                 }
@@ -611,7 +620,9 @@ impl AppState {
                 shares,
                 scheduled_for,
             } => {
-                if let Err(err) = self.scheduled_unstake(user, amount, shares, scheduled_for.as_u64()) {
+                if let Err(err) =
+                    self.scheduled_unstake(user, amount, shares, scheduled_for.as_u64())
+                {
                     warn!("{:?} {:?}", err, e);
                     std::process::exit(0);
                 }
@@ -628,10 +639,7 @@ impl AppState {
                     warn!("{:?} {:?}", err, e);
                 }
             }
-            Api3::UnstakedV0 {
-                user,
-                amount,
-            } => {
+            Api3::UnstakedV0 { user, amount } => {
                 if let Err(err) = self.unstaked(user, amount) {
                     warn!("{:?} {:?}", err, e);
                 }

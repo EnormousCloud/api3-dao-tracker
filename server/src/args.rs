@@ -52,6 +52,10 @@ pub struct Args {
     /// API3 secondary voting agent address
     #[structopt(long, default_value = "", env = "ADDR_API3_AGENT_SECONDARY")]
     pub address_agent2: String,
+    /// API3 circulation contract address (optional)
+    #[structopt(long, env = "ADDR_API3_CIRCULATION")]
+    pub address_circulation: Option<String>,
+
     /// Number of the fisrt block to start watching
     #[structopt(long, default_value = "8842400", env = "GENESIS_BLOCK")]
     pub genesis_block: u64,

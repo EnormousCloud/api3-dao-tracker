@@ -1,4 +1,5 @@
 pub mod args;
+pub mod contracts;
 pub mod dumper;
 pub mod endpoints;
 pub mod ens;
@@ -171,14 +172,12 @@ async fn main() -> anyhow::Result<()> {
     // starting a "loading" only server
     // and do not start if we are in dump-mode
     let loading_server = match args.dump {
-        None => {
-            Some(tokio::spawn(async move {
-                let routes = endpoints::routes_loading();
-                warp::serve(routes.with(warp::trace::request()))
-                    .run(socket_addr)
-                    .await;
-            }))
-        },
+        None => Some(tokio::spawn(async move {
+            let routes = endpoints::routes_loading();
+            warp::serve(routes.with(warp::trace::request()))
+                .run(socket_addr)
+                .await;
+        })),
         _ => None,
     };
 
@@ -197,6 +196,10 @@ async fn main() -> anyhow::Result<()> {
         std::process::exit(0);
     }
 
+    let addr_circulation: Option<H160> = args
+        .address_circulation
+        .map(|x| H160::from_str(x.as_str()).expect("ADDR_API3_CIRCULATION"));
+
     // Keep track of all connected users, key is usize, value
     // is a websocket sender.
     let subscribers = Subscribers::default();
@@ -208,12 +211,22 @@ async fn main() -> anyhow::Result<()> {
     let last_block = {
         let rc = state.clone();
         let last_block = scanner.scan(&web3, &mut *rc.lock().unwrap()).await?;
-        let s = rc.lock().unwrap();
+        let mut s = rc.lock().unwrap();
         tracing::info!(
             "found: {} wallets, {} votings",
             s.app.wallets.len(),
             s.app.votings.len()
         );
+        s.app.pool_info = crate::contracts::Pool::new(web3.clone(), addr_pool)
+            .read()
+            .await;
+        tracing::info!("pool info {:?}", s.app.pool_info);
+        if let Some(addr_supply) = addr_circulation {
+            s.app.circulation = crate::contracts::Supply::new(web3.clone(), addr_supply)
+                .read()
+                .await;
+            tracing::info!("circulation info {:?}", s.app.circulation);
+        }
         last_block
     };
     if !args.no_ens {
