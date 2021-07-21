@@ -1,5 +1,5 @@
+use client::nice;
 use client::state::{Api3Circulation, Api3PoolInfo};
-use hex_literal::hex;
 use web3::contract::{Contract, Options};
 use web3::types::{H160, U256};
 
@@ -27,23 +27,52 @@ impl<T: web3::Transport> Pool<T> {
     }
 
     pub async fn read(&self) -> Option<Api3PoolInfo> {
-        let min_apr: f64 = 0.0;
-        let max_apr: f64 = 100.0;
-        let genesis_apr: f64 = (min_apr + max_apr) * 0.5;
-        let rewards_coeff: f64 = 1.0;
-        let epoch_length: u64 = 1;
-        let reward_vesting_period: u64 = 0;
-        let stake_target: U256 = U256::from(0);
-        let unstake_wait_period: u64 = 0;
+        let min_apr: U256 = self
+            .contract
+            .query("minApr", (), None, Options::default(), None)
+            .await
+            .unwrap();
+        let max_apr: U256 = self
+            .contract
+            .query("maxApr", (), None, Options::default(), None)
+            .await
+            .unwrap();
+        let genesis_apr: f64 = nice::dec((min_apr + max_apr) / U256::from(2), 18 - 4) / 10e3;
+        let epoch_length: U256 = self
+            .contract
+            .query("EPOCH_LENGTH", (), None, Options::default(), None)
+            .await
+            .unwrap();
+        let rewards_coeff: f64 = if epoch_length.as_u64() == 3600 {
+            1.0
+        } else {
+            let week: u64 = epoch_length.as_u64() / 3600 / 24;
+            52.0 * (week as f64) / 365.0
+        };
+        let reward_vesting_period: U256 = self
+            .contract
+            .query("REWARD_VESTING_PERIOD", (), None, Options::default(), None)
+            .await
+            .unwrap();
+        let unstake_wait_period: U256 = self
+            .contract
+            .query("unstakeWaitPeriod", (), None, Options::default(), None)
+            .await
+            .unwrap();
+        let stake_target: U256 = self
+            .contract
+            .query("stakeTarget", (), None, Options::default(), None)
+            .await
+            .unwrap();
         Some(Api3PoolInfo {
             genesis_apr,
-            min_apr,
-            max_apr,
+            min_apr: nice::dec(min_apr, 18 - 4) / 10e3,
+            max_apr: nice::dec(max_apr, 18 - 4) / 10e3,
             rewards_coeff,
-            epoch_length,
-            reward_vesting_period,
+            epoch_length: epoch_length.as_u64(),
+            reward_vesting_period: reward_vesting_period.as_u64(),
+            unstake_wait_period: unstake_wait_period.as_u64(),
             stake_target,
-            unstake_wait_period,
         })
     }
 }
@@ -59,6 +88,7 @@ where
 
 impl<T: web3::Transport> Supply<T> {
     pub fn new(web3: web3::Web3<T>, address: H160) -> Self {
+        tracing::info!("reading supply {:?}", address);
         let contract = Contract::from_json(
             web3.eth(),
             address,
@@ -72,19 +102,72 @@ impl<T: web3::Transport> Supply<T> {
     }
 
     pub async fn read(&self) -> Option<Api3Circulation> {
-        let circulating_supply: U256 = U256::from(0);
-        let locked_by_governance: U256 = U256::from(0);
-        let locked_rewards: U256 = U256::from(0);
-        let locked_vestings: U256 = U256::from(0);
-        let time_locked: U256 = U256::from(0);
-        let total_locked: U256 = U256::from(0);
+        let opt = Options::with(|opt| {
+            // opt.value = Some(5.into());
+            // opt.gas_price = Some(5.into());
+            opt.gas = Some(3_000_000.into());
+        });
+        let locked_by_governance: U256 = self
+            .contract
+            .query("getLockedByGovernance", (), None, opt.clone(), None)
+            .await
+            .unwrap();
+        let locked_rewards: U256 = self
+            .contract
+            .query("getLockedRewards", (), None, opt.clone(), None)
+            .await
+            .unwrap();
+        let locked_vestings: U256 = self
+            .contract
+            .query("getLockedVestings", (), None, opt.clone(), None)
+            .await
+            .unwrap();
+        let time_locked: U256 = self
+            .contract
+            .query("getTimelocked", (), None, opt.clone(), None)
+            .await
+            .unwrap();
+        let total_locked: U256 = self
+            .contract
+            .query("getTotalLocked", (), None, opt.clone(), None)
+            .await
+            .unwrap();
+        let circulating_supply: U256 = self
+            .contract
+            .query("getCirculatingSupply", (), None, opt.clone(), None)
+            .await
+            .unwrap();
 
-        let addr_pool: H160 = hex!("0000000000000000000000000000000000000000").into();
-        let addr_token: H160 = hex!("0000000000000000000000000000000000000000").into();
-        let addr_time_lock: H160 = hex!("0000000000000000000000000000000000000000").into();
-        let addr_primary_treasury: H160 = hex!("0000000000000000000000000000000000000000").into();
-        let addr_secondary_treasury: H160 = hex!("0000000000000000000000000000000000000000").into();
-        let addr_v1_treasury: H160 = hex!("0000000000000000000000000000000000000000").into();
+        let addr_pool: H160 = self
+            .contract
+            .query("API3_POOL", (), None, Options::default(), None)
+            .await
+            .unwrap();
+        let addr_token: H160 = self
+            .contract
+            .query("API3_TOKEN", (), None, Options::default(), None)
+            .await
+            .unwrap();
+        let addr_time_lock: H160 = self
+            .contract
+            .query("TIMELOCK_MANAGER", (), None, Options::default(), None)
+            .await
+            .unwrap();
+        let addr_primary_treasury: H160 = self
+            .contract
+            .query("PRIMARY_TREASURY", (), None, Options::default(), None)
+            .await
+            .unwrap();
+        let addr_secondary_treasury: H160 = self
+            .contract
+            .query("SECONDARY_TREASURY", (), None, Options::default(), None)
+            .await
+            .unwrap();
+        let addr_v1_treasury: H160 = self
+            .contract
+            .query("V1_TREASURY", (), None, Options::default(), None)
+            .await
+            .unwrap();
 
         Some(Api3Circulation {
             circulating_supply,
@@ -102,28 +185,3 @@ impl<T: web3::Transport> Supply<T> {
         })
     }
 }
-
-// let abi = web3::ethabi::Contract::load(std::io::Cursor::new(include_bytes!("./contract/api3_pool.abi.jsons")))?;
-// let contract = Contract::new(web3.eth(), addr, abi);
-// let my_account: H160 = hex!("6518C695CdcbefA272a4E5EF73bD46E801983E19").into();
-// let user_voting_power = contract
-//     .query(
-//         "userVotingPower",
-//         (my_account,),
-//         None,
-//         Options::default(),
-//         None,
-//     )
-//     .await?;
-// println!(
-//     "userVotingPower = {:?}",
-//     nice::amount(user_voting_power, 18)
-// );
-// let user_shares = contract
-//     .query("userShares", (my_account,), None, Options::default(), None)
-//     .await?;
-// println!("userShares = {:?}", nice::amount(user_shares, 18));
-// let user_stake = contract
-//     .query("userStake", (my_account,), None, Options::default(), None)
-//     .await?;
-// println!("userStake = {:?}", nice::amount(user_stake, 18));

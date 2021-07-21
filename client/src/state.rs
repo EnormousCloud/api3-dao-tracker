@@ -454,7 +454,7 @@ impl AppState {
 
             match &mut w.scheduled_unstake {
                 Some(scheduled) => {
-                    if scheduled.shares != shares {
+                    if scheduled.shares > shares {
                         warn!(
                             "unstaking shares {:?} amount {:?} was not scheduled, wallet {:?}",
                             shares, *amount, &ww
