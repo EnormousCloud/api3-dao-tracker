@@ -33,6 +33,18 @@ pub fn amount(src: U256, decimals: usize) -> String {
     return format!("0.{}{}", pad, after_dot);
 }
 
+pub fn ceil(src: U256, decimals: usize) -> String {
+    let str = format!("{}", src);
+    if src == U256::from(0) {
+        return "0".to_owned();
+    }
+    if str.len() > decimals {
+        let s: String = str.chars().take(str.len() - decimals).collect();
+        return with_commas(&s);
+    }
+    return "0".to_owned()
+}
+
 pub fn int<T>(src: T) -> String
 where
     T: std::fmt::Display,
@@ -58,6 +70,11 @@ pub fn pct_of(amt: U256, total: U256, decimals: usize) -> String {
     let prec = decimals + 2;
     let value: f64 = 100.0 * dec(amt, prec) / dec(total, prec);
     format!("{:.2}", value)
+}
+
+// getting APY from APR
+pub fn apy(apr: f64) -> f64 {
+    (1.0 + apr / 52.0).powf(52.0) - 1.0
 }
 
 #[cfg(test)]

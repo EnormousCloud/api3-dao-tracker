@@ -20,7 +20,7 @@ pub fn main(serialized_state: String) {
     if serialized_state.len() > 4 {
         match serde_json::from_str::<AppState>(&serialized_state) {
             Ok(state) => {
-                info!("parsing ok {:?}", state);
+                info!("parsing state ok");
                 appstate = state;
             }
             Err(e) => {

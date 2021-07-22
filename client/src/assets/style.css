@@ -167,7 +167,7 @@ body, html {
 
   .screen-home .centered {
     margin: 0px auto;
-    margin-top: 100px;
+    margin-top: 40px;
     text-align: center;
   }
   .screen-home h1 { 
@@ -177,7 +177,6 @@ body, html {
   .screen-home h2 { 
     font-size: 1.5em;
     margin: 0px;
-    margin-bottom: 40px;
   }
   .screen-home .stats-row {
     line-height: 1.5em;
@@ -198,4 +197,24 @@ body, html {
 }
 .amt {
   padding-left: 10px;
+}
+
+.dash-row {
+  display: flex;
+  align-items: top;
+  justify-content: center;
+}
+
+.dash-col-2 {
+  width: 50%;
+}
+.dash-col-4 {
+  width: 25%;
+}
+.dash-col-3 {
+  width: 33.3%;
+}
+
+.the-last {
+  padding-top: 40px;
 }

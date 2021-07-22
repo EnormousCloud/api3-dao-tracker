@@ -19,6 +19,11 @@ impl MenuItem {
 pub fn render<T>(active_menu: &'static str) -> Node<T> {
     let menu: Vec<MenuItem> = vec![
         MenuItem {
+          href: "./",
+          title: "Statistics",
+          is_active: false,
+        },
+        MenuItem {
             href: "./wallets",
             title: "Wallets",
             is_active: active_menu.starts_with("/wallets"),

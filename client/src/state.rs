@@ -123,7 +123,6 @@ pub struct Wallet {
     pub ens: Option<String>,
     pub vested: bool,
     pub deposited: U256,
-    #[serde(skip_serializing_if = "U256::is_zero")]
     pub withdrawn: U256,
     pub staked: U256,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -131,7 +130,6 @@ pub struct Wallet {
     pub shares: U256,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub delegates: Option<Delegation>,
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub delegated: BTreeMap<H160, U256>,
     pub voting_power: U256,
     pub votes: u64,
@@ -166,8 +164,6 @@ pub struct Epoch {
     pub index: u64,
     /// APR during this epoch
     pub apr: f64,
-    /// APY, calculated from APR
-    pub apy: f64,
     /// minted amount in the last MintedReward event
     pub minted: U256,
     /// Total stake during the last MintedReward event
@@ -191,7 +187,6 @@ impl Epoch {
         Self {
             index,
             apr,
-            apy: (1.0 + apr / 52.0).powf(52.0) - 1.0,
             minted,
             total,
             stake,
@@ -205,8 +200,6 @@ pub struct AppState {
     pub epoch_index: u64,
     /// current epoch APR
     pub apr: f64,
-    /// current epoch APY
-    pub apy: f64,
     /// the block of the last event
     pub last_block: u64,
     /// general API3 pool information
@@ -214,19 +207,19 @@ pub struct AppState {
     /// general API3 circulation information
     pub circulation: Option<Api3Circulation>,
     /// the map of epoch rewards
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    //#[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub epochs: BTreeMap<u64, Epoch>,
     /// map of votings
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    //#[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub votings: BTreeMap<u64, Voting>,
     /// log of events, grouped by votings
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    //#[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub votings_events: BTreeMap<u64, Vec<OnChainEvent>>,
     /// map of wallets
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    //#[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub wallets: BTreeMap<H160, Wallet>,
     /// log of events, groupped by wallets
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    //#[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub wallets_events: BTreeMap<H160, Vec<OnChainEvent>>,
     /// list of wallets that are vesting and their balance is excluded from circulating supply
     pub vested: Vec<H160>,
@@ -238,7 +231,6 @@ impl AppState {
         Self {
             epoch_index: 1,
             apr,
-            apy: (1.0 + apr / 52.0).powf(52.0) - 1.0,
             last_block: 0,
             epochs: BTreeMap::new(),
             votings: BTreeMap::new(),
@@ -528,8 +520,7 @@ impl AppState {
                 self.epochs.insert(epoch.index, epoch.clone());
                 // setting up new epoch
                 self.epoch_index = epoch.index + 1;
-                self.apr = nice::dec(*new_apr, 14) * APR_CORRECTION * 0.0001;
-                self.apy = (1.0 + self.apr / 52.0).powf(52.0) - 1.0;
+                self.apr = nice::dec(*new_apr, 14) * 0.0001;
             }
             Api3::MintedRewardV0 {
                 epoch_index,
@@ -547,8 +538,7 @@ impl AppState {
                 self.epochs.insert(epoch.index.clone(), epoch.clone());
                 // setting up new epoch
                 self.epoch_index = epoch.index + 1;
-                self.apr = nice::dec(*new_apr, 14) * APR_CORRECTION * 0.0001;
-                self.apy = (1.0 + self.apr / 52.0).powf(52.0) - 1.0;
+                self.apr = nice::dec(*new_apr, 14) * 0.0001;
             }
             Api3::Deposited {
                 user,
