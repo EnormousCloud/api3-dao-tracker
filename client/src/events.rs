@@ -134,6 +134,14 @@ pub enum Api3 {
         user: H160,
         amount: U256,
     },
+    DepositedVesting {
+        user: H160,
+        amount: U256,
+        start: U256,
+        end: U256,
+        user_unstaked: U256,
+        user_vesting: U256,
+    },
     Withdrawn {
         user: H160,
         amount: U256,
@@ -142,6 +150,11 @@ pub enum Api3 {
     WithdrawnV0 {
         user: H160,
         amount: U256,
+    },
+    WithdrawnToPool {
+        recipient: H160,
+        api3_pool_address: H160,
+        beneficiary: H160,
     },
     UpdatedLastProposalTimestamp {
         user: H160,
@@ -305,12 +318,28 @@ impl Api3 {
                 user_unstaked: _,
             } => res.push(user.clone()),
             Self::DepositedV0 { user, amount: _ } => res.push(user.clone()),
+            Self::DepositedVesting {
+                user,
+                amount: _,
+                start: _,
+                end: _,
+                user_unstaked: _,
+                user_vesting: _,
+            } => res.push(user.clone()),
             Self::Withdrawn {
                 user,
                 amount: _,
                 user_unstaked: _,
             } => res.push(user.clone()),
             Self::WithdrawnV0 { user, amount: _ } => res.push(user.clone()),
+            Self::WithdrawnToPool {
+                recipient,
+                api3_pool_address: _,
+                beneficiary,
+            } => {
+                res.push(recipient.clone());
+                res.push(beneficiary.clone());
+            },
             Self::PaidOutClaim {
                 recipient,
                 amount: _,
@@ -467,6 +496,14 @@ impl Api3 {
                 amount: r.value(),
             });
         }
+        if t0 == hex!("a2fd4f03989448c5a69bab0c0454f2baf5667413a4e4b87fd7379a8ab69fae3f").into() {
+            let mut r = LogReader::new(&log, 1, Some(2)).unwrap();
+            return Ok(Self::WithdrawnToPool {
+                recipient: r.address(),
+                api3_pool_address: r.address(),
+                beneficiary: r.address(),
+            });
+        }
         if t0 == hex!("ceaef3a8d9336089c649bcf1ea9dd1ae52f5c42ea01f8707ecdd57ea773aa3ee").into() {
             let mut r = LogReader::new(&log, 1, Some(2)).unwrap();
             return Ok(Self::UpdatedLastProposalTimestamp {
@@ -530,6 +567,18 @@ impl Api3 {
                 amount: r.value(),
             });
         }
+        if t0 == hex!("14ab87851ecf43dc38c282e0307cd24257a3d01d0265ae2ba28764befac8c6cc").into() {
+            let mut r = LogReader::new(&log, 1, Some(5)).unwrap();
+            return Ok(Self::DepositedVesting {
+                user: r.address(),
+                amount: r.value(),
+                start: r.value(),
+                end: r.value(),
+                user_unstaked: r.value(),
+                user_vesting: r.value(),
+            });
+        }
+
         if t0 == hex!("220c5b95388e82dd8e3a0abed6143750f9bfa4bf73bb6f742e10cf79e551b168").into() {
             let mut r = LogReader::new(&log, 0, None).unwrap();
             return Ok(Self::SetErc20Addresses {
