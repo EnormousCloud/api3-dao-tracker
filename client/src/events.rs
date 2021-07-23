@@ -87,6 +87,13 @@ pub enum Api3 {
         to: H160,
         shares: U256,
     },
+    UpdatedDelegation{
+        user: H160,
+        delegate: H160, 
+        delta: bool,
+        shares: U256, 
+        total_delegated_to: U256,
+    },
     Staked {
         user: H160,
         amount: U256,
@@ -140,6 +147,16 @@ pub enum Api3 {
         start: U256,
         end: U256,
         user_unstaked: U256,
+        user_vesting: U256,
+    },
+    DepositedByTimelockManager {
+        user: H160,
+        amount: U256,
+        user_unstaked: U256,
+    },
+    VestedTimelock {
+        user: H160,
+        amount: U256,
         user_vesting: U256,
     },
     Withdrawn {
@@ -267,6 +284,16 @@ impl Api3 {
                 res.push(from.clone());
                 res.push(to.clone());
             }
+            Self::UpdatedDelegation {
+                user,
+                delegate, 
+                delta: _,
+                shares: _, 
+                total_delegated_to: _,
+            } => {
+                res.push(user.clone());
+                res.push(delegate.clone());
+            }
             Self::Undelegated {
                 from,
                 to,
@@ -324,6 +351,16 @@ impl Api3 {
                 start: _,
                 end: _,
                 user_unstaked: _,
+                user_vesting: _,
+            } => res.push(user.clone()),
+            Self::DepositedByTimelockManager {
+                user,
+                amount: _,
+                user_unstaked: _,
+            } => res.push(user.clone()),
+            Self::VestedTimelock {
+                user,
+                amount: _,
                 user_vesting: _,
             } => res.push(user.clone()),
             Self::Withdrawn {
@@ -416,6 +453,16 @@ impl Api3 {
                 shares: r.value(),
                 total_delegated_to: r.value(),
             });
+        }
+        if t0 == hex!("f310def5b4718cefe3603eb46259d8061fd58003695cf952de94c53e14dbb309").into() {
+            let mut r = LogReader::new(&log, 2, Some(3)).unwrap();
+            return Ok(Self::UpdatedDelegation {
+                user: r.address(),
+                delegate: r.address(), 
+                delta: r.bool(),
+                shares: r.value(), 
+                total_delegated_to: r.value(),
+            })
         }
         if t0 == hex!("4d10bd049775c77bd7f255195afba5088028ecb3c7c277d393ccff7934f2f92c").into() {
             let mut r = LogReader::new(&log, 2, Some(1)).unwrap();
@@ -575,6 +622,22 @@ impl Api3 {
                 start: r.value(),
                 end: r.value(),
                 user_unstaked: r.value(),
+                user_vesting: r.value(),
+            });
+        }
+        if t0 == hex!("d0d7fef3966369afd08c0683ee833a06f6b91787b85a26fa3ef3004ae37484c2").into() {
+            let mut r = LogReader::new(&log, 1, Some(2)).unwrap();
+            return Ok(Self::DepositedByTimelockManager {
+                user: r.address(),
+                amount: r.value(),
+                user_unstaked: r.value(),
+            });
+        }
+        if t0 == hex!("dd8c2c092b990b8e3ae25447982d1c2f7f08c6b9bf7303986a4279f946ebd2ea").into() {
+            let mut r = LogReader::new(&log, 1, Some(2)).unwrap();
+            return Ok(Self::VestedTimelock {
+                user: r.address(),
+                amount: r.value(),
                 user_vesting: r.value(),
             });
         }
