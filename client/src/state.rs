@@ -168,6 +168,10 @@ pub struct Epoch {
     pub total: U256,
     /// Staking amount for each wallet
     pub stake: BTreeMap<H160, U256>,
+    /// Timestamp of the epoch
+    pub tm: u64,
+    /// Block number of the epoch
+    pub block_number: u64,
 }
 
 impl Epoch {
@@ -177,6 +181,8 @@ impl Epoch {
         minted: U256,
         total_stake: Option<U256>,
         stake: BTreeMap<H160, U256>,
+        tm: u64,
+        block_number: u64,
     ) -> Self {
         let total = match total_stake {
             Some(x) => x,
@@ -188,6 +194,8 @@ impl Epoch {
             minted,
             total,
             stake,
+            tm,
+            block_number,
         }
     }
 }
@@ -514,6 +522,8 @@ impl AppState {
                     *amount,
                     Some(*total_stake),
                     stake,
+                    e.tm,
+                    e.block_number,
                 );
                 self.epochs.insert(epoch.index, epoch.clone());
                 // setting up new epoch
@@ -532,7 +542,8 @@ impl AppState {
                     .map(|(addr, w)| (*addr, w.staked))
                     .into_iter()
                     .collect();
-                let epoch: Epoch = Epoch::new(epoch_index.as_u64(), self.apr, *amount, None, stake);
+                let epoch: Epoch = Epoch::new(epoch_index.as_u64(), self.apr, *amount, None, stake, e.tm,
+                e.block_number);
                 self.epochs.insert(epoch.index.clone(), epoch.clone());
                 // setting up new epoch
                 self.epoch_index = epoch.index + 1;
