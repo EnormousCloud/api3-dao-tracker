@@ -23,7 +23,7 @@ impl Component<Msg> for Screen {
                 <div class="inner">
                     <h1>{ text(self.msg.as_str()) }</h1>
                 </div>
-                { footer::render() }
+                { footer::render(&self.state) }
             </div>
         }
     }

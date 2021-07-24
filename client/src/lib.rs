@@ -29,8 +29,20 @@ pub fn main(serialized_state: String) {
         };
     }
     let document = sauron::dom::document();
-    Program::new_replace_mount(
-        screens::home::Screen::new(appstate),
-        &document.query_selector_all("main").unwrap().get(0).unwrap(),
-    );
+    let root = document.query_selector_all("main").unwrap().get(0).unwrap();
+    let pathname = sauron::dom::window()
+        .location()
+        .pathname()
+        .expect("cannot get window.location");
+    match pathname.as_str() {
+        "/votings" => {
+            Program::new_replace_mount(screens::votings::Screen::new(appstate), &root);
+        }
+        "/wallets" => {
+            Program::new_replace_mount(screens::wallets::Screen::new(appstate), &root);
+        }
+        _ => {
+            Program::new_replace_mount(screens::home::Screen::new(appstate), &root);
+        }
+    };
 }

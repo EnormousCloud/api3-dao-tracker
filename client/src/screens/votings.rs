@@ -1,6 +1,6 @@
 use crate::components::footer;
 use crate::components::header;
-use crate::state::AppState;
+use crate::state::{AppState, Voting};
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +13,31 @@ pub struct Screen {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Msg {}
 
+impl Screen {
+    pub fn new(state: AppState) -> Self {
+        Self {
+            state: state.clone(),
+        }
+    }
+
+    pub fn render_voting(&self, voting: &Voting) -> Node<Msg> {
+        node! {
+            <li>
+                <div class="voting">
+                    <a href={format!("votings/{}", voting.key()) }>
+                        { text(format!("{}: {:?}",
+                            if voting.primary {
+                                "Primary"
+                            } else {
+                                "Secondary"
+                            }, voting.metadata)) }
+                    </a>
+                </div>
+            </li>
+        }
+    }
+}
+
 impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
         node! {
@@ -20,27 +45,18 @@ impl Component<Msg> for Screen {
                 { header::render("/votings") }
                 <div class="inner">
                     <h1>"API3 DAO Votings"</h1>
-                    {ol(vec
-                        ![class("votings-list")],
-                        self.state.votings.iter().map(|(_, voting)| {
-                            node!{
-                                <li>
-                                    <div class="voting">
-                                        <a href={format!("votings/{}", voting.key()) }>
-                                            { text(format!("{}: {:?}",
-                                                if voting.primary {
-                                                    "Primary"
-                                                } else {
-                                                    "Secondary"
-                                                }, voting.metadata)) }
-                                        </a>
-                                    </div>
-                                </li>
-                            }
-                        }).collect::<Vec<Node<Msg>>>()
-                    )}
+                    {if self.state.votings.len() > 0 {
+                        ol(vec
+                            ![class("votings-list")],
+                            self.state.votings.iter().map(|(_, voting)| self.render_voting(voting)).collect::<Vec<Node<Msg>>>()
+                        )
+                    } else {
+                        div(vec![class("votings-empty")], vec![
+                            text("There were no votings in the DAO so far")
+                        ])
+                    }}
                 </div>
-                { footer::render() }
+                { footer::render(&self.state) }
             </div>
         }
     }

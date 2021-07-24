@@ -156,8 +156,6 @@ impl Wallet {
     }
 }
 
-const APR_CORRECTION: f64 = 52.0 * 7.0 / 365.0;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Epoch {
     /// index of an epoch
@@ -227,7 +225,7 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
-        let apr: f64 = 0.3875 * APR_CORRECTION;
+        let apr: f64 = 0.3875;
         Self {
             epoch_index: 1,
             apr,

@@ -87,11 +87,11 @@ pub enum Api3 {
         to: H160,
         shares: U256,
     },
-    UpdatedDelegation{
+    UpdatedDelegation {
         user: H160,
-        delegate: H160, 
+        delegate: H160,
         delta: bool,
-        shares: U256, 
+        shares: U256,
         total_delegated_to: U256,
     },
     Staked {
@@ -286,9 +286,9 @@ impl Api3 {
             }
             Self::UpdatedDelegation {
                 user,
-                delegate, 
+                delegate,
                 delta: _,
-                shares: _, 
+                shares: _,
                 total_delegated_to: _,
             } => {
                 res.push(user.clone());
@@ -376,7 +376,7 @@ impl Api3 {
             } => {
                 res.push(recipient.clone());
                 res.push(beneficiary.clone());
-            },
+            }
             Self::PaidOutClaim {
                 recipient,
                 amount: _,
@@ -458,11 +458,11 @@ impl Api3 {
             let mut r = LogReader::new(&log, 2, Some(3)).unwrap();
             return Ok(Self::UpdatedDelegation {
                 user: r.address(),
-                delegate: r.address(), 
+                delegate: r.address(),
                 delta: r.bool(),
-                shares: r.value(), 
+                shares: r.value(),
                 total_delegated_to: r.value(),
-            })
+            });
         }
         if t0 == hex!("4d10bd049775c77bd7f255195afba5088028ecb3c7c277d393ccff7934f2f92c").into() {
             let mut r = LogReader::new(&log, 2, Some(1)).unwrap();

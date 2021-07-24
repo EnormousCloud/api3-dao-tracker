@@ -98,6 +98,12 @@ export STATIC_DIR=$(pwd)/client/dist
     ssh $SSH_HOST 'cd /opt/api3tracker-mainnet; docker rm -f api3tracker-mainnet; docker-compose up -d'
 }
 
+
+[[ "$1" == "cache-mainnet" ]] && {
+    export SSH_HOST="root@enormous.cloud"
+    ssh $SSH_HOST 'cd /opt/api3tracker-mainnet; docker exec -i api3tracker-mainnet /usr/src/app/api3tracker --dump unknown'
+}
+
 [[ "$1" == "publish-rinkeby" ]] && {
     export SSH_HOST="root@rinkeby.enormous.cloud"
     scp "$(pwd)"/server/.env.rinkeby $SSH_HOST:/opt/.env.rinkeby

@@ -16,12 +16,15 @@ impl MenuItem {
     }
 }
 
+const TITLE: &'static str = "API3 DAO Tracker";
+const SLOGAN: &'static str = "on-chain analytics: DAO members, rewards, token supply";
+
 pub fn render<T>(active_menu: &'static str) -> Node<T> {
     let menu: Vec<MenuItem> = vec![
         MenuItem {
-          href: "./",
-          title: "Statistics",
-          is_active: false,
+            href: "./",
+            title: "Statistics",
+            is_active: false,
         },
         MenuItem {
             href: "./wallets",
@@ -40,9 +43,10 @@ pub fn render<T>(active_menu: &'static str) -> Node<T> {
         <div class="inner">
           <div class="nav-brand">
             <span class="nav-brand__label">
-              "API3 DAO Tracker"
+              {text(TITLE)}
             </span>
             <span class="nav-brand__slogan">
+              {text(SLOGAN)}
             </span>
           </div>
           <div class="mid"></div>

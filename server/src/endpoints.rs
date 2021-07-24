@@ -241,8 +241,10 @@ const LOADING_HTML: &'static str = r#"
     }
   </style>
   <style type="text/css">
+    * {
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
+    }
     body, html {
-      font-family: Roboto, sans;
       background: var(--color-bk);
       color: var(--color-text);
     }

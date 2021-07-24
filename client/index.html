@@ -22,8 +22,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" /> 
-
+  
   <base data-trunk-public-url />
 
   <style id="color-theme" class="dark" type="text/css">
@@ -31,8 +30,9 @@
     --color-bk: #333333;
     --color-bk-highlight: #666;
     --color-text: #ddd;
-    --color-link: #ffe;
-    --color-accent: lightblue;
+    --color-link: #7ce3cb;
+    --color-accent: #7ce3cb;
+    --color-warning: pink;
     --color-body: #000;
     --color-well: #666;
     --color-error: #db3742;
@@ -40,12 +40,19 @@
     --color-success-dark: #329b1e;
     --color-grey: #8c8d9c;
     --color-grey-light: #ced3dc;
+    --color-cell-title: #c3c4c3;
+    --color-cell-border: #404141;
+    --color-panel-title: #fff;
+    --color-panel-border: #878888;
     }
   </style>
   <style type="text/css">
     body, html {
       background: var(--color-bk);
       color: var(--color-text);
+    }
+    * {
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
     }
     a {
       color: var(--color-link);

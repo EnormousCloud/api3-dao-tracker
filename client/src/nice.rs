@@ -42,7 +42,7 @@ pub fn ceil(src: U256, decimals: usize) -> String {
         let s: String = str.chars().take(str.len() - decimals).collect();
         return with_commas(&s);
     }
-    return "0".to_owned()
+    return "0".to_owned();
 }
 
 pub fn int<T>(src: T) -> String

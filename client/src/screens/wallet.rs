@@ -53,7 +53,7 @@ impl Component<Msg> for Screen {
                         }
                     }
                 </div>
-                { footer::render() }
+                { footer::render(&self.state) }
             </div>
         }
     }

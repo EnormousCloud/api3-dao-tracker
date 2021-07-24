@@ -14,6 +14,14 @@ pub struct Screen {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Msg {}
 
+impl Screen {
+    pub fn new(state: AppState) -> Self {
+        Self {
+            state: state.clone(),
+        }
+    }
+}
+
 impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
         let mut sorted: Vec<Wallet> = self.state.wallets.values().cloned().collect();
@@ -99,7 +107,7 @@ impl Component<Msg> for Screen {
                         }).collect::<Vec<Node<Msg>>>()
                     )}
                 </div>
-                { footer::render() }
+                { footer::render(&self.state) }
             </div>
         }
     }
