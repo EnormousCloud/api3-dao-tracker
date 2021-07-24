@@ -6,9 +6,15 @@ body, html {
   font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 800px) {
   .desktop-only {
-    display: none;
+    display: none !important;
+  }
+}
+
+@media (min-width: 799px) {
+  .mobile-only {
+    display: none !important;
   }
 }
 
@@ -50,6 +56,7 @@ body, html {
 
   main > div > div.inner,
   body > div > div.inner {
+    margin-top: 40px;
     padding-top: 30px;
     padding-bottom: 30px;
   }  
@@ -145,16 +152,21 @@ body, html {
     }
     .desktop-menu a {
       text-decoration: none;
-      color: var(--color-text);
-      background: var(--color-bk);
+      color: var(--color-grey);
+      background: transparent;
       padding: 0px 20px;
       margin-left: 5px;
       line-height: 50px;
       font-weight: bold;
+      border-bottom: 3px solid transparent;
+    }
+    .desktop-menu a.active {
+      color: var(--color-accent);
+      border-bottom: 3px solid var(--color-accent);
     }
     .desktop-menu a:hover {
-      background: var(--color-bk-highlight);
-      color: var(--color-accent);
+      color: var(--color-text);
+      border-bottom: 3px solid var(--color-text);
     }
   }
   
@@ -165,6 +177,8 @@ body, html {
   h1 {
     font-size: 1.25em;
     text-align: center;
+    text-transform: uppercase;
+    margin: 0px;
   }
   
   @media (min-width: 960px){
@@ -217,12 +231,7 @@ body, html {
 
   .screen-home .centered {
     margin: 0px auto;
-    margin-top: 40px;
     text-align: center;
-  }
-  .screen-home h1 { 
-    text-transform: uppercase;
-    margin: 0px;
   }
   .screen-home h2 { 
     font-size: 1.5em;
@@ -318,9 +327,6 @@ label.cell-title {
   margin-top: 32px;
 }
 
-.bordered-panel {
-}
-
 .bordered-box {
   display: flex;
   width: 100%;
@@ -383,4 +389,29 @@ label.cell-title {
   .eth-address {
     font-size: 14px;
   }
+}
+
+table.table {
+  width: 100%;
+  margin: 20px 0px;
+}
+
+table.table tbody td {
+  color: var(--color-cell-title);
+  line-height: 1.5rem;
+}
+
+table.table thead th {
+  line-height: 2rem;
+  border-bottom: 2px solid var(--color-cell-border);
+}
+
+table.table thead th.r,
+table.table tbody td.r {
+  text-align: right !important;
+}
+
+table.table thead th.c,
+table.table tbody td.c {
+  text-align: center !important;
 }

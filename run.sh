@@ -101,7 +101,7 @@ export STATIC_DIR=$(pwd)/client/dist
 
 [[ "$1" == "cache-mainnet" ]] && {
     export SSH_HOST="root@enormous.cloud"
-    ssh $SSH_HOST 'cd /opt/api3tracker-mainnet; docker exec -i api3tracker-mainnet /usr/src/app/api3tracker --dump unknown'
+    ssh $SSH_HOST 'docker exec -i api3tracker-mainnet /usr/src/app/api3tracker --dump unknown'
 }
 
 [[ "$1" == "publish-rinkeby" ]] && {
@@ -109,4 +109,9 @@ export STATIC_DIR=$(pwd)/client/dist
     scp "$(pwd)"/server/.env.rinkeby $SSH_HOST:/opt/.env.rinkeby
     docker save api3tracker | bzip2 | ssh $SSH_HOST 'bunzip2 | docker load'
     ssh $SSH_HOST '/opt/api3tracker-rinkeby.sh'
+}
+
+[[ "$1" == "cache-rinkeby" ]] && {
+    export SSH_HOST="root@rinkeby.enormous.cloud"
+    ssh $SSH_HOST 'docker exec -i api3tracker-rinkeby /usr/src/app/api3tracker --dump unknown'
 }

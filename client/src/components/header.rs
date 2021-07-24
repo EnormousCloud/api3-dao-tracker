@@ -20,11 +20,20 @@ const TITLE: &'static str = "API3 DAO Tracker";
 const SLOGAN: &'static str = "on-chain analytics: DAO members, rewards, token supply";
 
 pub fn render<T>(active_menu: &'static str) -> Node<T> {
+    let is_default = !active_menu.starts_with("/rewards")
+        && !active_menu.starts_with("/wallets")
+        && !active_menu.starts_with("/votings");
+
     let menu: Vec<MenuItem> = vec![
         MenuItem {
             href: "./",
-            title: "Statistics",
-            is_active: false,
+            title: "API3 DAO",
+            is_active: is_default,
+        },
+        MenuItem {
+            href: "./rewards",
+            title: "Rewards",
+            is_active: active_menu.starts_with("/rewards"),
         },
         MenuItem {
             href: "./wallets",

@@ -95,6 +95,13 @@ pub fn routes(
             }
         }
     });
+    let api_rewards = warp::path!("api" / "rewards").map({
+        let state_rc = state.clone();
+        move || {
+            let state = state_rc.lock().unwrap();
+            warp::reply::json(&wrap_result(&state.app.epochs))
+        }
+    });
     let api_votings = warp::path!("api" / "votings").map({
         let state_rc = state.clone();
         move || {
@@ -116,6 +123,7 @@ pub fn routes(
         }
     });
     let api = api_state
+        .or(api_rewards)
         .or(api_wallets)
         .or(api_wallet)
         .or(api_votings)
@@ -143,6 +151,18 @@ pub fn routes(
             render_html(&d, &state.app, Box::new(screen.view())).into_response()
         }
     });
+    let rewards = warp::path!("rewards").map({
+        let state_rc = state.clone();
+        let d = dir.clone();
+        move || {
+            let state = state_rc.lock().unwrap();
+            let screen = screens::rewards::Screen {
+                state: state.clone().app,
+            };
+            render_html(&d, &state.app, Box::new(screen.view())).into_response()
+        }
+    });
+
     let wallet = warp::path!("wallets" / String).map({
         let state_rc = state.clone();
         let d = dir.clone();
@@ -197,7 +217,7 @@ pub fn routes(
         })
         .or(warp::fs::dir(static_dir.clone()));
 
-    let pages = home.or(wallet).or(wallets).or(voting).or(votings);
+    let pages = home.or(rewards).or(wallet).or(wallets).or(voting).or(votings);
     let liveness = warp::path!("_liveness").map(|| format!("# API3 DAO Tracker"));
     liveness.or(api).or(pages)
 }
@@ -220,9 +240,6 @@ const LOADING_HTML: &'static str = r#"
   <meta property="og:image:width" content="64" />
   <meta property="og:image:height" content="64" />
   <link rel="icon" href="https://enormous.cloud/favicon-17b88549a4840abb.jpg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" /> 
 
   <style id="color-theme" class="dark" type="text/css">
     :root {

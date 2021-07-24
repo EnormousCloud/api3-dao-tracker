@@ -1,7 +1,7 @@
 use crate::components::err_box;
 use crate::components::footer;
 use crate::components::header;
-use crate::events::VotingAgent;
+use crate::events::{self, VotingAgent};
 use crate::state::AppState;
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -16,6 +16,18 @@ pub struct Screen {
     pub agent: VotingAgent,
     /// server side state
     pub state: AppState,
+}
+
+impl Screen {
+    pub fn new(state: AppState, vote_ref: u64) -> Self {
+        let (agent, vote_id) = events::voting_from_u64(vote_ref);
+        Self {
+            vote_ref,
+            vote_id,
+            agent,
+            state: state.clone(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]

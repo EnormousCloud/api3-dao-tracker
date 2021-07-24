@@ -14,6 +14,15 @@ pub struct Screen {
     pub state: AppState,
 }
 
+impl Screen {
+    pub fn new(state: AppState, addr: &H160) -> Self {
+        Self {
+            state: state.clone(),
+            addr: addr.clone(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Msg {}
 

@@ -80,12 +80,12 @@ impl Screen {
                             {if !reached {
                                 span(
                                     vec![styles([("color", "var(--color-accent)")])],
-                                    vec![text("DAO staking target is not reached, so APR will be increased by 2.5% for the next epoch")],
+                                    vec![text("DAO staking target is not reached, so APR will be increased by 1% for the next epoch until it reaches 75%")],
                                 )
                             } else {
                                 span(
                                     vec![styles([("color", "var(--color-warning)")])],
-                                    vec![text("DAO staking target is reached, so APR will be decreased by 2.5% for the next epoch")],
+                                    vec![text("DAO staking target is reached, so APR will be decreased by 1% for the next epoch until it reaches 2.5%")],
                                 )
                             }}
                         </p>
@@ -179,6 +179,16 @@ impl Screen {
         let staked = nice::dec(staked256, 18);
         let to_be_minted = staked * self.state.apr * self.rewards_coeff() / 52.0;
 
+        let prev_epoch = self.state.epoch_index - 1;
+        let tm = if let Some(ep) = self.state.epochs.get(&prev_epoch) {
+            if let Some(pool_info) = &self.state.pool_info {
+                ep.tm + pool_info.epoch_length
+            } else {
+                0
+            }
+        } else {
+            0
+        };
         panel::render(
             "Current Epoch",
             node! {
@@ -211,15 +221,20 @@ impl Screen {
                             { text(nice::ceil(minted, 18)) }
                         </strong>
                     </div>
-                    <div class="stats-row cell-title padded">
-                        <strong>
-                            { text(nice::int(to_be_minted as u64)) }
-                        </strong>
-                        <span class="darken">
-                            " API3 tokens to be minted"
-                        </span>
+                    <div class="padded">
+                        <div class="stats-row cell-title">
+                            <strong>
+                                " ~"
+                                { text(nice::int(to_be_minted as u64)) }
+                            </strong>
+                            <span class="darken">
+                                " API3 tokens to be minted "
+                            </span>
+                        </div>
+                        <div class="stats-row darken cell-title">
+                            { text(nice::date(tm)) }
+                        </div>
                     </div>
-                    <div>" "</div>
                 </div>
             },
         )
@@ -254,15 +269,19 @@ impl Screen {
                                 { text(nice::ceil(ep.total, 18)) }
                             </strong>
                         </div>
-                        <div class="stats-row cell-title padded">
-                            <strong>
-                                { text(nice::int(nice::dec(ep.minted, 18))) }
-                            </strong>
-                            <span class="darken">
-                                " API3 tokens were minted"
-                            </span>
+                        <div class="padded">
+                            <div class="stats-row cell-title">
+                                <strong>
+                                    { text(nice::int(nice::dec(ep.minted, 18))) }
+                                </strong>
+                                <span class="darken">
+                                    " API3 tokens were minted"
+                                </span>
+                            </div>
+                            <div class="stats-row darken cell-title">
+                                { text(nice::date(ep.tm)) }
+                            </div>
                         </div>
-                        <div>" "</div>
                     </div>
                 },
             )
@@ -280,7 +299,7 @@ impl Component<Msg> for Screen {
                 <div class="inner">
                     <div class="centered">
                         <h1>"API3 DAO Tracker"</h1>
-                        <p>
+                        <p class="m20">
                             "API3 DAO currently involves "
                             <a href="./wallets">
                                 { text(nice::int(self.state.wallets.len())) }
@@ -292,6 +311,7 @@ impl Component<Msg> for Screen {
                                 " votings"
                             </a>
                         </p>
+                        <div style="height: 20px">" "</div>
 
                         <h2>"API3 Staking Rewards"</h2>
                         <div class="dash-row">

@@ -77,6 +77,11 @@ pub fn apy(apr: f64) -> f64 {
     (1.0 + apr / 52.0).powf(52.0) - 1.0
 }
 
+pub fn date(tm: u64) -> String {
+    let dt = chrono::NaiveDateTime::from_timestamp(tm as i64, 0);
+    format!("{:?}", dt).replace("T", " ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

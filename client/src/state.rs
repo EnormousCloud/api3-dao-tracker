@@ -542,8 +542,15 @@ impl AppState {
                     .map(|(addr, w)| (*addr, w.staked))
                     .into_iter()
                     .collect();
-                let epoch: Epoch = Epoch::new(epoch_index.as_u64(), self.apr, *amount, None, stake, e.tm,
-                e.block_number);
+                let epoch: Epoch = Epoch::new(
+                    epoch_index.as_u64(),
+                    self.apr,
+                    *amount,
+                    None,
+                    stake,
+                    e.tm,
+                    e.block_number,
+                );
                 self.epochs.insert(epoch.index.clone(), epoch.clone());
                 // setting up new epoch
                 self.epoch_index = epoch.index + 1;
