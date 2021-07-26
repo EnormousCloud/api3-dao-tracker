@@ -2,6 +2,7 @@ use crate::components::footer;
 use crate::components::header;
 use crate::components::panel;
 use crate::nice;
+use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::AppState;
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -45,7 +46,7 @@ impl Screen {
         match &self.state.circulation {
             Some(c) => node! {
                 <div>
-                    {panel::render("API3 CIrculating Supply", node! {
+                    {panel::render("API3 Circulating Supply", node! {
                         <div id="api3-circulating-supply">
                             <strong class="big-title" title={nice::amount(c.circulating_supply, 18)}>
                                 {text(nice::ceil(c.circulating_supply, 18))}
@@ -348,5 +349,13 @@ impl Component<Msg> for Screen {
     fn update(&mut self, msg: Msg) -> Cmd<Self, Msg> {
         info!("MSG: {:?}", msg);
         Cmd::none()
+    }
+}
+
+impl MetaProvider for Screen {
+    fn meta(&self) -> PageMetaInfo {
+        let title = format!("API3 DAO Tracker - on-chain analytics: members, staking rewards, API3 token circulating supply");
+        let description = "API3 DAO tracker watches API3 on-chain DAO events, displays history of each participant and staking rewards. No wallet connection is needed";
+        PageMetaInfo::new(&title, description)
     }
 }

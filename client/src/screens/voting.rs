@@ -2,6 +2,7 @@ use crate::components::err_box;
 use crate::components::footer;
 use crate::components::header;
 use crate::events::{self, VotingAgent};
+use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::AppState;
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -77,5 +78,20 @@ impl Component<Msg> for Screen {
 
     fn update(&mut self, _: Msg) -> Cmd<Self, Msg> {
         Cmd::none()
+    }
+}
+
+impl MetaProvider for Screen {
+    fn meta(&self) -> PageMetaInfo {
+        let description =
+            "Explore API3 DAO full voting history. No wallet connection is needed".to_owned();
+        let title = match self.state.votings.get(&self.vote_ref) {
+            Some(v) => format!(
+                "API3 DAO {} Voting History",
+                if v.primary { "Primary" } else { "Secondary" }
+            ),
+            None => "API3 DAO Voting was not found".to_owned(),
+        };
+        PageMetaInfo::new(&title, &description)
     }
 }

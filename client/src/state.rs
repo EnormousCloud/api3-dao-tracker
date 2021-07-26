@@ -138,6 +138,13 @@ pub struct Wallet {
 }
 
 impl Wallet {
+    pub fn get_name(&self) -> String {
+        if let Some(ens) = &self.ens {
+            return format!("{} ({})", ens.to_owned(), self.address);
+        }
+        format!("{:?}", self.address)
+    }
+
     pub fn update_voting_power(&mut self) {
         self.voting_power = {
             let mut sum = if let Some(_) = &self.delegates {
@@ -452,7 +459,7 @@ impl AppState {
 
             match &mut w.scheduled_unstake {
                 Some(scheduled) => {
-                    if scheduled.shares > shares {
+                    if scheduled.shares < shares {
                         warn!(
                             "unstaking shares {:?} amount {:?} was not scheduled, wallet {:?}",
                             shares, *amount, &ww

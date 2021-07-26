@@ -1,6 +1,7 @@
 use crate::components::footer;
 use crate::components::header;
 use crate::nice;
+use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, Epoch};
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -30,9 +31,7 @@ impl Screen {
 
     pub fn release_offset(&self) -> u64 {
         match &self.state.pool_info {
-            Some(pool_info) => {
-                pool_info.reward_vesting_period * pool_info.epoch_length
-            },
+            Some(pool_info) => pool_info.reward_vesting_period * pool_info.epoch_length,
             None => 0u64,
         }
     }
@@ -178,5 +177,17 @@ impl Component<Msg> for Screen {
 
     fn update(&mut self, _: Msg) -> Cmd<Self, Msg> {
         Cmd::none()
+    }
+}
+
+impl MetaProvider for Screen {
+    fn meta(&self) -> PageMetaInfo {
+        let minted = self.state.get_minted_total();
+        let title = "API3 DAO Tracker - Staking Rewards History";
+        let description = format!(
+            "Explore API3 DAO staking rewards - {} API3 tokens minted as rewards for DAO members. No wallet connection needed.",
+            nice::ceil(minted, 18)
+        );
+        PageMetaInfo::new(title, &description)
     }
 }

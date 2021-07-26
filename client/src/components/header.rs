@@ -17,7 +17,7 @@ impl MenuItem {
 }
 
 const TITLE: &'static str = "API3 DAO Tracker";
-const SLOGAN: &'static str = "on-chain analytics: DAO members, rewards, token supply";
+const SLOGAN: &'static str = "on-chain analytics: members, staking rewards, API3 token supply";
 
 pub fn render<T>(active_menu: &'static str) -> Node<T> {
     let is_default = !active_menu.starts_with("/rewards")

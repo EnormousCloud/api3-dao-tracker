@@ -1,5 +1,6 @@
 use crate::inject;
 use client::screens;
+use client::screens::meta::{MetaProvider, PageMetaInfo};
 use client::state::AppState;
 use sauron::prelude::*;
 use std::collections::BTreeMap;
@@ -10,20 +11,38 @@ use warp::Filter;
 use warp::Reply;
 use web3::types::H160;
 
+pub fn render_meta(content: &str, info: PageMetaInfo) -> String {
+    let doc = nipper::Document::from(content);
+    if info.title.len() > 0 {
+        doc.select("title").replace_with_html(format!("<title>{}</title>", info.title));
+    }
+    if info.og_title.len() > 0{
+        doc.select("meta[property=\"og:title\"]").replace_with_html(format!(r#"<meta property="og:title" content="{}">"#, info.og_title));
+    }
+    if info.description.len() > 0 {
+        doc.select("meta[name=\"description\"]").replace_with_html(format!(r#"<meta name="description" content="{}">"#, info.description));
+    }
+    if info.og_description.len() > 0{
+        doc.select("meta[property=\"og:description\"]").replace_with_html(format!(r#"<meta property="og:description" content="{}">"#, info.description));
+    }
+    doc.html().to_string()
+}
+
 pub fn render_html(
     static_dir: &str,
     app: &AppState,
     component: Box<dyn Render>,
+    meta: Box<dyn MetaProvider>,
 ) -> impl warp::Reply {
     let file = format!("{}/index.html", static_dir);
-    info!("content file {:?}", file);
     let content = std::fs::read_to_string(file.as_str()).expect("index.html not found");
-    info!("content size {:?}", content.len());
+    let with_meta: String = render_meta(&content, meta.meta());
+
     let state_json = serde_json::to_string(app).expect("state could not be converted to JSON");
     let mut state_html = String::new();
     let rendered: String = match component.render(&mut state_html) {
         Ok(_) => {
-            let c1 = inject::it(content.as_str(), "<main>", "</main>", &state_html);
+            let c1 = inject::it(&with_meta, "<main>", "</main>", &state_html);
             inject::replace(c1.as_str(), "main(`", "`)", "") // call to main function is removed
         }
         Err(_) => inject::it(content.as_str(), "main(`", "`)", &state_json),
@@ -37,8 +56,9 @@ pub fn render_err(static_dir: &str, app: &AppState, msg: &'static str) -> warp::
         msg: msg.to_owned(),
         state: app.clone(),
     };
+    let (comp, page) = (Box::new(screen.view()), Box::new(screen));
     warp::reply::with_status(
-        render_html(static_dir.to_owned().as_str(), app, Box::new(screen.view())),
+        render_html(static_dir.to_owned().as_str(), app, comp, page),
         warp::http::StatusCode::BAD_REQUEST,
     )
     .into_response()
@@ -137,7 +157,8 @@ pub fn routes(
             let screen = screens::wallets::Screen {
                 state: state.clone().app,
             };
-            render_html(&d, &state.app, Box::new(screen.view()))
+            let (comp, page) = (Box::new(screen.view()), Box::new(screen));
+            render_html(&d, &state.app, comp, page).into_response()
         }
     });
     let votings = warp::path!("votings").map({
@@ -148,7 +169,8 @@ pub fn routes(
             let screen = screens::votings::Screen {
                 state: state.clone().app,
             };
-            render_html(&d, &state.app, Box::new(screen.view())).into_response()
+            let (comp, page) = (Box::new(screen.view()), Box::new(screen));
+            render_html(&d, &state.app, comp, page).into_response()
         }
     });
     let rewards = warp::path!("rewards").map({
@@ -159,7 +181,8 @@ pub fn routes(
             let screen = screens::rewards::Screen {
                 state: state.clone().app,
             };
-            render_html(&d, &state.app, Box::new(screen.view())).into_response()
+            let (comp, page) = (Box::new(screen.view()), Box::new(screen));
+            render_html(&d, &state.app, comp, page).into_response()
         }
     });
 
@@ -174,7 +197,8 @@ pub fn routes(
                         addr,
                         state: state.clone().app,
                     };
-                    render_html(&d, &state.app, Box::new(screen.view())).into_response()
+                    let (comp, page) = (Box::new(screen.view()), Box::new(screen));
+                    render_html(&d, &state.app, comp, page).into_response()
                 } else {
                     render_err(&d, &state.app, "Not a member of the DAO")
                 }
@@ -197,7 +221,8 @@ pub fn routes(
                     agent,
                     state: state.clone().app,
                 };
-                render_html(&d, &state.app, Box::new(screen.view())).into_response()
+                let (comp, page) = (Box::new(screen.view()), Box::new(screen));
+                render_html(&d, &state.app, comp, page).into_response()
             } else {
                 render_err(&d, &state.app, "Invalid voting ID")
             }
@@ -212,12 +237,18 @@ pub fn routes(
                 let screen = screens::home::Screen {
                     state: state.clone().app,
                 };
-                render_html(&d, &state.app, Box::new(screen.view())).into_response()
+                let (comp, page) = (Box::new(screen.view()), Box::new(screen));
+                render_html(&d, &state.app, comp, page).into_response()
             }
         })
         .or(warp::fs::dir(static_dir.clone()));
 
-    let pages = home.or(rewards).or(wallet).or(wallets).or(voting).or(votings);
+    let pages = home
+        .or(rewards)
+        .or(wallet)
+        .or(wallets)
+        .or(voting)
+        .or(votings);
     let liveness = warp::path!("_liveness").map(|| format!("# API3 DAO Tracker"));
     liveness.or(api).or(pages)
 }

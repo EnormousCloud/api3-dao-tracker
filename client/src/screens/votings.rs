@@ -1,5 +1,6 @@
 use crate::components::footer;
 use crate::components::header;
+use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, Voting};
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -63,5 +64,16 @@ impl Component<Msg> for Screen {
 
     fn update(&mut self, _: Msg) -> Cmd<Self, Msg> {
         Cmd::none()
+    }
+}
+
+impl MetaProvider for Screen {
+    fn meta(&self) -> PageMetaInfo {
+        let title = "API3 DAO Tracker - Full Votings History";
+        let description = format!(
+            "Explore {} votings history of API3 DAO. No wallet connection is needed",
+            self.state.votings.len()
+        );
+        PageMetaInfo::new(&title, &description)
     }
 }

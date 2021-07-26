@@ -1,6 +1,7 @@
 use crate::components::footer;
 use crate::components::header;
 use crate::nice;
+use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, Wallet};
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -114,5 +115,16 @@ impl Component<Msg> for Screen {
 
     fn update(&mut self, _: Msg) -> Cmd<Self, Msg> {
         Cmd::none()
+    }
+}
+
+impl MetaProvider for Screen {
+    fn meta(&self) -> PageMetaInfo {
+        let title = format!(
+            "API3 DAO Tracker - {} members wallets",
+            self.state.wallets.len()
+        );
+        let description = format!("Explore API3 DAO: voting power, shares and full staking history of {} members. No wallet connection is needed", self.state.wallets.len());
+        PageMetaInfo::new(&title, &description)
     }
 }

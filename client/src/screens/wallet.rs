@@ -1,6 +1,8 @@
 use crate::components::err_box;
 use crate::components::footer;
 use crate::components::header;
+use crate::nice;
+use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::AppState;
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -69,5 +71,25 @@ impl Component<Msg> for Screen {
 
     fn update(&mut self, _: Msg) -> Cmd<Self, Msg> {
         Cmd::none()
+    }
+}
+
+impl MetaProvider for Screen {
+    fn meta(&self) -> PageMetaInfo {
+        let (title, description) = match self.state.wallets.get(&self.addr) {
+            Some(w) => {
+                let total_votes = self.state.get_votes_total();
+                let power = nice::pct_of(w.voting_power, total_votes, 18);
+                (
+                    format!("API3 DAO Member - {} has voting power of {}%", w.get_name(), power ),
+                    format!("Explore API3 DAO voting power, shares and full staking history of {}. No wallet connection is needed", w.get_name()),
+                )
+            },
+            None => (
+                "API3 DAO Member was not found".to_owned(), 
+                format!("Explore API3 DAO voting power, shares and full staking history of {} members. No wallet connection is needed", self.state.wallets.len()),
+            ),
+        };
+        PageMetaInfo::new(&title, &description)
     }
 }
