@@ -40,13 +40,17 @@ pub struct BlockBatch {
 pub async fn get_batches<T: Transport>(
     eth: Eth<T>,
     genesis: u64,
+    max: Option<u64>,
     batch_size: u64,
 ) -> Vec<BlockBatch> {
-    let max_block: u64 = eth
-        .block_number()
-        .await
-        .expect("max block height failure")
-        .as_u64();
+    let max_block: u64 = match max {
+        Some(x) => x,
+        None => eth
+            .block_number()
+            .await
+            .expect("max block height failure")
+            .as_u64(),
+    };
     let mut from = genesis;
     let mut res = vec![];
     while from <= max_block {
@@ -68,6 +72,7 @@ pub struct Scanner {
     addr_primary: Vec<H160>,
     addr_secondary: Vec<H160>,
     genesis_block: u64,
+    max_block: Option<u64>,
     batch_size: u64,
 }
 
@@ -78,6 +83,7 @@ impl Scanner {
         addr_secondary: Vec<H160>,
         addr: Vec<H160>,
         genesis_block: u64,
+        max_block: Option<u64>,
         batch_size: u64,
     ) -> Self {
         let mut addr_watched: Vec<H160> = addr.clone();
@@ -94,6 +100,7 @@ impl Scanner {
             addr_primary,
             addr_secondary,
             genesis_block,
+            max_block,
             batch_size,
         }
     }
@@ -159,7 +166,7 @@ impl Scanner {
     {
         let chain_id = web3.eth().chain_id().await?.as_u64();
         let mut last_block = self.genesis_block;
-        for b in get_batches(web3.eth(), self.genesis_block, self.batch_size).await {
+        for b in get_batches(web3.eth(), self.genesis_block, self.max_block, self.batch_size).await {
             let logs: Vec<Log> = if self.has_logs(chain_id, &b) {
                 tracing::debug!(
                     "pulling cached blocks {}..{} chain_id {}",

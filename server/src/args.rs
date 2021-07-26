@@ -55,10 +55,12 @@ pub struct Args {
     /// API3 circulation contract address (optional)
     #[structopt(long, env = "ADDR_API3_CIRCULATION")]
     pub address_circulation: Option<String>,
-
-    /// Number of the fisrt block to start watching
+    /// Number of the first block to start watching
     #[structopt(long, default_value = "8842400", env = "GENESIS_BLOCK")]
     pub genesis_block: u64,
+    /// Max block to stop contract events listening
+    #[structopt(long, env = "MAX_BLOCK")]
+    pub max_block: Option<u64>,
     /// Dump (show logs) mode instead of running HTTP server
     #[structopt(short, long, possible_values = &DumpMode::variants(), case_insensitive = true)]
     pub dump: Option<DumpMode>,

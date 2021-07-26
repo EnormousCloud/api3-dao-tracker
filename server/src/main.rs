@@ -165,6 +165,7 @@ async fn main() -> anyhow::Result<()> {
         vec![addr_voting2, addr_agent2],
         addresses,
         args.genesis_block,
+        args.max_block,
         args.rpc_batch_size,
     );
 
@@ -248,13 +249,13 @@ async fn main() -> anyhow::Result<()> {
     });
 
     if args.watch {
-        // This is unstable so far
         let rc = state.clone();
         rc.lock().unwrap().verbose = true;
         let rc = state.clone();
         tokio::spawn(async move {
             scanner.watch_ipc(&web3, last_block, rc).await.unwrap();
         });
+        // TODO: one more thread fto update ppol and circulation hourly
         let chat = warp::path("ws").and(warp::ws()).and(subscribers).map(
             |ws: warp::ws::Ws, subscribers| {
                 ws.on_upgrade(move |socket| ws_connected(socket, subscribers))

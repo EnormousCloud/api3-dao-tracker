@@ -1,8 +1,8 @@
 use client::nice;
 use client::state::{Api3Circulation, Api3PoolInfo};
+use tracing::warn;
 use web3::contract::{Contract, Options};
 use web3::types::{H160, U256};
-use tracing::warn;
 
 #[derive(Debug)]
 pub struct Pool<T>
@@ -110,89 +110,137 @@ impl<T: web3::Transport> Supply<T> {
         let locked_by_governance: U256 = match self
             .contract
             .query("getLockedByGovernance", (), None, opt.clone(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("getLockedByGovernance {}", e); return None; },
-            };
-            
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("getLockedByGovernance {}", e);
+                return None;
+            }
+        };
+
         let locked_rewards: U256 = match self
             .contract
             .query("getLockedRewards", (), None, opt.clone(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("getLockedRewards {}", e); return None; },
-            };
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("getLockedRewards {}", e);
+                return None;
+            }
+        };
         let locked_vestings: U256 = match self
             .contract
             .query("getLockedVestings", (), None, opt.clone(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("getLockedVestings {}", e); return None; },
-            };
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("getLockedVestings {}", e);
+                return None;
+            }
+        };
         let time_locked: U256 = match self
             .contract
             .query("getTimelocked", (), None, opt.clone(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("getTimelocked {}", e); return None; },
-            };
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("getTimelocked {}", e);
+                return None;
+            }
+        };
         let total_locked: U256 = match self
             .contract
             .query("getTotalLocked", (), None, opt.clone(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("getTotalLocked {}", e); return None; },
-            };
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("getTotalLocked {}", e);
+                return None;
+            }
+        };
         let circulating_supply: U256 = match self
             .contract
             .query("getCirculatingSupply", (), None, opt.clone(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("getCirculatingSupply {}", e); return None; },
-            };
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("getCirculatingSupply {}", e);
+                return None;
+            }
+        };
 
         let addr_pool: H160 = match self
             .contract
             .query("API3_POOL", (), None, Options::default(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("API3_POOL {}", e); return None; },
-            };
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("API3_POOL {}", e);
+                return None;
+            }
+        };
         let addr_token: H160 = match self
             .contract
             .query("API3_TOKEN", (), None, Options::default(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("API3_TOKEN {}", e); return None; },
-            };
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("API3_TOKEN {}", e);
+                return None;
+            }
+        };
         let addr_time_lock: H160 = match self
             .contract
             .query("TIMELOCK_MANAGER", (), None, Options::default(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("TIMELOCK_MANAGER {}", e); return None; },
-            };
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("TIMELOCK_MANAGER {}", e);
+                return None;
+            }
+        };
         let addr_primary_treasury: H160 = match self
             .contract
             .query("PRIMARY_TREASURY", (), None, Options::default(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("PRIMARY_TREASURY {}", e); return None; },
-            };
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("PRIMARY_TREASURY {}", e);
+                return None;
+            }
+        };
         let addr_secondary_treasury: H160 = match self
             .contract
             .query("SECONDARY_TREASURY", (), None, Options::default(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("SECONDARY_TREASURY {}", e); return None; },
-            };
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("SECONDARY_TREASURY {}", e);
+                return None;
+            }
+        };
         let addr_v1_treasury: H160 = match self
             .contract
             .query("V1_TREASURY", (), None, Options::default(), None)
-            .await {
-                Ok(x) => x,
-                Err(e) => { warn!("V1_TREASURY {}", e); return None; },
-            };
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("V1_TREASURY {}", e);
+                return None;
+            }
+        };
 
         Some(Api3Circulation {
             circulating_supply,

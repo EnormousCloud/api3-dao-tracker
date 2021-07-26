@@ -14,16 +14,29 @@ use web3::types::H160;
 pub fn render_meta(content: &str, info: PageMetaInfo) -> String {
     let doc = nipper::Document::from(content);
     if info.title.len() > 0 {
-        doc.select("title").replace_with_html(format!("<title>{}</title>", info.title));
+        doc.select("title")
+            .replace_with_html(format!("<title>{}</title>", info.title));
     }
-    if info.og_title.len() > 0{
-        doc.select("meta[property=\"og:title\"]").replace_with_html(format!(r#"<meta property="og:title" content="{}">"#, info.og_title));
+    if info.og_title.len() > 0 {
+        doc.select("meta[property=\"og:title\"]")
+            .replace_with_html(format!(
+                r#"<meta property="og:title" content="{}">"#,
+                info.og_title
+            ));
     }
     if info.description.len() > 0 {
-        doc.select("meta[name=\"description\"]").replace_with_html(format!(r#"<meta name="description" content="{}">"#, info.description));
+        doc.select("meta[name=\"description\"]")
+            .replace_with_html(format!(
+                r#"<meta name="description" content="{}">"#,
+                info.description
+            ));
     }
-    if info.og_description.len() > 0{
-        doc.select("meta[property=\"og:description\"]").replace_with_html(format!(r#"<meta property="og:description" content="{}">"#, info.description));
+    if info.og_description.len() > 0 {
+        doc.select("meta[property=\"og:description\"]")
+            .replace_with_html(format!(
+                r#"<meta property="og:description" content="{}">"#,
+                info.description
+            ));
     }
     doc.html().to_string()
 }
