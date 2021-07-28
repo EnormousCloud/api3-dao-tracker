@@ -218,12 +218,12 @@ async fn main() -> anyhow::Result<()> {
             s.app.wallets.len(),
             s.app.votings.len()
         );
-        s.app.pool_info = crate::contracts::Pool::new(web3.clone(), addr_pool)
+        s.app.pool_info = crate::contracts::Pool::new(&web3, addr_pool)
             .read()
             .await;
         tracing::info!("pool info {:?}", s.app.pool_info);
         if let Some(addr_supply) = addr_circulation {
-            s.app.circulation = crate::contracts::Supply::new(web3.clone(), addr_supply)
+            s.app.circulation = crate::contracts::Supply::new(&web3, addr_supply)
                 .read()
                 .await;
             tracing::info!("circulation info {:?}", s.app.circulation);
@@ -249,13 +249,39 @@ async fn main() -> anyhow::Result<()> {
     });
 
     if args.watch {
+        let w3 = web3.clone();
         let rc = state.clone();
         rc.lock().unwrap().verbose = true;
         let rc = state.clone();
         tokio::spawn(async move {
             scanner.watch_ipc(&web3, last_block, rc).await.unwrap();
         });
-        // TODO: one more thread fto update ppol and circulation hourly
+
+        // one more thread fto update ppol and circulation hourly
+        if let Some(addr_supply) = addr_circulation {
+            let rc = state.clone();
+            tokio::spawn( async move {
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(3600));
+                let contract_pool = crate::contracts::Pool::new(&w3, addr_pool.clone());
+                let contract_circulation = crate::contracts::Supply::new(&w3, addr_supply);
+                interval.tick().await; // wait an hour
+                if let Some(pool) = contract_pool.read().await {
+                    tracing::info!("pool info {:?}", pool);
+                    let mut s = rc.lock().unwrap();
+                    s.app.pool_info = Some(pool);
+                } else {
+                    tracing::info!("pool info - failed to update");
+                }
+                if let Some(circulation) = contract_circulation.read().await {
+                    tracing::info!("circulation info {:?}", circulation);
+                    let mut s = rc.lock().unwrap();
+                    s.app.circulation = Some(circulation);
+                } else {
+                    tracing::info!("circulation info - failed to update");
+                }
+            });
+        }
+
         let chat = warp::path("ws").and(warp::ws()).and(subscribers).map(
             |ws: warp::ws::Ws, subscribers| {
                 ws.on_upgrade(move |socket| ws_connected(socket, subscribers))

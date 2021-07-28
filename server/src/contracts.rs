@@ -9,12 +9,11 @@ pub struct Pool<T>
 where
     T: web3::Transport,
 {
-    web3: web3::Web3<T>,
     contract: Contract<T>,
 }
 
 impl<T: web3::Transport> Pool<T> {
-    pub fn new(web3: web3::Web3<T>, address: H160) -> Self {
+    pub fn new(web3: &web3::Web3<T>, address: H160) -> Self {
         let contract = Contract::from_json(
             web3.eth(),
             address,
@@ -22,49 +21,84 @@ impl<T: web3::Transport> Pool<T> {
         )
         .expect("fail contract::from_json(api3_pool.abi.json)");
         Pool {
-            web3: web3,
             contract: contract,
         }
     }
 
     pub async fn read(&self) -> Option<Api3PoolInfo> {
-        let min_apr: U256 = self
+        let min_apr: U256 = match self
             .contract
             .query("minApr", (), None, Options::default(), None)
             .await
-            .unwrap();
-        let max_apr: U256 = self
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("minApr {}", e);
+                return None;
+            }
+        };
+        let max_apr: U256 = match self
             .contract
             .query("maxApr", (), None, Options::default(), None)
             .await
-            .unwrap();
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("maxApr {}", e);
+                return None;
+            }
+        };
         let genesis_apr: f64 = nice::dec((min_apr + max_apr) / U256::from(2), 18 - 4) / 10e3;
-        let epoch_length: U256 = self
+        let epoch_length: U256 = match self
             .contract
             .query("EPOCH_LENGTH", (), None, Options::default(), None)
             .await
-            .unwrap();
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("EPOCH_LENGTH {}", e);
+                return None;
+            }
+        };
         let rewards_coeff: f64 = if epoch_length.as_u64() == 3600 {
             1.0
         } else {
             let week: u64 = epoch_length.as_u64() / 3600 / 24;
             52.0 * (week as f64) / 365.0
         };
-        let reward_vesting_period: U256 = self
+        let reward_vesting_period: U256 = match self
             .contract
             .query("REWARD_VESTING_PERIOD", (), None, Options::default(), None)
             .await
-            .unwrap();
-        let unstake_wait_period: U256 = self
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("REWARD_VESTING_PERIOD {}", e);
+                return None;
+            }
+        };
+        let unstake_wait_period: U256 = match self
             .contract
             .query("unstakeWaitPeriod", (), None, Options::default(), None)
             .await
-            .unwrap();
-        let stake_target: U256 = self
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("unstakeWaitPeriod {}", e);
+                return None;
+            }
+        };
+        let stake_target: U256 = match self
             .contract
             .query("stakeTarget", (), None, Options::default(), None)
             .await
-            .unwrap();
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("stakeTarget {}", e);
+                return None;
+            }
+        };
         Some(Api3PoolInfo {
             genesis_apr,
             min_apr: nice::dec(min_apr, 18 - 4) / 10e3,
@@ -83,12 +117,11 @@ pub struct Supply<T>
 where
     T: web3::Transport,
 {
-    web3: web3::Web3<T>,
     contract: Contract<T>,
 }
 
 impl<T: web3::Transport> Supply<T> {
-    pub fn new(web3: web3::Web3<T>, address: H160) -> Self {
+    pub fn new(web3: &web3::Web3<T>, address: H160) -> Self {
         tracing::info!("reading supply {:?}", address);
         let contract = Contract::from_json(
             web3.eth(),
@@ -97,7 +130,6 @@ impl<T: web3::Transport> Supply<T> {
         )
         .expect("fail contract::from_json(api3_supply.abi.json)");
         Supply {
-            web3: web3,
             contract: contract,
         }
     }

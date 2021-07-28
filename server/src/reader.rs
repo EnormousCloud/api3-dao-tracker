@@ -166,7 +166,14 @@ impl Scanner {
     {
         let chain_id = web3.eth().chain_id().await?.as_u64();
         let mut last_block = self.genesis_block;
-        for b in get_batches(web3.eth(), self.genesis_block, self.max_block, self.batch_size).await {
+        for b in get_batches(
+            web3.eth(),
+            self.genesis_block,
+            self.max_block,
+            self.batch_size,
+        )
+        .await
+        {
             let logs: Vec<Log> = if self.has_logs(chain_id, &b) {
                 tracing::debug!(
                     "pulling cached blocks {}..{} chain_id {}",

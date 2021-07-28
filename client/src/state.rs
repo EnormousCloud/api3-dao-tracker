@@ -577,6 +577,27 @@ impl AppState {
                     w.deposited += *amount;
                 }
             }
+            Api3::DepositedVesting {
+                user,
+                amount,
+                start: _,
+                end: _,
+                user_unstaked: _,
+                user_vesting: _,
+            } => {
+                if let Some(w) = self.wallets.get_mut(&user) {
+                    w.deposited += *amount;
+                }
+            }
+            Api3::DepositedByTimelockManager {
+                user,
+                amount,
+                user_unstaked: _,
+            } => {
+                if let Some(w) = self.wallets.get_mut(&user) {
+                    w.deposited += *amount;
+                }
+            }
             Api3::Withdrawn {
                 user,
                 amount,
