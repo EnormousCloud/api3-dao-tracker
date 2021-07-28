@@ -153,11 +153,11 @@ async fn main() -> anyhow::Result<()> {
     let web3 = web3::Web3::new(transport);
 
     let mut addresses = vec![addr_pool, addr_convenience];
-    if let Some(addr_supply) = args
-        .address_api3_supply
-        .map(|x| H160::from_str(&x).expect("ADDR_API3_SUPPLY"))
+    if let Some(address_api3_circulation) = args
+        .address_api3_circulation
+        .map(|x| H160::from_str(&x).expect("ADDR_API3_CIRCULATION"))
     {
-        addresses.push(addr_supply);
+        addresses.push(address_api3_circulation);
     }
     let scanner = reader::Scanner::new(
         args.cache_dir.as_str(),
@@ -218,9 +218,7 @@ async fn main() -> anyhow::Result<()> {
             s.app.wallets.len(),
             s.app.votings.len()
         );
-        s.app.pool_info = crate::contracts::Pool::new(&web3, addr_pool)
-            .read()
-            .await;
+        s.app.pool_info = crate::contracts::Pool::new(&web3, addr_pool).read().await;
         tracing::info!("pool info {:?}", s.app.pool_info);
         if let Some(addr_supply) = addr_circulation {
             s.app.circulation = crate::contracts::Supply::new(&web3, addr_supply)
@@ -260,7 +258,7 @@ async fn main() -> anyhow::Result<()> {
         // one more thread fto update ppol and circulation hourly
         if let Some(addr_supply) = addr_circulation {
             let rc = state.clone();
-            tokio::spawn( async move {
+            tokio::spawn(async move {
                 let mut interval = tokio::time::interval(std::time::Duration::from_secs(3600));
                 let contract_pool = crate::contracts::Pool::new(&w3, addr_pool.clone());
                 let contract_circulation = crate::contracts::Supply::new(&w3, addr_supply);

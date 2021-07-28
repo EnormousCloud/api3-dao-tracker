@@ -72,6 +72,23 @@ pub fn pct_of(amt: U256, total: U256, decimals: usize) -> String {
     format!("{:.2}", value)
 }
 
+pub fn pct3_of(amt: U256, total: U256, decimals: usize) -> String {
+    let prec = decimals - 2;
+    let value: f64 = 100.0 * dec(amt, prec) / dec(total, prec);
+    format!("{:.3}", value)
+}
+
+pub fn pct4_of(amt: U256, total: U256, decimals: usize) -> String {
+    let prec = decimals - 2;
+    let value: f64 = 100.0 * dec(amt, prec) / dec(total, prec);
+    format!("{:.4}", value)
+}
+
+pub fn pct_val(amt: U256, total: U256, decimals: usize) -> f64 {
+    let prec = decimals;
+    dec(amt, prec) / dec(total, prec)
+}
+
 // getting APY from APR
 pub fn apy(apr: f64) -> f64 {
     (1.0 + apr / 52.0).powf(52.0) - 1.0

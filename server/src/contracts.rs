@@ -20,9 +20,7 @@ impl<T: web3::Transport> Pool<T> {
             include_bytes!("./contract/api3_pool.abi.json"),
         )
         .expect("fail contract::from_json(api3_pool.abi.json)");
-        Pool {
-            contract: contract,
-        }
+        Pool { contract: contract }
     }
 
     pub async fn read(&self) -> Option<Api3PoolInfo> {
@@ -129,9 +127,7 @@ impl<T: web3::Transport> Supply<T> {
             include_bytes!("./contract/api3_supply.abi.json"),
         )
         .expect("fail contract::from_json(api3_supply.abi.json)");
-        Supply {
-            contract: contract,
-        }
+        Supply { contract: contract }
     }
 
     pub async fn read(&self) -> Option<Api3Circulation> {

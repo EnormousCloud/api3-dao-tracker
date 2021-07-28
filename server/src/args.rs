@@ -34,8 +34,8 @@ pub struct Args {
     #[structopt(long, default_value = "", env = "ADDR_API3_POOL")]
     pub address_api3_pool: String,
     /// API3 contract with supply
-    #[structopt(long, env = "ADDR_API3_SUPPLY")]
-    pub address_api3_supply: Option<String>,
+    #[structopt(long, env = "ADDR_API3_CIRCULATION")]
+    pub address_api3_circulation: Option<String>,
 
     /// API3 convenience contract address
     #[structopt(long, default_value = "", env = "ADDR_API3_CONVENIENCE")]

@@ -396,6 +396,11 @@ impl Api3 {
                 supports: _,
                 stake: _,
             } => res.push(voter.clone()),
+            Self::SetVestingAddresses { addresses } => {
+                for addr in addresses {
+                    res.push(addr.clone());
+                }
+            }
             _ => {}
         };
         res
@@ -720,7 +725,6 @@ impl Api3 {
             // return Ok(Self::???(r.value(),r.address(),r.value()));
             return Ok(Self::Unclassified);
         }
-
         if t0 == hex!("20d5cc5c404f7bcf167ea08ea1136482041e05e5641946d3e3de6690a23fbe39").into() {
             let mut r = LogReader::new(&log, 0, None).unwrap();
             return Ok(Self::SetVestingAddresses {

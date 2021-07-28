@@ -291,6 +291,107 @@ impl AppState {
             .fold(U256::from(0), |a, b| a + b)
     }
 
+    pub fn get_rewards(&self, addr: &H160) -> U256 {
+        self.epochs.iter().map(|(_, epoch)| {
+            let staked = match epoch.stake.get(addr) {
+                Some(val) => *val,
+                None => return U256::from(0),
+            };
+            if staked == U256::from(0) {
+                return U256::from(0);
+            }
+            (epoch.minted * staked) / epoch.total
+            
+        }).fold(U256::from(0), |a, b| a + b)
+    }
+
+    pub fn is_vested_deposit(&self, addr: &H160) -> bool {
+        if let Some(ev) = self.wallets_events.get(addr) {
+            if let Some(_) = ev.iter().find(|evt| {
+                match evt.entry {
+                    Api3::DepositedVesting{user: _,
+                        amount: _,
+                        start: _,
+                        end: _,
+                        user_unstaked: _,
+                        user_vesting: _,
+                    } => true,
+                    Api3::DepositedByTimelockManager{user: _,
+                        amount: _,
+                        user_unstaked: _
+                    } => true,
+                    _ => false,
+                }
+            }) {
+                return true
+            }
+        }
+        false
+    }
+
+    pub fn get_delegating_num(&self) -> u32 {
+        self.wallets
+            .values()
+            .map(|w| {
+                match w.delegates {
+                    Some(_) =>  1,
+                    None => 0,
+                }
+            })
+            .sum()
+    }
+
+    pub fn get_delegating_shares(&self) -> U256 {
+        self.wallets
+            .values()
+            .map(|w| {
+                match w.delegates {
+                    Some(_) =>  w.shares,
+                    None => U256::from(0),
+                }
+            })
+            .fold(U256::from(0), |a, b| a + b)
+    }
+
+    pub fn get_withdrawn_num(&self) -> u32 {
+        self.wallets
+            .values()
+            .map(|w| {
+                match w.withdrawn > U256::from(0) {
+                    true => 1,
+                    false => 0,
+                }
+            })
+            .sum()
+    }
+
+
+    pub fn get_vested_num(&self) -> u32 {
+        self.wallets
+            .values()
+            .map(|w| {
+                if w.vested || self.is_vested_deposit(&w.address) {
+                    1
+                } else {
+                    0
+                }
+            })
+            .sum()
+    }
+
+    pub fn get_vested_shares(&self) -> U256 {
+        self.wallets
+            .values()
+            .map(|w| {
+                if w.vested || self.is_vested_deposit(&w.address) {
+                    w.shares
+                } else {
+                    U256::from(0)
+                }
+            })
+            .fold(U256::from(0), |a, b| a + b)
+    }
+
     pub fn set_vesting_addresses(&mut self, addresses: &Vec<H160>) {
         self.wallets.iter_mut().for_each(|(addr, w)| {
             w.vested = addresses.contains(addr);
