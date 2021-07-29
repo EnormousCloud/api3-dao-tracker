@@ -122,6 +122,8 @@ pub struct Wallet {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ens: Option<String>,
     pub vested: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vested_amount: Option<U256>,
     pub deposited: U256,
     pub withdrawn: U256,
     pub staked: U256,
@@ -133,6 +135,7 @@ pub struct Wallet {
     pub delegated: BTreeMap<H160, U256>,
     pub voting_power: U256,
     pub votes: u64,
+    pub rewards: U256,
     pub created_at: u64,
     pub updated_at: u64,
 }
@@ -173,7 +176,7 @@ pub struct Epoch {
     pub minted: U256,
     /// Total stake during the last MintedReward event
     pub total: U256,
-    /// Staking amount for each wallet
+    /// Staking amount for each wallet (including locked rewards)
     pub stake: BTreeMap<H160, U256>,
     /// Timestamp of the epoch
     pub tm: u64,
@@ -186,15 +189,11 @@ impl Epoch {
         index: u64,
         apr: f64,
         minted: U256,
-        total_stake: Option<U256>,
+        total: U256,
         stake: BTreeMap<H160, U256>,
         tm: u64,
         block_number: u64,
     ) -> Self {
-        let total = match total_stake {
-            Some(x) => x,
-            None => stake.values().clone().fold(U256::from(0), |a, b| a + b),
-        };
         Self {
             index,
             apr,
@@ -570,13 +569,43 @@ impl AppState {
         Ok(())
     }
 
-    pub fn update(&mut self, e: OnChainEvent, log: web3::types::Log) -> () {
-        // println!("update {:?}", e);
+    pub fn distribute(&mut self, epoch_index: U256, amount: U256, new_apr: U256, total_stake: Option<U256>, tm: u64, block_number: u64) -> anyhow::Result<()> {
+        let stake: BTreeMap<H160, U256> = self
+            .wallets
+            .iter()
+            .map(|(addr, w)| (*addr, w.staked + w.rewards))
+            .into_iter()
+            .collect();
+        let total = match total_stake {
+            Some(x) => x,
+            None => stake.values().clone().fold(U256::from(0), |a, b| a + b),
+        };
+        let epoch: Epoch = Epoch::new(
+            epoch_index.as_u64(),
+            self.apr,
+            amount,
+            total,
+            stake,
+            tm,
+            block_number,
+        );
+        self.epochs.insert(epoch.index, epoch.clone());
+        // distribute individual rewards
+        self.wallets.iter_mut().for_each(|(_, w)| {
+            let staked = w.staked + w.rewards;
+            w.rewards += (epoch.minted * staked) / epoch.total;
+        });
 
+        // setting up new epoch
+        self.epoch_index = epoch.index + 1;
+        self.apr = nice::dec(new_apr, 14) * 0.0001;
+        Ok(())
+    }
+
+    pub fn update(&mut self, e: OnChainEvent, log: web3::types::Log) -> () {
         log.block_number.map(|block_number| {
             self.last_block = block_number.as_u64();
         });
-        // self.events.push(e.clone());
 
         // if e.entry.is_broadcast() {
         //     self.wallets_events.iter_mut().for_each(|(_, w)| {
@@ -614,25 +643,9 @@ impl AppState {
                 total_stake,
             } => {
                 println!("{:?}", e.entry);
-                let stake: BTreeMap<H160, U256> = self
-                    .wallets
-                    .iter()
-                    .map(|(addr, w)| (*addr, w.staked))
-                    .into_iter()
-                    .collect();
-                let epoch: Epoch = Epoch::new(
-                    epoch_index.as_u64(),
-                    self.apr,
-                    *amount,
-                    Some(*total_stake),
-                    stake,
-                    e.tm,
-                    e.block_number,
-                );
-                self.epochs.insert(epoch.index, epoch.clone());
-                // setting up new epoch
-                self.epoch_index = epoch.index + 1;
-                self.apr = nice::dec(*new_apr, 14) * 0.0001;
+                if let Err(err) = self.distribute(*epoch_index, *amount, *new_apr, Some(*total_stake), e.tm, e.block_number) {
+                    warn!("{:?} {:?}", err, e);
+                }
             }
             Api3::MintedRewardV0 {
                 epoch_index,
@@ -640,25 +653,9 @@ impl AppState {
                 new_apr,
             } => {
                 println!("{:?}", e.entry);
-                let stake: BTreeMap<H160, U256> = self
-                    .wallets
-                    .iter()
-                    .map(|(addr, w)| (*addr, w.staked))
-                    .into_iter()
-                    .collect();
-                let epoch: Epoch = Epoch::new(
-                    epoch_index.as_u64(),
-                    self.apr,
-                    *amount,
-                    None,
-                    stake,
-                    e.tm,
-                    e.block_number,
-                );
-                self.epochs.insert(epoch.index.clone(), epoch.clone());
-                // setting up new epoch
-                self.epoch_index = epoch.index + 1;
-                self.apr = nice::dec(*new_apr, 14) * 0.0001;
+                if let Err(err) = self.distribute(*epoch_index, *amount, *new_apr, None, e.tm, e.block_number) {
+                    warn!("{:?} {:?}", err, e);
+                }
             }
             Api3::Deposited {
                 user,
