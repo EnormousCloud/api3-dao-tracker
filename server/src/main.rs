@@ -259,23 +259,25 @@ async fn main() -> anyhow::Result<()> {
         if let Some(addr_supply) = addr_circulation {
             let rc = state.clone();
             tokio::spawn(async move {
-                let mut interval = tokio::time::interval(std::time::Duration::from_secs(3600));
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(60*60));
                 let contract_pool = crate::contracts::Pool::new(&w3, addr_pool.clone());
                 let contract_circulation = crate::contracts::Supply::new(&w3, addr_supply);
-                interval.tick().await; // wait an hour
-                if let Some(pool) = contract_pool.read().await {
-                    tracing::info!("pool info {:?}", pool);
-                    let mut s = rc.lock().unwrap();
-                    s.app.pool_info = Some(pool);
-                } else {
-                    tracing::info!("pool info - failed to update");
-                }
-                if let Some(circulation) = contract_circulation.read().await {
-                    tracing::info!("circulation info {:?}", circulation);
-                    let mut s = rc.lock().unwrap();
-                    s.app.circulation = Some(circulation);
-                } else {
-                    tracing::info!("circulation info - failed to update");
+                loop {
+                    interval.tick().await; // wait an hour
+                    if let Some(pool) = contract_pool.read().await {
+                        tracing::info!("pool info {:?}", pool);
+                        let mut s = rc.lock().unwrap();
+                        s.app.pool_info = Some(pool);
+                    } else {
+                        tracing::info!("pool info - failed to update");
+                    }
+                    if let Some(circulation) = contract_circulation.read().await {
+                        tracing::info!("circulation info {:?}", circulation);
+                        let mut s = rc.lock().unwrap();
+                        s.app.circulation = Some(circulation);
+                    } else {
+                        tracing::info!("circulation info - failed to update");
+                    }
                 }
             });
         }
