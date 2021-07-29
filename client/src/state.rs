@@ -292,38 +292,40 @@ impl AppState {
     }
 
     pub fn get_rewards(&self, addr: &H160) -> U256 {
-        self.epochs.iter().map(|(_, epoch)| {
-            let staked = match epoch.stake.get(addr) {
-                Some(val) => *val,
-                None => return U256::from(0),
-            };
-            if staked == U256::from(0) {
-                return U256::from(0);
-            }
-            (epoch.minted * staked) / epoch.total
-            
-        }).fold(U256::from(0), |a, b| a + b)
+        self.epochs
+            .iter()
+            .map(|(_, epoch)| {
+                let staked = match epoch.stake.get(addr) {
+                    Some(val) => *val,
+                    None => return U256::from(0),
+                };
+                if staked == U256::from(0) {
+                    return U256::from(0);
+                }
+                (epoch.minted * staked) / epoch.total
+            })
+            .fold(U256::from(0), |a, b| a + b)
     }
 
     pub fn is_vested_deposit(&self, addr: &H160) -> bool {
         if let Some(ev) = self.wallets_events.get(addr) {
-            if let Some(_) = ev.iter().find(|evt| {
-                match evt.entry {
-                    Api3::DepositedVesting{user: _,
-                        amount: _,
-                        start: _,
-                        end: _,
-                        user_unstaked: _,
-                        user_vesting: _,
-                    } => true,
-                    Api3::DepositedByTimelockManager{user: _,
-                        amount: _,
-                        user_unstaked: _
-                    } => true,
-                    _ => false,
-                }
+            if let Some(_) = ev.iter().find(|evt| match evt.entry {
+                Api3::DepositedVesting {
+                    user: _,
+                    amount: _,
+                    start: _,
+                    end: _,
+                    user_unstaked: _,
+                    user_vesting: _,
+                } => true,
+                Api3::DepositedByTimelockManager {
+                    user: _,
+                    amount: _,
+                    user_unstaked: _,
+                } => true,
+                _ => false,
             }) {
-                return true
+                return true;
             }
         }
         false
@@ -332,11 +334,9 @@ impl AppState {
     pub fn get_delegating_num(&self) -> u32 {
         self.wallets
             .values()
-            .map(|w| {
-                match w.delegates {
-                    Some(_) =>  1,
-                    None => 0,
-                }
+            .map(|w| match w.delegates {
+                Some(_) => 1,
+                None => 0,
             })
             .sum()
     }
@@ -344,11 +344,9 @@ impl AppState {
     pub fn get_delegating_shares(&self) -> U256 {
         self.wallets
             .values()
-            .map(|w| {
-                match w.delegates {
-                    Some(_) =>  w.shares,
-                    None => U256::from(0),
-                }
+            .map(|w| match w.delegates {
+                Some(_) => w.shares,
+                None => U256::from(0),
             })
             .fold(U256::from(0), |a, b| a + b)
     }
@@ -356,15 +354,12 @@ impl AppState {
     pub fn get_withdrawn_num(&self) -> u32 {
         self.wallets
             .values()
-            .map(|w| {
-                match w.withdrawn > U256::from(0) {
-                    true => 1,
-                    false => 0,
-                }
+            .map(|w| match w.withdrawn > U256::from(0) {
+                true => 1,
+                false => 0,
             })
             .sum()
     }
-
 
     pub fn get_vested_num(&self) -> u32 {
         self.wallets
@@ -506,10 +501,11 @@ impl AppState {
         shares: &U256,
         scheduled_for: u64,
     ) -> anyhow::Result<()> {
-        let total_stake = self.get_staked_total();
-        let total_shares = self.get_shares_total();
+        // let total_stake = self.get_staked_total();
+        // let total_shares = self.get_shares_total();
         let shares_to_unstake = *shares;
-        let mut amount_to_deduct = *shares * total_stake / total_shares;
+        // let mut amount_to_deduct = *shares * total_stake / total_shares;
+        let mut amount_to_deduct = *amount;
         let (delegates, amt_delegated) = match self.wallets.get_mut(user) {
             Some(w) => {
                 let ww = w.clone();

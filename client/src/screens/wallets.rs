@@ -174,7 +174,7 @@ impl Screen {
                     }
                 } else {
                     td(vec![class("r darken")],vec![text("-")])
-                }}                
+                }}
             </tr>
         }
     }

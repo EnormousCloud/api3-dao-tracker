@@ -325,6 +325,13 @@ impl Api3 {
                 amount: _,
                 minted_shares: _,
             } => res.push(user.clone()),
+            Self::Unstaked {
+                user,
+                amount: _,
+                user_unstaked: _,
+                total_shares: _,
+                total_stake: _,
+            } => res.push(user.clone()),
             Self::UnstakedV0 { user, amount: _ } => res.push(user.clone()),
             Self::ScheduledUnstake {
                 user,
@@ -727,6 +734,9 @@ impl Api3 {
         }
         if t0 == hex!("20d5cc5c404f7bcf167ea08ea1136482041e05e5641946d3e3de6690a23fbe39").into() {
             let mut r = LogReader::new(&log, 0, None).unwrap();
+            // skipping 2 entries (second is the size)
+            let _ = r.address();
+            let _ = r.address();
             return Ok(Self::SetVestingAddresses {
                 addresses: r.addresses(),
             });
