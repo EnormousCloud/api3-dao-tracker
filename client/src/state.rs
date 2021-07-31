@@ -124,6 +124,7 @@ pub struct Wallet {
     pub vested: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vested_amount: Option<U256>,
+    pub supporter: bool,
     pub deposited: U256,
     pub withdrawn: U256,
     pub staked: U256,
@@ -364,7 +365,7 @@ impl AppState {
         self.wallets
             .values()
             .map(|w| {
-                if w.vested || self.is_vested_deposit(&w.address) {
+                if self.is_vested_deposit(&w.address) {
                     1
                 } else {
                     0
@@ -377,8 +378,11 @@ impl AppState {
         self.wallets
             .values()
             .map(|w| {
-                if w.vested || self.is_vested_deposit(&w.address) {
-                    w.shares
+                if self.is_vested_deposit(&w.address) {
+                    match w.vested_amount {
+                        Some(x) => x,
+                        None => U256::from(0),
+                    }
                 } else {
                     U256::from(0)
                 }
@@ -474,6 +478,14 @@ impl AppState {
             Some(w) => {
                 w.staked += *amount;
                 w.shares += *shares;
+
+                if let None = w.vested_amount {
+                    if w.withdrawn == U256::from(0) {
+                        // if not vested and never withdrawn, mark as supporter
+                        w.supporter = true
+                    }
+                }
+
                 if let Some(d) = &mut w.delegates {
                     d.shares = w.shares;
                 }
@@ -532,6 +544,7 @@ impl AppState {
                 if let Some(d) = &mut w.delegates {
                     d.shares = w.shares;
                 }
+                w.supporter = false; // can't  be marked as supporter anymore
                 w.update_voting_power();
                 (w.delegates.clone(), w.shares)
             }
@@ -681,6 +694,13 @@ impl AppState {
             } => {
                 if let Some(w) = self.wallets.get_mut(&user) {
                     w.deposited += *amount;
+                    w.vested_amount = Some(
+                        *amount + match w.vested_amount  {
+                            None => U256::from(0),
+                            Some(v) => v,
+                        }
+                    );
+                    w.supporter = false;
                 }
             }
             Api3::DepositedByTimelockManager {
@@ -690,6 +710,7 @@ impl AppState {
             } => {
                 if let Some(w) = self.wallets.get_mut(&user) {
                     w.deposited += *amount;
+                    w.supporter = false;
                 }
             }
             Api3::Withdrawn {
@@ -699,11 +720,13 @@ impl AppState {
             } => {
                 if let Some(w) = self.wallets.get_mut(&user) {
                     w.withdrawn += *amount;
+                    w.supporter = false; // can't  be marked as supporter anymore
                 }
             }
             Api3::WithdrawnV0 { user, amount } => {
                 if let Some(w) = self.wallets.get_mut(&user) {
                     w.withdrawn += *amount;
+                    w.supporter = false; // can't  be marked as supporter anymore
                 }
             }
             Api3::Staked {
