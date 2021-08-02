@@ -16,6 +16,24 @@ pub struct Screen {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Msg {}
 
+
+#[derive(Debug, Clone)]
+pub struct LabelBadge {
+    class: String,
+    text: String,
+    title: String,
+}
+
+impl LabelBadge {
+    pub fn new(class: &str, text: &str, title: &str) -> Self {
+        Self{
+            class: class.to_string(),
+            text: text.to_string(),
+            title: title.to_string(),
+        }
+    }
+}
+
 impl Screen {
     pub fn new(state: AppState) -> Self {
         Self {
@@ -139,8 +157,24 @@ impl Screen {
         } else {
             "r darken"
         };
-        let vested = w.vested || self.state.is_vested_deposit(&w.address);
         let rewards = self.state.get_rewards(&w.address);
+        let mut labels: Vec<LabelBadge> = vec![];
+        if w.vested || self.state.is_vested_deposit(&w.address) {
+            labels.push(LabelBadge::new("badge-vested", "vested", "Some shares of this member are vested"));
+        }
+        if w.supporter {
+            labels.push(LabelBadge::new("badge-supporter", "supporter", "API3 tokens are not vested, can withdraw, but never did"));
+        }
+        if w.withdrawn > U256::from(0) {
+            labels.push(LabelBadge::new("badge-withdrawn", "withdrawn", "Withdrew tokens in the past"));
+        } else if let Some(_) = w.scheduled_unstake {
+            if w.withdrawn == U256::from(0) { 
+                labels.push(LabelBadge::new("badge-unstaking", "unstaking", "In the process of withdrawing"));
+            }
+        } else if !w.supporter && w.deposited > U256::from(0) && w.voting_power == U256::from(0) {
+            labels.push(LabelBadge::new("badge-not-staking", "deposited, not staking", "Deposited tokens but not staking them"));
+        }
+        
         node! {
             <tr>
                 <td class="c">{text(format!("{}.", index + 1))}</td>
@@ -148,14 +182,18 @@ impl Screen {
                 <td class="c darken dt">{text(nice::date(w.updated_at))}</td>
                 <td class="l eth-address">
                     <a href={format!("wallets/{:?}", w.address)}>
-                        {match vested {
-                            true => span(vec![],vec![]),
-                            false => span(vec![],vec![]),
-                        }}
-                        {match &w.ens {
-                            Some(ens) => div(vec![class("ens")],vec![text(ens)]),
-                            None => div(vec![],vec![]),
-                        }}
+                        <div>
+                            {span(vec![class("badges")], labels.iter().map(|v| {
+                                let title = format!("{}", v.title);
+                                node! {
+                                    <span class={format!("badge {}", v.class)} title={title}>{text(v.text.clone().as_str())}</span>
+                                }
+                            }).collect::<Vec<Node<Msg>>>())}
+                            {match &w.ens {
+                                Some(ens) => strong(vec![class("ens")],vec![text(ens)]),
+                                None => span(vec![],vec![]),
+                            }}
+                        </div>
                         <div>{text(format!("{:?}", w.address))}</div>
                     </a>
                 </td>
@@ -184,7 +222,7 @@ impl Screen {
             <li>
                 <div class="wallet">
                     <div>
-                    <a class="addr" href={format!("wallets/{:?}", w.address) }>
+                    <a class="eth-address" href={format!("wallets/{:?}", w.address) }>
                         { text(format!("{:?}", w.address)) }
                         {
                             if w.vested {

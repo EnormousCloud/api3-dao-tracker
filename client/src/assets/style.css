@@ -3,6 +3,10 @@ body, html {
     padding: 0;
 }
 
+a {
+  text-decoration: none;
+}
+
 @media (max-width: 800px) {
   .desktop-only {
     display: none !important;
@@ -432,4 +436,37 @@ table.table tbody tr:nth-child(odd) {
 
 .enough_power {
   font-weight: bold;
+}
+
+.badges {
+  text-decoration: none !important;
+}
+
+.badge {
+  display: inline-block;
+  line-height: 1.5;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin-right: 5px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  background: var(--color-panel-title);
+  color: var(--color-bk-highlight);
+}
+
+.badge-supporter {
+  background: #a0ff00;
+  color: #000;
+}
+.badge-withdrawn {
+  background: #ffa0a0;
+  color: #000;
+}
+.badge-not-staking {
+  background: #ffffa0;
+  color: #444;
+}
+.badge-unstaking {
+  background: #ffefc0;
+  color: #000;
 }

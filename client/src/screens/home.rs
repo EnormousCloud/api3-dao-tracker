@@ -242,6 +242,9 @@ impl Screen {
     }
 
     pub fn render_epoch(&self, epoch: u64) -> Node<Msg> {
+        if self.state.epochs.len() == 0 {
+            return div(vec![], vec![]);
+        }
         let prev_epoch = self.state.epoch_index - epoch;
         if let Some(ep) = self.state.epochs.get(&prev_epoch) {
             panel::render(
