@@ -18,7 +18,7 @@ pub fn main(serialized_state: String) {
     console_log::init_with_level(log::Level::Trace).unwrap();
     console_error_panic_hook::set_once();
 
-    let mut appstate = AppState::new();
+    let mut appstate = AppState::new(1);
     if serialized_state.len() > 4 {
         match serde_json::from_str::<AppState>(&serialized_state) {
             Ok(state) => {

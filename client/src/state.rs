@@ -183,6 +183,8 @@ pub struct Epoch {
     pub tm: u64,
     /// Block number of the epoch
     pub block_number: u64,
+    /// Transaction of minting rewards
+    pub tx: H256,
 }
 
 impl Epoch {
@@ -194,6 +196,7 @@ impl Epoch {
         stake: BTreeMap<H160, U256>,
         tm: u64,
         block_number: u64,
+        tx: H256,
     ) -> Self {
         Self {
             index,
@@ -203,12 +206,17 @@ impl Epoch {
             stake,
             tm,
             block_number,
+            tx,
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppState {
+    /// version of the state
+    pub version: String,
+    /// chain ID
+    pub chain_id: u64,
     /// current epoch index
     pub epoch_index: u64,
     /// current epoch APR
@@ -239,9 +247,11 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new() -> Self {
+    pub fn new(chain_id: u64) -> Self {
         let apr: f64 = 0.3875;
         Self {
+            version: "20210108".to_owned(),
+            chain_id,
             epoch_index: 1,
             apr,
             last_block: 0,
@@ -308,24 +318,9 @@ impl AppState {
     }
 
     pub fn is_vested_deposit(&self, addr: &H160) -> bool {
-        if let Some(ev) = self.wallets_events.get(addr) {
-            if let Some(_) = ev.iter().find(|evt| match evt.entry {
-                Api3::DepositedVesting {
-                    user: _,
-                    amount: _,
-                    start: _,
-                    end: _,
-                    user_unstaked: _,
-                    user_vesting: _,
-                } => true,
-                Api3::DepositedByTimelockManager {
-                    user: _,
-                    amount: _,
-                    user_unstaked: _,
-                } => true,
-                _ => false,
-            }) {
-                return true;
+        if let Some(w) = self.wallets.get(addr) {
+            if let Some(vested) = w.vested_amount {
+                return vested > U256::from(0);
             }
         }
         false
@@ -351,10 +346,11 @@ impl AppState {
             .fold(U256::from(0), |a, b| a + b)
     }
 
+    // withdrawn more than 90% of their deposits
     pub fn get_withdrawn_num(&self) -> u32 {
         self.wallets
             .values()
-            .map(|w| match w.withdrawn > U256::from(0) {
+            .map(|w| match w.withdrawn * U256::from(10)  > w.deposited * U256::from(9) {
                 true => 1,
                 false => 0,
             })
@@ -377,15 +373,9 @@ impl AppState {
     pub fn get_vested_shares(&self) -> U256 {
         self.wallets
             .values()
-            .map(|w| {
-                if self.is_vested_deposit(&w.address) {
-                    match w.vested_amount {
-                        Some(x) => x,
-                        None => U256::from(0),
-                    }
-                } else {
-                    U256::from(0)
-                }
+            .map(|w| match w.vested_amount {
+                Some(x) => x,
+                None => U256::from(0),
             })
             .fold(U256::from(0), |a, b| a + b)
     }
@@ -582,7 +572,16 @@ impl AppState {
         Ok(())
     }
 
-    pub fn distribute(&mut self, epoch_index: U256, amount: U256, new_apr: U256, total_stake: Option<U256>, tm: u64, block_number: u64) -> anyhow::Result<()> {
+    pub fn distribute(
+        &mut self,
+        epoch_index: U256,
+        amount: U256,
+        new_apr: U256,
+        total_stake: Option<U256>,
+        tm: u64,
+        block_number: u64,
+        tx: H256,
+    ) -> anyhow::Result<()> {
         let stake: BTreeMap<H160, U256> = self
             .wallets
             .iter()
@@ -590,7 +589,7 @@ impl AppState {
             .into_iter()
             .collect();
         let total = match total_stake {
-            Some(x) => x,
+            Some(x) => x - amount,
             None => stake.values().clone().fold(U256::from(0), |a, b| a + b),
         };
         let epoch: Epoch = Epoch::new(
@@ -601,12 +600,13 @@ impl AppState {
             stake,
             tm,
             block_number,
+            tx,
         );
         self.epochs.insert(epoch.index, epoch.clone());
         // distribute individual rewards
         self.wallets.iter_mut().for_each(|(_, w)| {
             let staked = w.staked + w.rewards;
-            w.rewards += (epoch.minted * staked) / epoch.total;
+            w.rewards += (epoch.minted * staked) / total;
         });
 
         // setting up new epoch
@@ -656,7 +656,15 @@ impl AppState {
                 total_stake,
             } => {
                 println!("{:?}", e.entry);
-                if let Err(err) = self.distribute(*epoch_index, *amount, *new_apr, Some(*total_stake), e.tm, e.block_number) {
+                if let Err(err) = self.distribute(
+                    *epoch_index,
+                    *amount,
+                    *new_apr,
+                    Some(*total_stake),
+                    e.tm,
+                    e.block_number,
+                    e.tx,
+                ) {
                     warn!("{:?} {:?}", err, e);
                 }
             }
@@ -666,7 +674,9 @@ impl AppState {
                 new_apr,
             } => {
                 println!("{:?}", e.entry);
-                if let Err(err) = self.distribute(*epoch_index, *amount, *new_apr, None, e.tm, e.block_number) {
+                if let Err(err) =
+                    self.distribute(*epoch_index, *amount, *new_apr, None, e.tm, e.block_number, e.tx)
+                {
                     warn!("{:?} {:?}", err, e);
                 }
             }
@@ -695,10 +705,11 @@ impl AppState {
                 if let Some(w) = self.wallets.get_mut(&user) {
                     w.deposited += *amount;
                     w.vested_amount = Some(
-                        *amount + match w.vested_amount  {
-                            None => U256::from(0),
-                            Some(v) => v,
-                        }
+                        *amount
+                            + match w.vested_amount {
+                                None => U256::from(0),
+                                Some(v) => v,
+                            },
                     );
                     w.supporter = false;
                 }
