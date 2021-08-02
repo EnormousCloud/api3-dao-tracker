@@ -53,10 +53,20 @@ impl Screen {
     }
 
     pub fn render_epoch_tr(&self, ep: &Epoch) -> Node<Msg> {
+        let link = Some(format!("https://etherscan.io/tx/{:?}#eventlog", ep.tx));
         node! {
             <tr>
                 <td class="c">{text(nice::int(ep.index))}</td>
-                <td class="c">{text(nice::int(ep.block_number))}</td>
+                <td class="c">
+                    {match link {
+                        Some(link) => node!{
+                            <a href={link} rel="nofollow noopener noreferrer" target="_blank">
+                                {text(nice::int(ep.block_number))}
+                            </a>
+                        },
+                        None => text(nice::int(ep.block_number)),
+                    }}
+                </td>
                 <td class="c">{ text(nice::date(ep.tm)) }</td>
                 <td class="r darken">{ text(format!("{:.2}%", 100.0*ep.apr)) }</td>
                 <td class="r accent">{ text(format!("{:.4}%", 100.0*ep.apr*self.rewards_coeff() / 52.0)) }</td>
