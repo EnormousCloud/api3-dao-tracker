@@ -34,11 +34,11 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(subscribers: Subscribers) -> Self {
+    pub fn new(subscribers: Subscribers, chain_id: u64) -> Self {
         Self {
             subscribers,
             verbose: false,
-            app: AppState::new(),
+            app: AppState::new(chain_id),
         }
     }
 }
@@ -151,6 +151,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .expect("Failed to connect to IPC");
     let web3 = web3::Web3::new(transport);
+    let chain_id = web3.eth().chain_id().await?.as_u64();
 
     let mut addresses = vec![addr_pool, addr_convenience];
     if let Some(address_api3_circulation) = args
@@ -159,7 +160,9 @@ async fn main() -> anyhow::Result<()> {
     {
         addresses.push(address_api3_circulation);
     }
-    let scanner = reader::Scanner::new(
+
+    let mut scanner = reader::Scanner::new(
+        chain_id,
         args.cache_dir.as_str(),
         vec![addr_voting1, addr_agent1],
         vec![addr_voting2, addr_agent2],
@@ -204,7 +207,7 @@ async fn main() -> anyhow::Result<()> {
     // Keep track of all connected users, key is usize, value
     // is a websocket sender.
     let subscribers = Subscribers::default();
-    let server_state = State::new(subscribers.clone());
+    let server_state = State::new(subscribers.clone(), chain_id);
     let state = Arc::new(Mutex::new(server_state));
 
     // Turn our "state" into a new Filter...
@@ -259,7 +262,7 @@ async fn main() -> anyhow::Result<()> {
         if let Some(addr_supply) = addr_circulation {
             let rc = state.clone();
             tokio::spawn(async move {
-                let mut interval = tokio::time::interval(std::time::Duration::from_secs(60*60));
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(60 * 60));
                 let contract_pool = crate::contracts::Pool::new(&w3, addr_pool.clone());
                 let contract_circulation = crate::contracts::Supply::new(&w3, addr_supply);
                 loop {

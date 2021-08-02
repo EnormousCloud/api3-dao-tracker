@@ -2,6 +2,7 @@ use client::events::{Api3, VotingAgent};
 use client::state::OnChainEvent;
 use crc32fast::Hasher;
 use futures::StreamExt;
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -10,7 +11,7 @@ use std::time::Duration;
 use tracing::debug;
 use web3::api::Eth;
 use web3::transports::{Either, Http, Ipc};
-use web3::types::{BlockId, FilterBuilder, Log, H160, U256};
+use web3::types::{BlockId, FilterBuilder, Log, H160, H256};
 use web3::{Transport, Web3};
 
 pub trait EventHandler {
@@ -67,6 +68,7 @@ pub async fn get_batches<T: Transport>(
 
 #[derive(Debug, Clone)]
 pub struct Scanner {
+    chain_id: u64,
     cache_dir: String,
     addr_watched: Vec<H160>,
     addr_primary: Vec<H160>,
@@ -74,10 +76,51 @@ pub struct Scanner {
     genesis_block: u64,
     max_block: Option<u64>,
     batch_size: u64,
+    blocks_time: BTreeMap<H256, u64>,
+}
+
+pub fn blockstime_fn(cache_dir: &str, chain_id: u64) -> String {
+    format!("{}/blockstime{}.json", cache_dir, chain_id)
+}
+
+pub fn load_blockstime(cache_dir: &str, chain_id: u64) -> BTreeMap<H256, u64> {
+    if let Ok(mut f) = File::open(blockstime_fn(cache_dir, chain_id)) {
+        let mut data = String::new();
+        match f.read_to_string(&mut data) {
+            Ok(_) => match serde_json::from_str::<BTreeMap<H256, u64>>(&data) {
+                Ok(x) => {
+                    tracing::info!("blockstime cache {} records loaded", x.len());
+                    x
+                }
+                Err(e) => {
+                    tracing::info!("blockstime JSON parsing failure {}", e);
+                    BTreeMap::new()
+                }
+            },
+            Err(_) => BTreeMap::new(),
+        }
+    } else {
+        BTreeMap::new()
+    }
+}
+
+pub fn save_blockstime(
+    cache_dir: &str,
+    chain_id: u64,
+    blocks_time: &BTreeMap<H256, u64>,
+) -> anyhow::Result<()> {
+    if cache_dir.len() == 0 {
+        return Ok(());
+    }
+    let f =
+        File::create(blockstime_fn(cache_dir, chain_id)).expect("Unable to create blockstime file");
+    serde_json::to_writer(&f, blocks_time)?;
+    Ok(())
 }
 
 impl Scanner {
     pub fn new(
+        chain_id: u64,
         cache_dir: &str,
         addr_primary: Vec<H160>,
         addr_secondary: Vec<H160>,
@@ -95,6 +138,7 @@ impl Scanner {
             .for_each(|x| addr_watched.push(x.clone()));
 
         Self {
+            chain_id,
             cache_dir: cache_dir.to_owned(),
             addr_watched,
             addr_primary,
@@ -102,6 +146,7 @@ impl Scanner {
             genesis_block,
             max_block,
             batch_size,
+            blocks_time: load_blockstime(&cache_dir, chain_id),
         }
     }
     pub fn agent(&self, address: H160) -> Option<VotingAgent> {
@@ -157,14 +202,14 @@ impl Scanner {
     }
 
     pub async fn scan<T>(
-        &self,
+        &mut self,
         web3: &Web3<T>,
         handler: &mut impl EventHandler,
     ) -> anyhow::Result<u64>
     where
         T: Transport,
     {
-        let chain_id = web3.eth().chain_id().await?.as_u64();
+        let chain_id = self.chain_id;
         let mut last_block = self.genesis_block;
         for b in get_batches(
             web3.eth(),
@@ -174,16 +219,19 @@ impl Scanner {
         )
         .await
         {
+            let start = std::time::Instant::now();
+            let mut method = "".to_owned();
             let logs: Vec<Log> = if self.has_logs(chain_id, &b) {
-                tracing::debug!(
-                    "pulling cached blocks {}..{} chain_id {}",
+                let logs = self.get_logs(chain_id, &b).await?;
+                method = format!(
+                    "cached {}..{} chain {} in {:?}",
                     b.from,
                     b.to,
-                    chain_id
+                    chain_id,
+                    start.elapsed()
                 );
-                self.get_logs(chain_id, &b).await?
+                logs
             } else {
-                tracing::debug!("scanning blocks {}..{}", b.from, b.to);
                 let filter = FilterBuilder::default()
                     .from_block(b.from.into())
                     .to_block(b.to.into())
@@ -191,30 +239,70 @@ impl Scanner {
                     .build();
                 let logs: Vec<Log> = web3.eth().logs(filter).await?;
                 self.save_logs(chain_id, &b, &logs).await?;
+                method = format!(
+                    "scanned {}..{} chain {} in {:?}",
+                    b.from,
+                    b.to,
+                    chain_id,
+                    start.elapsed()
+                );
                 logs
             };
-            for l in logs {
-                if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
-                    let ts: U256 = web3
-                        .eth()
-                        .block(BlockId::Hash(l.block_hash.unwrap()))
-                        .await
-                        .expect("block failure")
-                        .expect("block timestamp failure")
-                        .timestamp;
 
+            // let start = std::time::Instant::now();
+            let mut blocktime_dur = std::time::Duration::from_nanos(0);
+            let mut handler_dur = std::time::Duration::from_nanos(0);
+            for l in &logs {
+                if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
+                    let blockstart = std::time::Instant::now();
+                    let tmkey: H256 = l.block_hash.unwrap();
+                    let ts: u64 = if self.blocks_time.contains_key(&tmkey) {
+                        match self.blocks_time.get(&tmkey) {
+                            Some(x) => x.clone(),
+                            None => web3
+                                .eth()
+                                .block(BlockId::Hash(l.block_hash.unwrap()))
+                                .await
+                                .expect("block failure")
+                                .expect("block timestamp failure")
+                                .timestamp
+                                .as_u64(),
+                        }
+                    } else {
+                        web3.eth()
+                            .block(BlockId::Hash(l.block_hash.unwrap()))
+                            .await
+                            .expect("block failure")
+                            .expect("block timestamp failure")
+                            .timestamp
+                            .as_u64()
+                    };
+                    self.blocks_time.insert(tmkey, ts);
+
+                    blocktime_dur += blockstart.elapsed();
+
+                    let handlerstart = std::time::Instant::now();
                     handler.on(
                         OnChainEvent {
                             block_number: l.block_number.unwrap().as_u64(),
                             tx: l.transaction_hash.unwrap(),
                             log_index: l.log_index.unwrap().as_u64(),
                             entry,
-                            tm: ts.as_u64(),
+                            tm: ts,
                         },
-                        l,
+                        l.clone(),
                     );
+                    handler_dur += handlerstart.elapsed();
                 }
             }
+            save_blockstime(&self.cache_dir, chain_id, &self.blocks_time)?;
+            tracing::info!(
+                "{} events, logic {:?}, blocks {:?} ({})",
+                logs.len(),
+                handler_dur,
+                blocktime_dur,
+                method,
+            );
             last_block = b.to;
         }
         Ok(last_block)
@@ -222,7 +310,7 @@ impl Scanner {
 
     // continuously watch incoming blocks
     pub async fn watch_ipc(
-        &self,
+        &mut self,
         web3: &Web3<Ipc>,
         from_block: u64,
         handler_mux: Arc<Mutex<impl EventHandler>>,
@@ -239,13 +327,15 @@ impl Scanner {
             tracing::info!("waiting for entries");
             let l: Log = logs_stream.next().await.unwrap().unwrap();
             if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
-                let ts: U256 = web3
+                let tmkey: H256 = l.block_hash.unwrap();
+                let tm: u64 = web3
                     .eth()
                     .block(BlockId::Hash(l.block_hash.unwrap()))
                     .await
                     .expect("block failure")
                     .expect("block timestamp failure")
-                    .timestamp;
+                    .timestamp
+                    .as_u64();
 
                 handler_mux.lock().unwrap().on(
                     OnChainEvent {
@@ -253,10 +343,12 @@ impl Scanner {
                         tx: l.transaction_hash.unwrap(),
                         log_index: l.log_index.unwrap().as_u64(),
                         entry,
-                        tm: ts.as_u64(),
+                        tm,
                     },
                     l,
                 );
+                self.blocks_time.insert(tmkey, tm);
+                save_blockstime(&self.cache_dir, self.chain_id, &self.blocks_time)?;
             }
         }
     }
