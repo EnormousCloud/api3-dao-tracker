@@ -30,6 +30,9 @@ a {
 .accent {
   color: var(--color-accent) !important;
 }
+.warning {
+  color: var(--color-warning) !important;
+}
 .padded {
   padding-top: 20px !important;
   padding-bottom: 20px !important;
@@ -467,6 +470,15 @@ table.table tbody tr:nth-child(odd) {
   color: #444;
 }
 .badge-unstaking {
+  background: #ffefc0;
+  color: #000;
+}
+
+.badge-primary {
+  background: #c0efc0;
+  color: #000;
+}
+.badge-secondary {
   background: #ffefc0;
   color: #000;
 }
