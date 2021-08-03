@@ -143,11 +143,11 @@ impl Screen {
                     <div>
                         <ul>
                             <li>
-                                <label class="cell-title">"API3 Pool contract address: "</label>
+                                <label class="cell-title">"API3 pool contract address: "</label>
                                 <div class="eth-address">{text(format!("{:?}", c.addr_pool))}</div>
                             </li>
                             <li>
-                                <label class="cell-title">"API3 Token contract address: "</label>
+                                <label class="cell-title">"API3 token contract address: "</label>
                                 <div class="eth-address">{text(format!("{:?}", c.addr_token))}</div>
                             </li>
                             <li>
@@ -155,16 +155,28 @@ impl Screen {
                                 <div class="eth-address">{text(format!("{:?} ", c.addr_time_lock))}</div>
                             </li>
                             <li>
-                                <label class="cell-title">"Primary Treasury agent: "</label>
+                                <label class="cell-title">"Primary voting contract: "</label>
+                                <div class="eth-address">{text(format!("{:?}", c.addr_primary_contract))}</div>
+                            </li>
+                            <li>
+                                <label class="cell-title">"Primary treasury agent: "</label>
                                 <div class="eth-address">{text(format!("{:?}", c.addr_primary_treasury))}</div>
                             </li>
                             <li>
-                                <label class="cell-title">"Secondary Treasury agent: "</label>
+                                <label class="cell-title">"Secondary voting contract: "</label>
+                                <div class="eth-address">{text(format!("{:?}", c.addr_secondary_contract))}</div>
+                            </li>
+                            <li>
+                                <label class="cell-title">"Secondary treasury agent: "</label>
                                 <div class="eth-address">{text(format!("{:?}", c.addr_secondary_treasury))}</div>
                             </li>
                             <li>
                                 <label class="cell-title">"V1 Treasury address: "</label>
                                 <div class="eth-address">{text(format!("{:?}", c.addr_v1_treasury))}</div>
+                            </li>
+                            <li>
+                                <label class="cell-title">"Convenience contract: "</label>
+                                <div class="eth-address">{text(format!("{:?}", c.addr_convenience))}</div>
                             </li>
                         </ul>
                     </div>
