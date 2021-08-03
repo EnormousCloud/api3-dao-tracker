@@ -224,10 +224,29 @@ async fn main() -> anyhow::Result<()> {
         s.app.pool_info = crate::contracts::Pool::new(&web3, addr_pool).read().await;
         tracing::info!("pool info {:?}", s.app.pool_info);
         if let Some(addr_supply) = addr_circulation {
-            s.app.circulation = crate::contracts::Supply::new(&web3, addr_supply)
-                .read()
-                .await;
+            s.app.circulation = crate::contracts::Supply::new(
+                &web3,
+                addr_supply,
+                addr_convenience,
+                addr_voting1,
+                addr_voting2,
+            )
+            .read()
+            .await;
             tracing::info!("circulation info {:?}", s.app.circulation);
+        }
+
+        // re-read votings and extract static data for votes
+        let conv = crate::contracts::Convenience::new(&web3, addr_convenience);
+        for (_, v) in &mut s.app.votings {
+            let static_data = conv
+                .get_voting_static_data(v.primary, v.creator, v.vote_id)
+                .await;
+            println!("voting_static_data = {:?}", static_data);
+            if let Some(data) = static_data {
+                v.votes_total = data.voting_power; // adjust with precise #
+                v.static_data = Some(data.clone());
+            }
         }
         last_block
     };
@@ -264,7 +283,13 @@ async fn main() -> anyhow::Result<()> {
             tokio::spawn(async move {
                 let mut interval = tokio::time::interval(std::time::Duration::from_secs(60 * 60));
                 let contract_pool = crate::contracts::Pool::new(&w3, addr_pool.clone());
-                let contract_circulation = crate::contracts::Supply::new(&w3, addr_supply);
+                let contract_circulation = crate::contracts::Supply::new(
+                    &w3,
+                    addr_supply,
+                    addr_convenience,
+                    addr_voting1,
+                    addr_voting2,
+                );
                 loop {
                     interval.tick().await; // wait an hour
                     if let Some(pool) = contract_pool.read().await {

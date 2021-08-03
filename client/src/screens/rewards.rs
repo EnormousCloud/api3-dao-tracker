@@ -1,6 +1,7 @@
 use crate::components::footer;
 use crate::components::header;
 use crate::nice;
+use crate::router::link_eventlog;
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, Epoch};
 use sauron::prelude::*;
@@ -53,20 +54,10 @@ impl Screen {
     }
 
     pub fn render_epoch_tr(&self, ep: &Epoch) -> Node<Msg> {
-        let link = Some(format!("https://etherscan.io/tx/{:?}#eventlog", ep.tx));
         node! {
             <tr>
                 <td class="c">{text(nice::int(ep.index))}</td>
-                <td class="c">
-                    {match link {
-                        Some(link) => node!{
-                            <a href={link} rel="nofollow noopener noreferrer" target="_blank">
-                                {text(nice::int(ep.block_number))}
-                            </a>
-                        },
-                        None => text(nice::int(ep.block_number)),
-                    }}
-                </td>
+                <td class="c">{link_eventlog(self.state.chain_id, ep.block_number, ep.tx)}</td>
                 <td class="c">{ text(nice::date(ep.tm)) }</td>
                 <td class="r darken">{ text(format!("{:.2}%", 100.0*ep.apr)) }</td>
                 <td class="r accent">{ text(format!("{:.4}%", 100.0*ep.apr*self.rewards_coeff() / 52.0)) }</td>
@@ -193,7 +184,7 @@ impl Component<Msg> for Screen {
 impl MetaProvider for Screen {
     fn meta(&self) -> PageMetaInfo {
         let minted = self.state.get_minted_total();
-        let title = "API3 DAO Tracker - Staking Rewards History";
+        let title = "API3 DAO Staking Rewards History";
         let description = format!(
             "Explore API3 DAO staking rewards - {} API3 tokens minted as rewards for DAO members. No wallet connection needed.",
             nice::ceil(minted, 18)

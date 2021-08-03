@@ -221,10 +221,11 @@ impl Scanner {
         {
             let start = std::time::Instant::now();
             let mut method = "".to_owned();
+            let _ = method; // dummy warning workaround
             let logs: Vec<Log> = if self.has_logs(chain_id, &b) {
                 let logs = self.get_logs(chain_id, &b).await?;
                 method = format!(
-                    "cached {}..{} chain {} in {:?}",
+                    "cached {}..{}/{} in {:?}",
                     b.from,
                     b.to,
                     chain_id,
@@ -240,7 +241,7 @@ impl Scanner {
                 let logs: Vec<Log> = web3.eth().logs(filter).await?;
                 self.save_logs(chain_id, &b, &logs).await?;
                 method = format!(
-                    "scanned {}..{} chain {} in {:?}",
+                    "scanned {}..{}/{} in {:?}",
                     b.from,
                     b.to,
                     chain_id,
@@ -297,7 +298,7 @@ impl Scanner {
             }
             save_blockstime(&self.cache_dir, chain_id, &self.blocks_time)?;
             tracing::info!(
-                "{} events, logic {:?}, blocks {:?} ({})",
+                "{} events, took {:?}, blocks {:?} ({})",
                 logs.len(),
                 handler_dur,
                 blocktime_dur,
@@ -349,6 +350,21 @@ impl Scanner {
                 );
                 self.blocks_time.insert(tmkey, tm);
                 save_blockstime(&self.cache_dir, self.chain_id, &self.blocks_time)?;
+
+                // match &entry {
+                //     Api3::StartVote{ agent, vote_id, creator: _, metadata: _ } => {
+                //         let key = voting_to_u64(agent, vote_id.as_u64());
+                //         if let Some(v) = self.votings.get_mut(&key) {
+                //             let static_data = conv.get_voting_static_data(v.primary, v.creator, v.vote_id).await;
+                //             println!("voting_static_data = {:?}", static_data);
+                //             if let Some(data) = static_data  {
+                //                 v.votes_total = data.voting_power; // adjust with precise #
+                //                 v.static_data = static_data;
+                //             }
+                //         }
+                //     },
+                //     _ => {},
+                // };
             }
         }
     }

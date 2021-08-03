@@ -2,7 +2,7 @@ use crate::components::footer;
 use crate::components::header;
 use crate::nice;
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
-use crate::state::{AppState, Wallet};
+use crate::state::{AppState, LabelBadge, Wallet};
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
 use web3::types::U256;
@@ -15,24 +15,6 @@ pub struct Screen {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Msg {}
-
-
-#[derive(Debug, Clone)]
-pub struct LabelBadge {
-    class: String,
-    text: String,
-    title: String,
-}
-
-impl LabelBadge {
-    pub fn new(class: &str, text: &str, title: &str) -> Self {
-        Self{
-            class: class.to_string(),
-            text: text.to_string(),
-            title: title.to_string(),
-        }
-    }
-}
 
 impl Screen {
     pub fn new(state: AppState) -> Self {
@@ -128,7 +110,7 @@ impl Screen {
                     <strong>
                         { text(nice::int(total_left)) }
                     </strong>
-                    <span class="darken">" DAO members withdrew their stakes and left. "</span>
+                    <span class="darken">" DAO members withdrew most of their stakes and left. "</span>
                 </p>
 
             </div>
@@ -149,6 +131,45 @@ impl Screen {
             </tr>
         }
     }
+    pub fn get_labels(&self, w: &Wallet) -> Vec<LabelBadge> {
+        let mut labels: Vec<LabelBadge> = vec![];
+        if w.vested || self.state.is_vested_deposit(&w.address) {
+            labels.push(LabelBadge::new(
+                "badge-vested",
+                "vested",
+                "Some shares of this member are vested",
+            ));
+        }
+        if w.supporter {
+            labels.push(LabelBadge::new(
+                "badge-supporter",
+                "supporter",
+                "API3 tokens are not vested, can withdraw, but never did",
+            ));
+        }
+        if w.withdrawn > U256::from(0) {
+            labels.push(LabelBadge::new(
+                "badge-withdrawn",
+                "withdrawn",
+                "Withdrew tokens in the past",
+            ));
+        } else if let Some(_) = w.scheduled_unstake {
+            if w.withdrawn == U256::from(0) {
+                labels.push(LabelBadge::new(
+                    "badge-unstaking",
+                    "unstaking",
+                    "In the process of withdrawing",
+                ));
+            }
+        } else if !w.supporter && w.deposited > U256::from(0) && w.voting_power == U256::from(0) {
+            labels.push(LabelBadge::new(
+                "badge-not-staking",
+                "deposited, not staking",
+                "Deposited tokens but not staking them",
+            ));
+        }
+        labels
+    }
 
     pub fn render_wallet_tr(&self, index: usize, w: &Wallet, total_votes: U256) -> Node<Msg> {
         let pct = nice::pct3_of(w.voting_power, total_votes, 18);
@@ -158,23 +179,7 @@ impl Screen {
             "r darken"
         };
         let rewards = self.state.get_rewards(&w.address);
-        let mut labels: Vec<LabelBadge> = vec![];
-        if w.vested || self.state.is_vested_deposit(&w.address) {
-            labels.push(LabelBadge::new("badge-vested", "vested", "Some shares of this member are vested"));
-        }
-        if w.supporter {
-            labels.push(LabelBadge::new("badge-supporter", "supporter", "API3 tokens are not vested, can withdraw, but never did"));
-        }
-        if w.withdrawn > U256::from(0) {
-            labels.push(LabelBadge::new("badge-withdrawn", "withdrawn", "Withdrew tokens in the past"));
-        } else if let Some(_) = w.scheduled_unstake {
-            if w.withdrawn == U256::from(0) { 
-                labels.push(LabelBadge::new("badge-unstaking", "unstaking", "In the process of withdrawing"));
-            }
-        } else if !w.supporter && w.deposited > U256::from(0) && w.voting_power == U256::from(0) {
-            labels.push(LabelBadge::new("badge-not-staking", "deposited, not staking", "Deposited tokens but not staking them"));
-        }
-        
+        let labels = self.get_labels(w);
         node! {
             <tr>
                 <td class="c">{text(format!("{}.", index + 1))}</td>
@@ -280,7 +285,7 @@ impl Component<Msg> for Screen {
             a.voting_power
                 .cmp(&b.voting_power)
                 .reverse()
-                .then(a.shares.cmp(&b.shares).reverse())
+                .then((a.rewards).cmp(&b.rewards).reverse())
         });
 
         let total_votes = self.state.get_votes_total();
@@ -327,10 +332,10 @@ impl Component<Msg> for Screen {
 impl MetaProvider for Screen {
     fn meta(&self) -> PageMetaInfo {
         let title = format!(
-            "API3 DAO Tracker - {} members wallets",
+            "API3 DAO Explore all {} members wallets",
             self.state.wallets.len()
         );
-        let description = format!("Explore API3 DAO: voting power, shares and full staking history of {} members. No wallet connection is needed", self.state.wallets.len());
+        let description = format!("Explore API3 DAO: voting power, shares and full staking rewards history of {} members. No wallet connection is needed", self.state.wallets.len());
         PageMetaInfo::new(&title, &description)
     }
 }

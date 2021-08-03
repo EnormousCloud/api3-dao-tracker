@@ -75,12 +75,11 @@ impl LogReader {
 
     // pop meta data as text
     pub fn text(&mut self) -> String {
-        let hex_size = self.next32();
-        let bytes: usize = usize::from_str_radix(&hex_size[48..], 16).unwrap();
-        let mut s = String::with_capacity(bytes);
-        let mut params: usize = bytes / 8;
-        while params > 0 {
-            let bts: Vec<u8> = hex::decode(self.next32()).unwrap();
+        let _hex_size = self.next32();
+        let mut s = String::from("");
+        while self.has_data() {
+            let nextword = self.next32();
+            let bts: Vec<u8> = hex::decode(nextword).unwrap();
             bts.iter().filter(|ch| **ch != 0).for_each(|ch| {
                 if *ch == 0x1F {
                     s.push('|');
@@ -88,9 +87,7 @@ impl LogReader {
                     s.push(*ch as char);
                 }
             });
-            params -= 1;
         }
-        // println!("s={:?}", s);
         s
     }
 

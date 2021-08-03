@@ -2,6 +2,7 @@ pub mod components;
 pub mod events;
 pub mod logreader;
 pub mod nice;
+pub mod router;
 pub mod screens;
 pub mod state;
 

@@ -3,6 +3,7 @@ use crate::nice;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use web3::types::{H160, H256, U256};
+use std::str::FromStr;
 
 // General API3 Pool information
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,6 +53,12 @@ pub struct Api3Circulation {
     pub addr_secondary_treasury: H160,
     /// address of V1 treasury
     pub addr_v1_treasury: H160,
+    /// address of API3 primary voting contract
+    pub addr_primary_contract: H160,
+    /// address of API3 secondary voting contract
+    pub addr_secondary_contract: H160,
+    /// address of API3 convenience contract
+    pub addr_convenience: H160,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,18 +70,35 @@ pub struct OnChainEvent {
     pub log_index: u64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VotingStaticData {
+    pub start_date: u64,
+    pub support_required: f64, // typically 0.5
+    pub min_quorum: f64,       //typically 0.15 for secondary
+    pub voting_power: U256,
+    pub script: Vec<u8>,
+    pub user_voting_power_at: U256,
+    pub discussion_url: String,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Voting {
     pub primary: bool,
     pub vote_id: u64,
+    pub tm: u64,
+    pub block_number: u64,
+    pub tx: H256,
     pub creator: H160,
     pub metadata: String,
+    pub title: String,
+    pub description: String,
     pub voted_yes: U256,
     pub voted_no: U256,
-    pub list_yes: Vec<H160>,
-    pub list_no: Vec<H160>,
+    pub yes: BTreeMap<H160, U256>,
+    pub no: BTreeMap<H160, U256>,
     pub votes_total: U256,
     pub executed: bool,
+    pub static_data: Option<VotingStaticData>,
 }
 
 impl Voting {
@@ -93,6 +117,30 @@ impl Voting {
             VotingAgent::Secondary
         };
         crate::events::voting_to_string(&agent, self.vote_id)
+    }
+
+    pub fn trigger_str(&self) -> String {
+        let script_data = match &self.static_data {
+            Some(x) => x.script.clone(),
+            None => vec![],
+        };
+        if script_data.len() == 0 {
+            return String::from("");
+        }
+        let addr: Vec<u8> = script_data.iter().skip(0x20 + 12).take(20).map(|x| x.clone()).collect();
+        if addr == vec![0xa0, 0xb8, 0x69, 0x91, 0xc6, 0x21, 0x8b, 0x36, 0xc1, 0xd1, 0x9d, 0x4a, 0x2e, 0x9e, 0xb0, 0xce, 0x36, 6, 0xeb, 0x48] {
+            // not very accurante, but most likely this is Transfer
+            let offset = 32+32+32+32+32+4+12;
+            let to: Vec<u8> = script_data.iter().skip(offset).take(20).map(|x| x.clone()).collect();
+            let amt: Vec<u8> = script_data.iter().skip(offset + 20 + 16).take(16).map(|x| x.clone()).collect();
+            let amt_hex = format!("0x{}", hex::encode(amt));
+            let amount: U256 = U256::from_str(&amt_hex).unwrap();
+            return format!("Transfer {} USDC to 0x{}", nice::ceil(amount, 6), hex::encode(to));
+        }
+        if addr == vec![0x0b, 0x38, 0x21, 0x0e, 0xa1, 0x14, 0x11, 0x55, 0x7c, 0x13, 0x45, 0x7D, 0x4d, 0xA7, 0xdC, 0x6e, 0xa7, 0x31, 0xB8, 0x8a] {
+            return "API3 Transfer".to_owned();
+        }
+        return "".to_owned();
     }
 }
 
@@ -207,6 +255,23 @@ impl Epoch {
             tm,
             block_number,
             tx,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LabelBadge {
+    pub class: String,
+    pub text: String,
+    pub title: String,
+}
+
+impl LabelBadge {
+    pub fn new(class: &str, text: &str, title: &str) -> Self {
+        Self {
+            class: class.to_string(),
+            text: text.to_string(),
+            title: title.to_string(),
         }
     }
 }
@@ -350,10 +415,12 @@ impl AppState {
     pub fn get_withdrawn_num(&self) -> u32 {
         self.wallets
             .values()
-            .map(|w| match w.withdrawn * U256::from(10)  > w.deposited * U256::from(9) {
-                true => 1,
-                false => 0,
-            })
+            .map(
+                |w| match w.withdrawn * U256::from(10) > w.deposited * U256::from(9) {
+                    true => 1,
+                    false => 0,
+                },
+            )
             .sum()
     }
 
@@ -674,9 +741,15 @@ impl AppState {
                 new_apr,
             } => {
                 println!("{:?}", e.entry);
-                if let Err(err) =
-                    self.distribute(*epoch_index, *amount, *new_apr, None, e.tm, e.block_number, e.tx)
-                {
+                if let Err(err) = self.distribute(
+                    *epoch_index,
+                    *amount,
+                    *new_apr,
+                    None,
+                    e.tm,
+                    e.block_number,
+                    e.tx,
+                ) {
                     warn!("{:?} {:?}", err, e);
                 }
             }
@@ -858,17 +931,36 @@ impl AppState {
                     VotingAgent::Primary => true,
                     VotingAgent::Secondary => false,
                 };
+                let parts: Vec<&str> = metadata.split("|").collect();
+                let title = match parts.get(2) {
+                    Some(x) => x.to_string(),
+                    None => metadata.clone(),
+                };
+                let description = match parts.get(3) {
+                    Some(x) => x.to_string(),
+                    None => "".to_owned(),
+                };
+                let no: BTreeMap<H160, U256> = BTreeMap::new();
+                let mut yes: BTreeMap<H160, U256> = BTreeMap::new();
+                yes.insert(creator.clone(), self.get_voting_power_of(&creator));
+
                 let v = Voting {
                     primary,
+                    tm: e.tm,
+                    block_number: e.block_number,
+                    tx: e.tx,
                     vote_id: vote_id.as_u64(),
                     creator: creator.clone(),
                     metadata: metadata.clone(),
+                    title,
+                    description,
                     votes_total: self.get_votes_total(),
                     voted_yes: self.get_voting_power_of(&creator),
                     voted_no: U256::from(0),
-                    list_yes: vec![creator.clone()],
-                    list_no: vec![],
+                    yes,
+                    no,
                     executed: false,
+                    static_data: None,
                 };
                 self.votings.insert(v.as_u64(), v);
                 if let Some(w) = self.wallets.get_mut(&creator) {
@@ -885,12 +977,19 @@ impl AppState {
                 let key = crate::events::voting_to_u64(agent, vote_id.as_u64());
                 if let Some(v) = self.votings.get_mut(&key) {
                     if *supports {
-                        v.voted_yes += *stake;
-                        v.list_yes.push(voter.clone())
+                        v.yes.insert(voter.clone(), stake.clone());
                     } else {
-                        v.voted_no += *stake;
-                        v.list_no.push(voter.clone())
+                        v.no.insert(voter.clone(), stake.clone());
                     }
+                    v.voted_yes = v
+                        .yes
+                        .iter()
+                        .map(|(_, v)| v)
+                        .fold(U256::from(0), |a, b| a + b);
+                    v.voted_no =
+                        v.no.iter()
+                            .map(|(_, v)| v)
+                            .fold(U256::from(0), |a, b| a + b);
                 }
                 if let Some(w) = self.wallets.get_mut(&voter) {
                     w.votes = w.votes + 1;
@@ -903,7 +1002,7 @@ impl AppState {
                 }
             }
             Api3::SetVestingAddresses { addresses } => {
-                println!("{:?}", e.entry);
+                // println!("{:?}", e.entry);
                 self.set_vesting_addresses(addresses);
             }
             _ => {}
