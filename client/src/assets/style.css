@@ -461,6 +461,10 @@ table.table tbody tr:nth-child(odd) {
   background: #a0ff00;
   color: #000;
 }
+.badge-delegates {
+  background: #f0af00;
+  color: #000;
+}
 .badge-withdrawn {
   background: #ffa0a0;
   color: #000;

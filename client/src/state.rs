@@ -360,6 +360,53 @@ impl AppState {
         }
     }
 
+    pub fn get_labels(&self, w: &Wallet) -> Vec<LabelBadge> {
+        let mut labels: Vec<LabelBadge> = vec![];
+        if w.vested || self.is_vested_deposit(&w.address) {
+            labels.push(LabelBadge::new(
+                "badge-vested",
+                "vested",
+                "Some shares of this member are vested",
+            ));
+        }
+        if w.supporter {
+            labels.push(LabelBadge::new(
+                "badge-supporter",
+                "supporter",
+                "API3 tokens are not vested, can withdraw, but never did",
+            ));
+        }
+        if w.withdrawn > U256::from(0) {
+            labels.push(LabelBadge::new(
+                "badge-withdrawn",
+                "withdrawn",
+                "Withdrew tokens in the past",
+            ));
+        } else if let Some(_) = w.scheduled_unstake {
+            if w.withdrawn == U256::from(0) {
+                labels.push(LabelBadge::new(
+                    "badge-unstaking",
+                    "unstaking",
+                    "In the process of withdrawing",
+                ));
+            }
+        } else if !w.supporter && w.deposited > U256::from(0) && w.voting_power == U256::from(0) {
+            labels.push(LabelBadge::new(
+                "badge-not-staking",
+                "deposited, not staking",
+                "Deposited tokens but not staking them",
+            ));
+        }
+        if let Some(delegates)= &w.delegates {
+            labels.push(LabelBadge::new(
+                "badge-delegates",
+                "delegates",
+                "Delegates his stake to another member",
+            ));
+        }
+        labels
+    }
+
     pub fn get_voting_power_of(&self, voter: &H160) -> U256 {
         match self.wallets.get(voter) {
             Some(wallet) => wallet.voting_power,

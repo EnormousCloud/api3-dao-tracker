@@ -2,7 +2,7 @@ use crate::components::footer;
 use crate::components::header;
 use crate::nice;
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
-use crate::state::{AppState, LabelBadge, Wallet};
+use crate::state::{AppState, Wallet};
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
 use web3::types::U256;
@@ -131,45 +131,6 @@ impl Screen {
             </tr>
         }
     }
-    pub fn get_labels(&self, w: &Wallet) -> Vec<LabelBadge> {
-        let mut labels: Vec<LabelBadge> = vec![];
-        if w.vested || self.state.is_vested_deposit(&w.address) {
-            labels.push(LabelBadge::new(
-                "badge-vested",
-                "vested",
-                "Some shares of this member are vested",
-            ));
-        }
-        if w.supporter {
-            labels.push(LabelBadge::new(
-                "badge-supporter",
-                "supporter",
-                "API3 tokens are not vested, can withdraw, but never did",
-            ));
-        }
-        if w.withdrawn > U256::from(0) {
-            labels.push(LabelBadge::new(
-                "badge-withdrawn",
-                "withdrawn",
-                "Withdrew tokens in the past",
-            ));
-        } else if let Some(_) = w.scheduled_unstake {
-            if w.withdrawn == U256::from(0) {
-                labels.push(LabelBadge::new(
-                    "badge-unstaking",
-                    "unstaking",
-                    "In the process of withdrawing",
-                ));
-            }
-        } else if !w.supporter && w.deposited > U256::from(0) && w.voting_power == U256::from(0) {
-            labels.push(LabelBadge::new(
-                "badge-not-staking",
-                "deposited, not staking",
-                "Deposited tokens but not staking them",
-            ));
-        }
-        labels
-    }
 
     pub fn render_wallet_tr(&self, index: usize, w: &Wallet, total_votes: U256) -> Node<Msg> {
         let pct = nice::pct3_of(w.voting_power, total_votes, 18);
@@ -179,7 +140,7 @@ impl Screen {
             "r darken"
         };
         let rewards = self.state.get_rewards(&w.address);
-        let labels = self.get_labels(w);
+        let labels = self.state.get_labels(w);
         node! {
             <tr>
                 <td class="c">{text(format!("{}.", index + 1))}</td>

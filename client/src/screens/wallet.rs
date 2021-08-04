@@ -2,11 +2,12 @@ use crate::components::err_box;
 use crate::components::footer;
 use crate::components::header;
 use crate::nice;
+use crate::router::{link_eventlog, text_entry};
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
-use crate::state::AppState;
+use crate::state::{AppState, OnChainEvent};
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
-use web3::types::H160;
+use web3::types::{U256, H160};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Screen {
@@ -23,6 +24,32 @@ impl Screen {
             addr: addr.clone(),
         }
     }
+
+    pub fn render_event_header(&self) -> Node<Msg> {
+        node! {
+            <tr>
+                <th class="c">"#"</th>
+                <th class="c">"Date"</th>
+                <th class="c" style="white-space:nowrap">"Block #"</th>
+                <th class="l">"Event"</th>
+            </tr>
+        }
+    }
+    pub fn render_event(&self, _e: &OnChainEvent) -> Node<Msg> {
+        div(vec![], vec![])
+    }
+
+    pub fn render_event_tr(&self, index: usize, e: &OnChainEvent) -> Node<Msg> {
+        node! {
+            <tr>
+                <td class="c">{text(format!("{}.", index + 1))}</td>
+                <td class="c darken dt">{text(nice::date(e.tm))}</td>
+                <td class="c">{link_eventlog(self.state.chain_id, e.block_number, e.tx)}</td>
+                <td class="l">{text_entry(&e.entry)}</td>
+            </tr>
+        }
+    }
+
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -44,22 +71,38 @@ impl Component<Msg> for Screen {
                             ),
                             None => err_box("member wallet was not found")
                         }
+                        // TODO: paragraph
+                        // TODO: rewards table
+                        // TODO: delegation header
                     }
                     <h2>"Events Log"</h2>
                     {
                         match self.state.wallets_events.get(&self.addr) {
-                            Some(w) => ol(
-                                vec![class("wallets-events-list")],
-                                w.iter().map(|v| {
-                                    node!{
-                                        <li class="event">
-                                            <pre>
-                                                { text(format!("{}", serde_json::to_string_pretty(&v).unwrap())) }
-                                            </pre>
-                                        </li>
-                                    }
-                                }).collect::<Vec<Node<Msg>>>()
-                            ),
+                            Some(w) => {
+                                {
+                                    if w.len() > 0 {
+                                        div(vec![], vec![
+                                            div(vec![class("desktop-only")], vec![
+                                                table(vec![class("table events-table")],
+                                                    vec![
+                                                        thead(vec![], vec![ self.render_event_header() ]),
+                                                        tbody(vec![], w.iter().enumerate().map(|(i, e)| self.render_event_tr(i, e)).collect::<Vec<Node<Msg>>>()),
+                                                    ]
+                                                )
+                                            ]),
+                                            div(vec![class("mobile-only")], vec![
+                                                ol(vec
+                                                    ![class("events-list")],
+                                                    w.iter().enumerate().map(|(_, e)| self.render_event(e)).collect::<Vec<Node<Msg>>>()
+                                                )
+                                            ])
+                                        ])
+                                    } else {
+                                        div(vec![class("events-empty")], vec![
+                                            text("There were no wallet events in the DAO")
+                                        ])
+                                    }}
+                               }
                             None => err_box("member wallet was not found")
                         }
                     }

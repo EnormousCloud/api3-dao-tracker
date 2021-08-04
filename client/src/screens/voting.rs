@@ -3,9 +3,9 @@ use crate::components::footer;
 use crate::components::header;
 use crate::events::{self, Api3, VotingAgent};
 use crate::nice;
-use crate::router::link_eventlog;
+use crate::router::{link_wallet, link_eventlog};
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
-use crate::state::{AppState, LabelBadge, OnChainEvent, Wallet};
+use crate::state::{AppState, OnChainEvent};
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
 use web3::types::{H160, U256};
@@ -33,72 +33,6 @@ impl Screen {
             vote_id,
             agent,
             state: state.clone(),
-        }
-    }
-
-    pub fn get_labels(&self, w: &Wallet) -> Vec<LabelBadge> {
-        let mut labels: Vec<LabelBadge> = vec![];
-        if w.vested || self.state.is_vested_deposit(&w.address) {
-            labels.push(LabelBadge::new(
-                "badge-vested",
-                "vested",
-                "Some shares of this member are vested",
-            ));
-        }
-        if w.supporter {
-            labels.push(LabelBadge::new(
-                "badge-supporter",
-                "supporter",
-                "API3 tokens are not vested, can withdraw, but never did",
-            ));
-        }
-        if w.withdrawn > U256::from(0) {
-            labels.push(LabelBadge::new(
-                "badge-withdrawn",
-                "withdrawn",
-                "Withdrew tokens in the past",
-            ));
-        } else if let Some(_) = w.scheduled_unstake {
-            if w.withdrawn == U256::from(0) {
-                labels.push(LabelBadge::new(
-                    "badge-unstaking",
-                    "unstaking",
-                    "In the process of withdrawing",
-                ));
-            }
-        } else if !w.supporter && w.deposited > U256::from(0) && w.voting_power == U256::from(0) {
-            labels.push(LabelBadge::new(
-                "badge-not-staking",
-                "deposited, not staking",
-                "Deposited tokens but not staking them",
-            ));
-        }
-        labels
-    }
-
-    pub fn link_wallet(&self, addr: H160) -> Node<Msg> {
-        match self.state.wallets.get(&addr) {
-            Some(w) => {
-                let labels = self.get_labels(w);
-                node! {
-                    <a href={format!("wallets/{:?}", w.address)}>
-                        <div>
-                            {span(vec![class("badges")], labels.iter().map(|v| {
-                                let title = format!("{}", v.title);
-                                node! {
-                                    <span class={format!("badge {}", v.class)} title={title}>{text(v.text.clone().as_str())}</span>
-                                }
-                            }).collect::<Vec<Node<Msg>>>())}
-                            {match &w.ens {
-                                Some(ens) => strong(vec![class("ens")],vec![text(ens)]),
-                                None => span(vec![],vec![]),
-                            }}
-                        </div>
-                        <div>{text(format!("{:?}", w.address))}</div>
-                    </a>
-                }
-            }
-            None => span(vec![], vec![text(format!("{:?}", addr))]),
         }
     }
 
@@ -189,7 +123,7 @@ impl Screen {
                 <td class="c darken">{text(event)}</td>
                 <td class="l eth-address">{
                     match voter {
-                        Some(x) => self.link_wallet(x),
+                        Some(x) => link_wallet(&self.state, x),
                         None => text(""),
                     }
                 }
