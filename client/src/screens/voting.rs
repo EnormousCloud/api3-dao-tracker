@@ -297,7 +297,7 @@ impl Component<Msg> for Screen {
                     {if v.executed {
                         node! { <h3 style={decision} class="accent">"ACCEPTED AND EXECUTED"</h3> }
                     } else if v.voted_yes > required {
-                        node! { <h3 style={decision} class="accent">"PROPOSAL ACCEPTED, NOT EXECUTED"</h3> }
+                        node! { <h3 style={decision} class="accent">"PROPOSAL IS PASSING, NOT EXECUTED"</h3> }
                     } else if v.voted_no > required {
                         node! { <h3 style={decision} class="warning">"PROPOSAL REJECTED"</h3> }
                     } else {

@@ -2,8 +2,8 @@ use crate::events::{Api3, VotingAgent};
 use crate::nice;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use web3::types::{H160, H256, U256};
 use std::str::FromStr;
+use web3::types::{H160, H256, U256};
 
 // General API3 Pool information
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -127,17 +127,46 @@ impl Voting {
         if script_data.len() == 0 {
             return String::from("");
         }
-        let addr: Vec<u8> = script_data.iter().skip(0x20 + 12).take(20).map(|x| x.clone()).collect();
-        if addr == vec![0xa0, 0xb8, 0x69, 0x91, 0xc6, 0x21, 0x8b, 0x36, 0xc1, 0xd1, 0x9d, 0x4a, 0x2e, 0x9e, 0xb0, 0xce, 0x36, 6, 0xeb, 0x48] {
+        let addr: Vec<u8> = script_data
+            .iter()
+            .skip(0x20 + 12)
+            .take(20)
+            .map(|x| x.clone())
+            .collect();
+        if addr
+            == vec![
+                0xa0, 0xb8, 0x69, 0x91, 0xc6, 0x21, 0x8b, 0x36, 0xc1, 0xd1, 0x9d, 0x4a, 0x2e, 0x9e,
+                0xb0, 0xce, 0x36, 6, 0xeb, 0x48,
+            ]
+        {
             // not very accurante, but most likely this is Transfer
-            let offset = 32+32+32+32+32+4+12;
-            let to: Vec<u8> = script_data.iter().skip(offset).take(20).map(|x| x.clone()).collect();
-            let amt: Vec<u8> = script_data.iter().skip(offset + 20 + 16).take(16).map(|x| x.clone()).collect();
+            let offset = 32 + 32 + 32 + 32 + 32 + 4 + 12;
+            let to: Vec<u8> = script_data
+                .iter()
+                .skip(offset)
+                .take(20)
+                .map(|x| x.clone())
+                .collect();
+            let amt: Vec<u8> = script_data
+                .iter()
+                .skip(offset + 20 + 16)
+                .take(16)
+                .map(|x| x.clone())
+                .collect();
             let amt_hex = format!("0x{}", hex::encode(amt));
             let amount: U256 = U256::from_str(&amt_hex).unwrap();
-            return format!("Transfer {} USDC to 0x{}", nice::ceil(amount, 6), hex::encode(to));
+            return format!(
+                "Transfer {} USDC to 0x{}",
+                nice::ceil(amount, 6),
+                hex::encode(to)
+            );
         }
-        if addr == vec![0x0b, 0x38, 0x21, 0x0e, 0xa1, 0x14, 0x11, 0x55, 0x7c, 0x13, 0x45, 0x7D, 0x4d, 0xA7, 0xdC, 0x6e, 0xa7, 0x31, 0xB8, 0x8a] {
+        if addr
+            == vec![
+                0x0b, 0x38, 0x21, 0x0e, 0xa1, 0x14, 0x11, 0x55, 0x7c, 0x13, 0x45, 0x7D, 0x4d, 0xA7,
+                0xdC, 0x6e, 0xa7, 0x31, 0xB8, 0x8a,
+            ]
+        {
             return "API3 Transfer".to_owned();
         }
         return "".to_owned();

@@ -38,11 +38,19 @@ impl Screen {
     }
     pub fn render_voting_tr(&self, index: usize, v: &Voting) -> Node<Msg> {
         let pct_required = if v.primary { 50u64 } else { 15u64 };
-        let required  = v.votes_total * U256::from(pct_required) / U256::from(100);
+        let required = v.votes_total * U256::from(pct_required) / U256::from(100);
         let pct_yes = nice::pct3_of(v.voted_yes, v.votes_total, 18);
         let pct_no = nice::pct3_of(v.voted_no, v.votes_total, 18);
-        let class_yes = if v.voted_yes > required { "r enough_power" } else { "r" };
-        let class_no = if v.voted_no > required { "r enough_power" } else { "r" };
+        let class_yes = if v.voted_yes > required {
+            "r accent"
+        } else {
+            "r"
+        };
+        let class_no = if v.voted_no > required {
+            "r warning"
+        } else {
+            "r"
+        };
         node! {
             <tr>
                 <td class="c">{text(format!("{}.", index + 1))}</td>
