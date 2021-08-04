@@ -83,7 +83,7 @@ impl LogReader {
             bts.iter().filter(|ch| **ch != 0).for_each(|ch| {
                 if *ch == 0x1F {
                     s.push('|');
-                } else {
+                } else if *ch > 0x1F && *ch < 0x80 {
                     s.push(*ch as char);
                 }
             });

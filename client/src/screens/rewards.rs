@@ -6,6 +6,7 @@ use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, Epoch};
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
+use web3::types::U256;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Screen {
@@ -133,6 +134,12 @@ impl Screen {
 impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
         let minted = self.state.get_minted_total();
+        let total_staked = self.state.get_staked_total();
+        let stake_target: U256 = match &self.state.pool_info {
+            Some(x) => x.clone().stake_target,
+            None => U256::from(0),
+        };
+        let reached = nice::dec(stake_target, 10) <= nice::dec(total_staked, 18);
         node! {
             <div class="screen-rewards">
                 { header::render("/rewards") }
@@ -146,6 +153,33 @@ impl Component<Msg> for Screen {
                             </strong>
                             <span class="darken"> " API3 tokens as staking rewards for its members." </span>
                         </p>
+                        <p>
+                            <span class="darken">" Current Epoch is "</span>
+                            <strong>{text(nice::int(self.state.epoch_index))}</strong>
+                            <span class="darken">" with APR "</span>
+                            <strong class="big-title">
+                                { text(format!("{:.2}%", 100.0*self.state.apr)) }
+                            </strong>
+                            <span class="darken">" which means the next reward will be "</span>
+                            <strong class="accent">
+                                { text(format!("{:.4}%", 100.0*self.state.apr*self.rewards_coeff() / 52.0)) }
+                            </strong>
+                            <span class="darken">" to your current stake and your locked rewards."</span>
+                        </p>
+                        <p class="note" style="text-align: center">
+                            {if !reached {
+                                span(
+                                    vec![styles([("color", "var(--color-accent)")])],
+                                    vec![text("DAO staking target is not reached, so APR will be increased by 1% for the next epoch until it reaches 75%")],
+                                )
+                            } else {
+                                span(
+                                    vec![styles([("color", "var(--color-warning)")])],
+                                    vec![text("DAO staking target is reached, so APR will be decreased by 1% for the next epoch until it reaches 2.5%")],
+                                )
+                            }}
+                        </p>
+
                         {if self.state.epochs.len() > 0 {
                             div(vec![], vec![
                                 div(vec![class("desktop-only")], vec![

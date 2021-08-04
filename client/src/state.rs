@@ -972,7 +972,6 @@ impl AppState {
                 let no: BTreeMap<H160, U256> = BTreeMap::new();
                 let mut yes: BTreeMap<H160, U256> = BTreeMap::new();
                 yes.insert(creator.clone(), self.get_voting_power_of(&creator));
-
                 let v = Voting {
                     primary,
                     tm: e.tm,
