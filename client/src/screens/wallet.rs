@@ -1,5 +1,6 @@
 use crate::components::err_box;
 use crate::components::footer;
+use crate::components::panel;
 use crate::components::header;
 use crate::nice;
 use crate::router::{link_eventlog, link_wallet, text_entry};
@@ -96,10 +97,100 @@ impl Screen {
     }
 
     pub fn render_wallet_info(&self, w: &Wallet) -> Node<Msg> {
-        div(vec![], vec![
-            text(format!("{}", serde_json::to_string_pretty(&w).unwrap())),
-            
-        ])
+        let labels = self.state.get_labels(w);
+        let total_votes = self.state.get_votes_total();
+        let pct = format!("{}%", nice::pct3_of(w.voting_power, total_votes, 18));
+
+        let mut out: Vec<Node<Msg>> = vec![
+            // text(format!("{}", serde_json::to_string_pretty(&w).unwrap())),
+        ];
+        if let Some(d) = &w.delegates {
+            out.push(node! {
+                <div class="delegates-all">
+                    "This member delegates all his voting power to "
+                    {link_wallet(&self.state, d.address.clone())}
+                </div>
+            });
+        };
+        out.push(node!{
+            <div class="dash-row">
+                {panel::render(
+                    "Voting Power",
+                    "dash-col dash-col-2",
+                    node! {
+                        <div>
+                            <div style="text-align: center">
+                                <strong class="accent" title={nice::amount(w.voting_power, 18)}>
+                                    {text(nice::ceil(w.voting_power, 18))}
+                                    <span class="darken">" shares"</span>
+                                </strong>
+                            </div>
+
+                            <div style="padding-top: 30px; text-align: center">
+                                <strong class="big-title">
+                                    {if pct != "000.0%" {
+                                        text(pct)
+                                    } else {
+                                        text("-")
+                                    }}
+                                </strong>
+                            </div>
+                            <div class="darken" style="padding-bottom: 30px; text-align: center">
+                                "of total voting power"
+                            </div>
+
+                            <div style="padding-bottom: 30px; text-align: center">
+                                <strong title={nice::amount(w.shares, 18)}>
+                                    <span class="darken">" Owning "</span>
+                                    {text(nice::ceil(w.shares, 18))}
+                                    <span class="darken">" shares"</span>
+                                </strong>
+                            </div>
+                            
+                        </div>
+                    }
+                )}
+                <div class="dash-col dash-col-2">
+                    <div class="dash-row">
+                        <div class="dash-col dash-col-3 cell-t">
+                            <h3 class="cell-title">"Deposited"</h3>
+                            <strong class="big-title" title={nice::amount(w.deposited, 18)}>
+                                {text(nice::ceil(w.deposited, 18))}
+                            </strong>
+                        </div>
+                        <div class="dash-col dash-col-3 cell-t">
+                            <h3 class="cell-title">"Withdrawn"</h3>
+                            <strong class="big-title" title={nice::amount(w.withdrawn, 18)}>
+                                {text(nice::ceil(w.withdrawn, 18))}
+                            </strong>
+                        </div>
+                        <div class="dash-col dash-col-3 cell-t">
+                            <h3 class="cell-title">"Locked Rewards"</h3>
+                            <strong class="big-title accent" title={nice::amount(w.rewards, 18)}>
+                                {text(nice::ceil(w.rewards, 18))}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <h3 class="cell-title border-t" style="padding-top:30px;"> "Member Classification" </h3>
+                    {ul(vec![class("badges")], labels.iter().map(|v| {
+                        let title = format!("{}", v.title);
+                        node! {
+                            <li>
+                                <span class={format!("badge {}", v.class)} title={title.clone()}>{text(v.text.clone().as_str())}</span>
+                                <span class="darken">
+                                    " - "
+                                    {text(title)}
+                                </span>
+                            </li>
+                        }
+                    }).collect::<Vec<Node<Msg>>>())}
+
+                </div>
+            </div>
+        });
+
+        div(vec![], out)
     }
 
     pub fn rewards_coeff(&self) -> f64 {
@@ -126,7 +217,7 @@ impl Screen {
                 <th class="r">"Total"</th>
                 <th class="r">"Minted"</th>
                 <th class="r">"Reward"</th>
-                <th class="r">"Autocompound"</th>
+                <th class="r" title="Own shares + Rewards">"Shares"</th>
                 <th class="r">"Received"</th>
                 <th class="c">"Release Date"</th>
             </tr>
@@ -231,11 +322,14 @@ impl Screen {
     }
 }
 
-pub fn get_wallet_title(w: &Wallet) -> String {
+pub fn get_wallet_title(w: &Wallet) -> Node<Msg> {
     if let Some(ens) = &w.ens {
-        return format!("API3 DAO Member {}", ens);
+        return span(vec![],vec![
+            text("API3 DAO Member "),
+            strong(vec![styles([("color", "var(--color-accent)")])], vec![text(ens)]),
+        ]);
     }
-    "API3 DAO Member".to_owned()
+    text("API3 DAO Member")
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -252,7 +346,7 @@ impl Component<Msg> for Screen {
                             Some(w) => div(
                                 vec![class("wallets-details")],
                                 vec![
-                                    h1(vec![], vec![text(get_wallet_title(&w))]),
+                                    h1(vec![], vec![get_wallet_title(&w)]),
                                     h2(vec![styles([("text-align", "center")])], vec![text(format!("{:?}", w.address))]),
                                     self.render_wallet_info(&w),
                                     h2(vec![styles([("text-align", "center")])], vec![text("User Rewards")]),

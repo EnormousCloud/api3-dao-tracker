@@ -383,6 +383,11 @@ impl AppState {
 
     pub fn get_labels(&self, w: &Wallet) -> Vec<LabelBadge> {
         let mut labels: Vec<LabelBadge> = vec![];
+        let vested = match &w.vested_amount {
+            Some(amt)  => *amt > U256::from(0),
+            None => false,
+        };
+
         if w.vested || self.is_vested_deposit(&w.address) {
             labels.push(LabelBadge::new(
                 "badge-vested",
@@ -390,11 +395,11 @@ impl AppState {
                 "Some shares of this member are vested",
             ));
         }
-        if w.supporter {
+        if !vested && w.supporter {
             labels.push(LabelBadge::new(
                 "badge-supporter",
                 "supporter",
-                "API3 tokens are not vested, can withdraw, but never did",
+                "API3 tokens are not vested, member can withdraw, but never did",
             ));
         }
         if w.withdrawn > U256::from(0) {
@@ -412,11 +417,18 @@ impl AppState {
                 ));
             }
         } else if !w.supporter && w.deposited > U256::from(0) && w.voting_power == U256::from(0) {
-            labels.push(LabelBadge::new(
-                "badge-not-staking",
-                "deposited, not staking",
-                "Deposited tokens but not staking them",
-            ));
+            let delegates = match &w.delegates {
+                Some(_) => true,
+                None => false,
+            };
+            if !vested && !delegates {
+                labels.push(LabelBadge::new(
+                    "badge-not-staking",
+                    "deposited, not staking",
+                    "Deposited tokens but not staking them",
+    
+                ));
+            }
         }
         if let Some(_)= &w.delegates {
             labels.push(LabelBadge::new(
