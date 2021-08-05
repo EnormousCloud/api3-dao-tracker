@@ -43,7 +43,7 @@ pub fn render_meta(content: &str, info: PageMetaInfo) -> String {
 
 pub fn render_html(
     static_dir: &str,
-    app: &AppState,
+    _app: &AppState,
     component: Box<dyn Render>,
     meta: Box<dyn MetaProvider>,
 ) -> impl warp::Reply {
@@ -51,14 +51,18 @@ pub fn render_html(
     let content = std::fs::read_to_string(file.as_str()).expect("index.html not found");
     let with_meta: String = render_meta(&content, meta.meta());
 
-    let state_json = serde_json::to_string(app).expect("state could not be converted to JSON");
+    // let state_json = serde_json::to_string(app).expect("state could not be converted to JSON");
     let mut state_html = String::new();
     let rendered: String = match component.render(&mut state_html) {
         Ok(_) => {
             let c1 = inject::it(&with_meta, "<main>", "</main>", &state_html);
-            inject::replace(c1.as_str(), "main(`", "`)", "") // call to main function is removed
+            // inject::replace(c1.as_str(), "main(`", "`)", "") // call to main function is removed
+            inject::replace(c1.as_str(), "<script type=\"module\">", "</script>", "")
         }
-        Err(_) => inject::it(content.as_str(), "main(`", "`)", &state_json),
+        Err(_) => {
+            // inject::it(content.as_str(), "main(`", "`)", &state_json),
+            state_html.clone()
+        }
     };
     info!("rendered {:?}", rendered.len());
     warp::reply::html(rendered)

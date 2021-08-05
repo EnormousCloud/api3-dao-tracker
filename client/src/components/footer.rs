@@ -7,7 +7,7 @@ pub fn render<T>(state: &AppState) -> Node<T> {
         <footer>
             <div class="inner">
                 <div class="copyright">
-                    <span class="mdiv">"© 2021 Enormous Cloud"</span>
+                    <span class="mdiv">"(c) 2021 Enormous Cloud"</span>
                     <span class="desktop-only">" | "</span>
                     <span class="mdiv">
                         <a

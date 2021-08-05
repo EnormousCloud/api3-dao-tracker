@@ -242,7 +242,7 @@ pub struct Wallet {
 impl Wallet {
     pub fn get_name(&self) -> String {
         if let Some(ens) = &self.ens {
-            return format!("{} ({})", ens.to_owned(), self.address);
+            return format!("{} ({:?})", ens.to_owned(), self.address);
         }
         format!("{:?}", self.address)
     }
