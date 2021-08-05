@@ -83,6 +83,8 @@ impl LogReader {
             bts.iter().filter(|ch| **ch != 0).for_each(|ch| {
                 if *ch == 0x1F {
                     s.push('|');
+                } else if *ch == '\\' as u8 || *ch == '"' as u8 || *ch == '\'' as u8 || *ch == '<' as u8 || *ch == '>' as u8 { // preventing HTML injection
+                    s.push(' '); 
                 } else if *ch > 0x1F && *ch < 0x80 {
                     s.push(*ch as char);
                 }
