@@ -120,7 +120,7 @@ impl Screen {
                 <td class="c">{text(format!("{}.", index + 1))}</td>
                 <td class="c darken dt">{text(nice::date(e.tm))}</td>
                 <td class="c">{link_eventlog(self.state.chain_id, e.block_number, e.tx)}</td>
-                <td class="c darken">{text(event)}</td>
+                <td class="c darken entry">{text(event)}</td>
                 <td class="l eth-address">{
                     match voter {
                         Some(x) => link_wallet(&self.state, x),

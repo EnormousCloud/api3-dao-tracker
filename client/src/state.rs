@@ -397,7 +397,7 @@ impl AppState {
                 "Deposited tokens but not staking them",
             ));
         }
-        if let Some(delegates)= &w.delegates {
+        if let Some(_)= &w.delegates {
             labels.push(LabelBadge::new(
                 "badge-delegates",
                 "delegates",
@@ -442,7 +442,26 @@ impl AppState {
             .fold(U256::from(0), |a, b| a + b)
     }
 
-    pub fn get_rewards(&self, addr: &H160) -> U256 {
+    pub fn get_staked_for_epoch(&self, addr: &H160, epoch_index: u64) -> U256 {
+        let ep = match self.epochs.get(&epoch_index) {
+            Some(x) => x.clone(),
+            None => return U256::from(0),
+        };
+        match ep.stake.get(&addr) {
+            Some(x) => x.clone(),
+            None => return U256::from(0),
+        }        
+    }
+
+    pub fn get_rewards_for_epoch(&self, addr: &H160, epoch_index: u64) -> U256 {
+        if epoch_index > 1u64 {
+            self.get_rewards(addr, epoch_index) - self.get_rewards(addr, epoch_index - 1)
+        } else {
+            U256::from(0)
+        }
+    }
+
+    pub fn get_rewards(&self, addr: &H160, epoch_index: u64) -> U256 {
         self.epochs
             .iter()
             .map(|(_, epoch)| {
@@ -450,9 +469,17 @@ impl AppState {
                     Some(val) => *val,
                     None => return U256::from(0),
                 };
-                if staked == U256::from(0) {
+                if staked == U256::from(0) || epoch.index > epoch_index {
                     return U256::from(0);
                 }
+
+                // if *addr == hex_literal::hex!("6518c695cdcbefa272a4e5ef73bd46e801983e19").into() {
+                //     println!("EPOCH {}", epoch.index);
+                //     println!("epoch.minted {}", epoch.minted);
+                //     println!("epoch.total {}", epoch.total);
+                //     println!("staked {}", staked);
+                // }
+
                 (epoch.minted * staked) / epoch.total
             })
             .fold(U256::from(0), |a, b| a + b)

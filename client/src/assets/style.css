@@ -418,6 +418,11 @@ table.table thead th {
   border-bottom: 2px solid var(--color-cell-border);
 }
 
+table.table thead th.l,
+table.table tbody td.l {
+  text-align: left !important;
+}
+
 table.table thead th.r,
 table.table tbody td.r {
   text-align: right !important;
@@ -431,6 +436,11 @@ table.table tbody td.c {
 table.table tbody td.dt {
   width: 80px;
   font-size: 12px;
+}
+
+table.table tbody td.entry {
+  padding-left: 5px;
+  font-size: 14px;
 }
 
 table.table tbody tr:nth-child(odd) {

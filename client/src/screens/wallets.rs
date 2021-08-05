@@ -139,7 +139,7 @@ impl Screen {
         } else {
             "r darken"
         };
-        let rewards = self.state.get_rewards(&w.address);
+        // let rewards = self.state.get_rewards(&w.address, 10000000000u64);
         let labels = self.state.get_labels(w);
         node! {
             <tr>
@@ -172,9 +172,9 @@ impl Screen {
                     td(vec![class("r")],vec![text("-")])
                 }}
                 <td class="r darken" title={nice::amount(w.shares, 18)}>{text(nice::ceil(w.shares,18))}</td>
-                {if rewards > U256::from(0) {
+                {if w.rewards > U256::from(0) {
                     node! {
-                        <td class="r" title={nice::amount(rewards, 18)}>{text(nice::ceil(rewards,18))}</td>
+                        <td class="r" title={nice::amount(w.rewards, 18)}>{text(nice::ceil(w.rewards,18))}</td>
                     }
                 } else {
                     td(vec![class("r darken")],vec![text("-")])
