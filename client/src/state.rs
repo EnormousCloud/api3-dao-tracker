@@ -167,7 +167,28 @@ impl Voting {
                 0xdC, 0x6e, 0xa7, 0x31, 0xB8, 0x8a,
             ]
         {
-            return "API3 Transfer".to_owned();
+             // not very accurante, but most likely this is Transfer
+            let offset = 32 + 32 + 32 + 32 + 32 + 4 + 12;
+            let to: Vec<u8> = script_data
+                 .iter()
+                 .skip(offset)
+                 .take(20)
+                 .map(|x| x.clone())
+                 .collect();
+            let amt: Vec<u8> = script_data
+                 .iter()
+                 .skip(offset + 20 + 16)
+                 .take(16)
+                 .map(|x| x.clone())
+                 .collect();
+            let amt_hex = format!("0x{}", hex::encode(amt));
+            let amount: U256 = U256::from_str(&amt_hex).unwrap();
+            
+            return format!(
+                "Transfer {} API3 to 0x{}",
+                nice::ceil(amount, 6),
+                hex::encode(to)
+            );
         }
         return "".to_owned();
     }

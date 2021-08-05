@@ -59,7 +59,7 @@ impl Screen {
                     if v.primary {
                         span(vec![class("badge badge-primary")], vec![text("Primary")])
                     } else {
-                        span(vec![class("badge badge-primary")], vec![text("Secondary")])
+                        span(vec![class("badge badge-secondary")], vec![text("Secondary")])
                     }
                 }</td>
                 <td class="l">
@@ -75,16 +75,16 @@ impl Screen {
                 <td class={class_yes}>{text(pct_yes)}"%"</td>
                 {
                     if pct_no != "0.000" {
-                        node!{ <td class={"r"}>{text(pct_no)}"%"</td> }
+                        node!{ <td class={class_no}>{text(pct_no)}"%"</td> }
                     } else {
                         node!{ <td class="r"></td> }
                     }
                 }
-                <td class={class_no}>{
+                <td class="r">{
                     if v.executed {
                         span(vec![class("badge")], vec![text("Executed ")])
                     } else {
-                        span(vec![class("")], vec![text("NO ")])
+                        span(vec![class(class_no)], vec![text("NO ")])
                     }
                 }</td>
             </tr>

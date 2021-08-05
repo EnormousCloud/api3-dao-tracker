@@ -46,7 +46,7 @@ impl Screen {
         match &self.state.circulation {
             Some(c) => node! {
                 <div>
-                    {panel::render("API3 Circulating Supply", node! {
+                    {panel::render("API3 Circulating Supply", "", node! {
                         <div id="api3-circulating-supply">
                             <strong class="big-title" title={nice::amount(c.circulating_supply, 18)}>
                                 {text(nice::ceil(c.circulating_supply, 18))}
@@ -139,6 +139,7 @@ impl Screen {
         match &self.state.circulation {
             Some(c) => panel::render(
                 "API3 Smart Contracts",
+                "",
                 node! {
                     <div>
                         <ul>
@@ -186,7 +187,7 @@ impl Screen {
         }
     }
 
-    pub fn current_epoch(&self) -> Node<Msg> {
+    pub fn current_epoch(&self, divclass: &'static str) -> Node<Msg> {
         let minted = self.state.get_minted_total();
         let staked256 = self.state.get_shares_total() + minted;
         let staked = nice::dec(staked256, 18);
@@ -204,6 +205,7 @@ impl Screen {
         };
         panel::render(
             "Current Epoch",
+            divclass,
             node! {
                 <div>
                     <div class="cell-title">
@@ -253,7 +255,7 @@ impl Screen {
         )
     }
 
-    pub fn render_epoch(&self, epoch: u64) -> Node<Msg> {
+    pub fn render_epoch(&self, epoch: u64, divclass: &'static str) -> Node<Msg> {
         if self.state.epochs.len() == 0 {
             return div(vec![], vec![]);
         }
@@ -261,6 +263,7 @@ impl Screen {
         if let Some(ep) = self.state.epochs.get(&prev_epoch) {
             panel::render(
                 "Previous Epoch",
+                divclass,
                 node! {
                     <div>
                         <div class="cell-title">
@@ -302,7 +305,7 @@ impl Screen {
                 },
             )
         } else {
-            text("-")
+            text("")
         }
     }
 }
@@ -331,28 +334,28 @@ impl Component<Msg> for Screen {
 
                         <h2>"API3 Staking Rewards"</h2>
                         <div class="dash-row">
-                            <div class="dash-col dash-col-3">
-                                {self.current_epoch()}
-                            </div>
-                            <div class="dash-col dash-col-3">
-                                {self.render_epoch(1)}
-                            </div>
-                            <div class="dash-col dash-col-3">
-                                {self.render_epoch(2)}
-                            </div>
+                            {self.current_epoch("dash-col dash-col-3")}
+                            {self.render_epoch(1, "dash-col dash-col-3")}
+                            {self.render_epoch(2, "dash-col dash-col-3")}
                         </div>
 
-                        <h2 class="m20">"API3 Token Supply"</h2>
-                        {self.render_locked()}
-
-                        <div class="dash-row">
-                            <div class="dash-col dash-col-2">
-                                {self.render_contracts()}
-                            </div>
-                            <div class="dash-col dash-col-2">
-                                {self.render_supply()}
-                            </div>
-                        </div>
+                        {match &self.state.circulation {
+                            Some(_) => node!{
+                                <div>
+                                    <h2 class="m20">"API3 Token Supply"</h2>
+                                    {self.render_locked()}
+                                    <div class="dash-row">
+                                        <div class="dash-col dash-col-2">
+                                            {self.render_contracts()}
+                                        </div>
+                                        <div class="dash-col dash-col-2">
+                                            {self.render_supply()}
+                                        </div>
+                                    </div>
+                                </div>
+                            },
+                            None => text(""),
+                        }}
 
                     </div>
                 </div>
