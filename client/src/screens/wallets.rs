@@ -64,7 +64,7 @@ impl Screen {
                     <strong title={nice::amount(total_minted, 18)}>
                         { text(nice::ceil(total_minted, 18)) }
                     </strong>
-                    <span class="darken">" API3 tokens minted and locked as staking rewards with no voting power. "</span>
+                    <span class="darken">" API3 tokens minted and locked as staking rewards "</span>
                     {
                         if total_votes == total_shares {
                             span(vec![], vec![])
