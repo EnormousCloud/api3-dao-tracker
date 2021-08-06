@@ -37,61 +37,63 @@ impl Screen {
         }
     }
     pub fn render_supply(&self) -> Node<Msg> {
-        let total_staked = self.state.get_staked_total();
-        let stake_target: U256 = match &self.state.pool_info {
-            Some(x) => x.clone().stake_target,
-            None => U256::from(0),
-        };
-        let reached = nice::dec(stake_target, 10) <= nice::dec(total_staked, 18);
         match &self.state.circulation {
-            Some(c) => node! {
-                <div>
-                    {panel::render("API3 Circulating Supply", "", node! {
-                        <div id="api3-circulating-supply">
-                            <strong class="big-title" title={nice::amount(c.circulating_supply, 18)}>
-                                {text(nice::ceil(c.circulating_supply, 18))}
-                                <span class="desktop-only">" tokens"</span>
-                            </strong>
-                            <h3 class="cell-title"> "Total Locked" </h3>
-                            <strong title={nice::amount(c.total_locked, 18)}>
-                                {text(nice::ceil(c.total_locked, 18))}
-                                <span class="desktop-only">" tokens"</span>
-                            </strong>
-                        </div>
-                    })}
+            Some(c) => {
+                let stake_target: U256 = match &self.state.pool_info {
+                    Some(x) => c.total_supply * x.stake_target / U256::exp10(26), 
+                    None => U256::from(0),
+                };
+                let total_staked = self.state.get_staked_total();
+                let reached = nice::dec(stake_target, 10) <= nice::dec(total_staked, 18);
+                node! {
+                    <div>
+                        {panel::render("API3 Circulating Supply", "", node! {
+                            <div id="api3-circulating-supply">
+                                <strong class="big-title" title={nice::amount(c.circulating_supply, 18)}>
+                                    {text(nice::ceil(c.circulating_supply, 18))}
+                                    <span class="desktop-only">" tokens"</span>
+                                </strong>
+                                <h3 class="cell-title"> "Total Locked" </h3>
+                                <strong title={nice::amount(c.total_locked, 18)}>
+                                    {text(nice::ceil(c.total_locked, 18))}
+                                    <span class="desktop-only">" tokens"</span>
+                                </strong>
+                            </div>
+                        })}
 
-                    <div class="dash-row" id="staking">
-                        <div class="dash-col dash-col-2 cell-t">
-                            <h3 class="cell-title"> "Staked in DAO" </h3>
-                            <strong title={nice::amount(total_staked, 18)}>
-                                {text(nice::ceil(total_staked, 18))}
-                                " tokens"
-                            </strong>
+                        <div class="dash-row" id="staking">
+                            <div class="dash-col dash-col-2 cell-t">
+                                <h3 class="cell-title"> "Staked in DAO" </h3>
+                                <strong title={nice::amount(total_staked, 18)}>
+                                    {text(nice::ceil(total_staked, 18))}
+                                    " tokens"
+                                </strong>
+                            </div>
+                            <div class="dash-col dash-col-2 cell-t">
+                                <h3 class="cell-title"> "Staking Target" </h3>
+                                <strong title={nice::amount(stake_target, 10)}>
+                                    {text(nice::ceil(stake_target, 10))}
+                                    " tokens"
+                                </strong>
+                            </div>
                         </div>
-                        <div class="dash-col dash-col-2 cell-t">
-                            <h3 class="cell-title"> "Staking Target" </h3>
-                            <strong title={nice::amount(stake_target, 10)}>
-                                {text(nice::ceil(stake_target, 10))}
-                                " tokens"
-                            </strong>
+                        <div class="dash-row">
+                            <p class="note">
+                                {if !reached {
+                                    span(
+                                        vec![styles([("color", "var(--color-accent)")])],
+                                        vec![text("DAO staking target is not reached, so APR will be increased by 1% for the next epoch until it reaches 75%")],
+                                    )
+                                } else {
+                                    span(
+                                        vec![styles([("color", "var(--color-warning)")])],
+                                        vec![text("DAO staking target is reached, so APR will be decreased by 1% for the next epoch until it reaches 2.5%")],
+                                    )
+                                }}
+                            </p>
                         </div>
                     </div>
-                    <div class="dash-row">
-                        <p class="note">
-                            {if !reached {
-                                span(
-                                    vec![styles([("color", "var(--color-accent)")])],
-                                    vec![text("DAO staking target is not reached, so APR will be increased by 1% for the next epoch until it reaches 75%")],
-                                )
-                            } else {
-                                span(
-                                    vec![styles([("color", "var(--color-warning)")])],
-                                    vec![text("DAO staking target is reached, so APR will be decreased by 1% for the next epoch until it reaches 2.5%")],
-                                )
-                            }}
-                        </p>
-                    </div>
-                </div>
+                }
             },
             None => div(vec![class("error")], vec![text("no supply info")]),
         }

@@ -124,6 +124,7 @@ async fn main() -> anyhow::Result<()> {
         Err(e) => return Err(anyhow::Error::msg(format!("Args parsing error {}", e))),
     };
     let addr_pool = H160::from_str(args.address_api3_pool.as_str()).expect("ADDR_API3_POOL");
+    let addr_token = H160::from_str(args.address_api3_token.as_str()).expect("ADDR_API3_TOKEN");
     let addr_convenience =
         H160::from_str(args.address_convenience.as_str()).expect("ADDR_API3_CONVENIENCE");
     let addr_voting1 =
@@ -227,6 +228,7 @@ async fn main() -> anyhow::Result<()> {
             s.app.circulation = crate::contracts::Supply::new(
                 &web3,
                 addr_supply,
+                addr_token,
                 addr_convenience,
                 addr_voting1,
                 addr_voting2,
@@ -286,6 +288,7 @@ async fn main() -> anyhow::Result<()> {
                 let contract_circulation = crate::contracts::Supply::new(
                     &w3,
                     addr_supply,
+                    addr_token,
                     addr_convenience,
                     addr_voting1,
                     addr_voting2,

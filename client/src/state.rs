@@ -31,6 +31,8 @@ pub struct Api3PoolInfo {
 pub struct Api3Circulation {
     /// tokens circulating supply
     pub circulating_supply: U256,
+    /// total api3 token supply
+    pub total_supply: U256,
     /// tokens, locked by governance
     pub locked_by_governance: U256,
     /// tokens, locked in rewards

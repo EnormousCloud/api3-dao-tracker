@@ -189,6 +189,8 @@ where
     T: web3::Transport,
 {
     contract: Contract<T>,
+    api3token: Contract<T>,
+    addr_token: H160,
     addr_convenience: H160,
     addr_primary: H160,
     addr_secondary: H160,
@@ -198,6 +200,7 @@ impl<T: web3::Transport> Supply<T> {
     pub fn new(
         web3: &web3::Web3<T>,
         address: H160,
+        addr_token: H160,
         addr_convenience: H160,
         addr_primary: H160,
         addr_secondary: H160,
@@ -209,8 +212,16 @@ impl<T: web3::Transport> Supply<T> {
             include_bytes!("./contract/api3_supply.abi.json"),
         )
         .expect("fail contract::from_json(api3_supply.abi.json)");
+        let api3token = Contract::from_json(
+            web3.eth(),
+            addr_token,
+            include_bytes!("./contract/api3_token.abi.json"),
+        )
+        .expect("fail contract::from_json(api3_token.abi.json)");
         Supply {
             contract,
+            api3token,
+            addr_token,
             addr_convenience,
             addr_primary,
             addr_secondary,
@@ -357,7 +368,20 @@ impl<T: web3::Transport> Supply<T> {
             }
         };
 
+        let total_supply: U256 = match self
+            .api3token
+            .query("totalSupply", (), None, opt.clone(), None)
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("totalSupply {}", e);
+                return None;
+            }
+        };
+
         Some(Api3Circulation {
+            total_supply,
             circulating_supply,
             locked_by_governance,
             locked_rewards,
