@@ -1,14 +1,14 @@
 use crate::components::err_box;
 use crate::components::footer;
-use crate::components::panel;
 use crate::components::header;
+use crate::components::panel;
 use crate::nice;
 use crate::router::{link_eventlog, link_wallet, text_entry};
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
-use crate::state::{AppState, OnChainEvent, Epoch, Wallet};
+use crate::state::{AppState, Epoch, OnChainEvent, Wallet};
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
-use web3::types::{U256, H160};
+use web3::types::{H160, U256};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Screen {
@@ -77,23 +77,37 @@ impl Screen {
         if w.delegated.len() == 0 {
             return text("");
         }
-        div(vec![], vec![
-            div(vec![class("desktop-only")], vec![
-                table(vec
-                    ![class("table delegations-table")],
-                    vec![
-                        thead(vec![], vec![ self.render_delegation_header() ]),
-                        tbody(vec![], w.delegated.iter().map(|(addr, shares)| self.render_delegation_tr(addr, shares)).collect::<Vec<Node<Msg>>>()),
-                    ]
-                )
-            ]),
-            div(vec![class("mobile-only")], vec![
-                ol(vec
-                    ![class("delegations-list")],
-                    w.delegated.iter().map(|(addr, shares)| self.render_delegation(&addr, &shares)).collect::<Vec<Node<Msg>>>()
-                )
-            ])
-        ])
+        div(
+            vec![],
+            vec![
+                div(
+                    vec![class("desktop-only")],
+                    vec![table(
+                        vec![class("table delegations-table")],
+                        vec![
+                            thead(vec![], vec![self.render_delegation_header()]),
+                            tbody(
+                                vec![],
+                                w.delegated
+                                    .iter()
+                                    .map(|(addr, shares)| self.render_delegation_tr(addr, shares))
+                                    .collect::<Vec<Node<Msg>>>(),
+                            ),
+                        ],
+                    )],
+                ),
+                div(
+                    vec![class("mobile-only")],
+                    vec![ol(
+                        vec![class("delegations-list")],
+                        w.delegated
+                            .iter()
+                            .map(|(addr, shares)| self.render_delegation(&addr, &shares))
+                            .collect::<Vec<Node<Msg>>>(),
+                    )],
+                ),
+            ],
+        )
     }
 
     pub fn render_wallet_info(&self, w: &Wallet) -> Node<Msg> {
@@ -146,7 +160,6 @@ impl Screen {
                                     <span class="darken">" shares"</span>
                                 </strong>
                             </div>
-                            
                         </div>
                     }
                 )}
@@ -297,37 +310,60 @@ impl Screen {
 
     pub fn render_rewards(&self, w: &Wallet) -> Node<Msg> {
         if self.state.epochs.len() > 0 {
-            div(vec![], vec![
-                div(vec![class("desktop-only")], vec![
-                    table(vec
-                        ![class("table epochs-table")],
-                        vec![
-                            thead(vec![], vec![ self.render_epoch_header() ]),
-                            tbody(vec![], self.state.epochs.iter().map(|(_, epoch)| self.render_epoch_tr(epoch, &w.address)).collect::<Vec<Node<Msg>>>()),
-                        ]
-                    )
-                ]),
-                div(vec![class("mobile-only")], vec![
-                    ol(vec
-                        ![class("epochs-list")],
-                        self.state.epochs.iter().map(|(_, epoch)| self.render_epoch(epoch, &w.address)).collect::<Vec<Node<Msg>>>()
-                    )
-                ])
-            ])
+            div(
+                vec![],
+                vec![
+                    div(
+                        vec![class("desktop-only")],
+                        vec![table(
+                            vec![class("table epochs-table")],
+                            vec![
+                                thead(vec![], vec![self.render_epoch_header()]),
+                                tbody(
+                                    vec![],
+                                    self.state
+                                        .epochs
+                                        .iter()
+                                        .map(|(_, epoch)| self.render_epoch_tr(epoch, &w.address))
+                                        .collect::<Vec<Node<Msg>>>(),
+                                ),
+                            ],
+                        )],
+                    ),
+                    div(
+                        vec![class("mobile-only")],
+                        vec![ol(
+                            vec![class("epochs-list")],
+                            self.state
+                                .epochs
+                                .iter()
+                                .map(|(_, epoch)| self.render_epoch(epoch, &w.address))
+                                .collect::<Vec<Node<Msg>>>(),
+                        )],
+                    ),
+                ],
+            )
         } else {
-            div(vec![class("epochs-empty")], vec![
-                text("There were no rewards distributions yet")
-            ])
+            div(
+                vec![class("epochs-empty")],
+                vec![text("There were no rewards distributions yet")],
+            )
         }
     }
 }
 
 pub fn get_wallet_title(w: &Wallet) -> Node<Msg> {
     if let Some(ens) = &w.ens {
-        return span(vec![],vec![
-            text("API3 DAO Member "),
-            strong(vec![styles([("color", "var(--color-accent)")])], vec![text(ens)]),
-        ]);
+        return span(
+            vec![],
+            vec![
+                text("API3 DAO Member "),
+                strong(
+                    vec![styles([("color", "var(--color-accent)")])],
+                    vec![text(ens)],
+                ),
+            ],
+        );
     }
     text("API3 DAO Member")
 }

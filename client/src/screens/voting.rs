@@ -3,7 +3,7 @@ use crate::components::footer;
 use crate::components::header;
 use crate::events::{self, Api3, VotingAgent};
 use crate::nice;
-use crate::router::{link_wallet, link_eventlog};
+use crate::router::{link_eventlog, link_wallet};
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, OnChainEvent};
 use sauron::prelude::*;

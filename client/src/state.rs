@@ -167,23 +167,23 @@ impl Voting {
                 0xdC, 0x6e, 0xa7, 0x31, 0xB8, 0x8a,
             ]
         {
-             // not very accurante, but most likely this is Transfer
+            // not very accurante, but most likely this is Transfer
             let offset = 32 + 32 + 32 + 32 + 32 + 4 + 12;
             let to: Vec<u8> = script_data
-                 .iter()
-                 .skip(offset)
-                 .take(20)
-                 .map(|x| x.clone())
-                 .collect();
+                .iter()
+                .skip(offset)
+                .take(20)
+                .map(|x| x.clone())
+                .collect();
             let amt: Vec<u8> = script_data
-                 .iter()
-                 .skip(offset + 20 + 16)
-                 .take(16)
-                 .map(|x| x.clone())
-                 .collect();
+                .iter()
+                .skip(offset + 20 + 16)
+                .take(16)
+                .map(|x| x.clone())
+                .collect();
             let amt_hex = format!("0x{}", hex::encode(amt));
             let amount: U256 = U256::from_str(&amt_hex).unwrap();
-            
+
             return format!(
                 "Transfer {} API3 to 0x{}",
                 nice::ceil(amount, 6),
@@ -384,7 +384,7 @@ impl AppState {
     pub fn get_labels(&self, w: &Wallet) -> Vec<LabelBadge> {
         let mut labels: Vec<LabelBadge> = vec![];
         let vested = match &w.vested_amount {
-            Some(amt)  => *amt > U256::from(0),
+            Some(amt) => *amt > U256::from(0),
             None => false,
         };
 
@@ -426,11 +426,10 @@ impl AppState {
                     "badge-not-staking",
                     "deposited, not staking",
                     "Deposited tokens but not staking them",
-    
                 ));
             }
         }
-        if let Some(_)= &w.delegates {
+        if let Some(_) = &w.delegates {
             labels.push(LabelBadge::new(
                 "badge-delegates",
                 "delegates",
@@ -483,7 +482,7 @@ impl AppState {
         match ep.stake.get(&addr) {
             Some(x) => x.clone(),
             None => return U256::from(0),
-        }        
+        }
     }
 
     pub fn get_rewards_for_epoch(&self, addr: &H160, epoch_index: u64) -> U256 {

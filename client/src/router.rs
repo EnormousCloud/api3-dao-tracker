@@ -192,14 +192,14 @@ pub fn text_entry<T>(entry: &Api3) -> Node<T> {
         //     amount: U256,
         //     total_stake: U256,
         // },
-    
+
         // // Voting
         // StartVote {
         //     agent: VotingAgent,
         //     vote_id: U256,
         //     creator: H160,
         //     metadata: String,
-        // } => 
+        // } =>
         // CastVote {
         //     agent: VotingAgent,
         //     vote_id: U256,
@@ -210,9 +210,8 @@ pub fn text_entry<T>(entry: &Api3) -> Node<T> {
         // ExecuteVote {
         //     agent: VotingAgent,
         //     vote_id: U256,
-        // } 
-    
-        Api3::SetVestingAddresses { addresses:  _ } => text("SetVestingAddresses"),
+        // }
+        Api3::SetVestingAddresses { addresses: _ } => text("SetVestingAddresses"),
         _ => text(format!("{:?}", entry)),
     }
 }
