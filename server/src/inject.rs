@@ -1,14 +1,23 @@
 pub fn it(content: &str, start: &'static str, end: &'static str, replacement: &str) -> String {
     if let Some(start_tag) = content.find(start) {
-        let before: String = content
-            .chars()
-            .into_iter()
-            .take(start_tag + start.len())
-            .collect();
-        let after_before: String = content.chars().into_iter().skip(before.len()).collect();
-        if let Some(end_tag) = after_before.find(end) {
-            let after: String = after_before.chars().into_iter().skip(end_tag).collect();
-            return format!("{}{}{}", before, replacement, after);
+        let before: Vec<u8> = content.bytes().take(start_tag + start.len()).collect();
+        let before_str = match std::str::from_utf8(before.as_ref()) {
+            Ok(x) => x,
+            Err(_) => return content.to_string(),
+        };
+        let after_before: Vec<u8> = content.bytes().skip(before.len()).collect();
+        let after_before_str: String = match std::str::from_utf8(after_before.as_ref()) {
+            Ok(x) => x.to_string(),
+            Err(_) => return content.to_string(),
+        };
+
+        if let Some(end_tag) = after_before_str.find(end) {
+            let after: Vec<u8> = after_before.iter().skip(end_tag).map(|ch| *ch).collect();
+            let after_str: String = match std::str::from_utf8(after.as_ref()) {
+                Ok(x) => x.to_string(),
+                Err(_) => return content.to_string(),
+            };
+            return format!("{}{}{}", before_str, replacement, after_str);
         }
     }
     content.to_string()
@@ -16,19 +25,27 @@ pub fn it(content: &str, start: &'static str, end: &'static str, replacement: &s
 
 pub fn replace(content: &str, start: &'static str, end: &'static str, replacement: &str) -> String {
     if let Some(start_tag) = content.find(start) {
-        let before: String = content.chars().into_iter().take(start_tag).collect();
-        let after_before: String = content
-            .chars()
-            .into_iter()
-            .skip(before.len() + start.len())
-            .collect();
-        if let Some(end_tag) = after_before.find(end) {
-            let after: String = after_before
-                .chars()
-                .into_iter()
+        let before: Vec<u8> = content.bytes().take(start_tag).collect();
+        let before_str = match std::str::from_utf8(before.as_ref()) {
+            Ok(x) => x,
+            Err(_) => return content.to_string(),
+        };
+        let after_before: Vec<u8> = content.bytes().skip(before.len() + start.len()).collect();
+        let after_before_str: String = match std::str::from_utf8(after_before.as_ref()) {
+            Ok(x) => x.to_string(),
+            Err(_) => return content.to_string(),
+        };
+        if let Some(end_tag) = after_before_str.find(end) {
+            let after: Vec<u8> = after_before
+                .iter()
                 .skip(end_tag + end.len())
+                .map(|ch| *ch)
                 .collect();
-            return format!("{}{}{}", before, replacement, after);
+            let after_str: String = match std::str::from_utf8(after.as_ref()) {
+                Ok(x) => x.to_string(),
+                Err(_) => return content.to_string(),
+            };
+            return format!("{}{}{}", before_str, replacement, after_str);
         }
     }
     content.to_string()
@@ -58,17 +75,22 @@ mod test {
     #[test]
     fn few_params() {
         let res = it(
-            "this can(`{}`) or should(`{}`) a lot",
+            "this © can(`{}`) ©r should(`{}`) a © lot",
             "can(`",
             "`)",
             "change",
         );
-        assert_eq!(res.as_str(), "this can(`change`) or should(`{}`) a lot");
+        assert_eq!(res.as_str(), "this © can(`change`) ©r should(`{}`) a © lot");
     }
 
     #[test]
     fn it_replaces_tag() {
-        let res = replace("this does <main>bad</main>a lot", "<main>", "</main>", "");
-        assert_eq!(res.as_str(), "this does a lot");
+        let res = replace(
+            "this © does <main>b©d</main>a © lot",
+            "<main>",
+            "</main>",
+            "",
+        );
+        assert_eq!(res.as_str(), "this © does a © lot");
     }
 }
