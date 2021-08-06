@@ -109,7 +109,7 @@ pub fn save_blockstime(
     chain_id: u64,
     blocks_time: &BTreeMap<H256, u64>,
 ) -> anyhow::Result<()> {
-    if cache_dir.len() == 0 {
+    if cache_dir.len() == 0 || blocks_time.len() == 0 {
         return Ok(());
     }
     let f =
