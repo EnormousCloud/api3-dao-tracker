@@ -1,5 +1,6 @@
 pub mod components;
 pub mod events;
+pub mod eventsnode;
 pub mod logreader;
 pub mod nice;
 pub mod router;

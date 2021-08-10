@@ -2,8 +2,9 @@ use crate::components::err_box;
 use crate::components::footer;
 use crate::components::header;
 use crate::components::panel;
+use crate::eventsnode::entry_node;
 use crate::nice;
-use crate::router::{link_eventlog, link_wallet, text_entry};
+use crate::router::{link_eventlog, link_wallet};
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, Epoch, OnChainEvent, Wallet};
 use sauron::prelude::*;
@@ -46,7 +47,7 @@ impl Screen {
                 <td class="c">{text(format!("{}.", index + 1))}</td>
                 <td class="c darken dt">{text(nice::date(e.tm))}</td>
                 <td class="c">{link_eventlog(self.state.chain_id, e.block_number, e.tx)}</td>
-                <td class="l entry darken">{text_entry(&e.entry)}</td>
+                <td class="l entry darken">{entry_node(&e.entry, self.addr, &self.state)}</td>
             </tr>
         }
     }

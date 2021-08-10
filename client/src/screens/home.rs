@@ -40,7 +40,7 @@ impl Screen {
         match &self.state.circulation {
             Some(c) => {
                 let stake_target: U256 = match &self.state.pool_info {
-                    Some(x) => c.total_supply * x.stake_target / U256::exp10(26), 
+                    Some(x) => c.total_supply * x.stake_target / U256::exp10(26),
                     None => U256::from(0),
                 };
                 let total_staked = self.state.get_staked_total();
@@ -94,7 +94,7 @@ impl Screen {
                         </div>
                     </div>
                 }
-            },
+            }
             None => div(vec![class("error")], vec![text("no supply info")]),
         }
     }

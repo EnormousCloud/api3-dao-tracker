@@ -12,7 +12,7 @@ API3 DAO Tracker provides a web interface to see on-chain details of the API3 DA
 - [Public DAO Test on Rinkeby](https://enormous.cloud/dao/api3/tracker-rinkeby/)
 
 ### Changes coming in the nearest time
-- [ ] User-friendly event history (compacted, colourful and without pennies)
+- [x] User-friendly event history (compacted, colourful and without pennies)
 - [ ] Display DAO treasuries balances
 - [ ] Hourly re-checks of ENS, vote scripts and treasuries instead of checks on start
 - [ ] Include shares/rewards/stakes in rewards snapshots and display both stakes in wallet history

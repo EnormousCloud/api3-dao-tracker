@@ -27,7 +27,7 @@ pub fn amount(src: U256, decimals: usize) -> String {
         return format!("{}.{}", with_commas(&before_dot), after_dot);
     }
     let pad_size = decimals - str.len();
-    let pad = (0..pad_size).map(|_| " ").collect::<String>();
+    let pad = (0..pad_size).map(|_| "0").collect::<String>();
     let right_rev: String = str.chars().rev().take(str.len()).collect();
     let after_dot: String = right_rev.chars().rev().collect();
     return format!("0.{}{}", pad, after_dot);
