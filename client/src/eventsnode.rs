@@ -227,7 +227,7 @@ pub fn entry_node<T>(entry: &Api3, addr: H160, state: &AppState) -> Node<T> {
             scheduled_for,
             user_shares,
         } => wrap_line(vec![
-            Some(hl_text("Unstaked")),
+            Some(hl_text("ScheduledUnstake")),
             Some(normal_text("amount: ")),
             Some(wrap_amt(*amount)),
             Some(normal_text("shares: ")),
@@ -244,7 +244,7 @@ pub fn entry_node<T>(entry: &Api3, addr: H160, state: &AppState) -> Node<T> {
             shares,
             scheduled_for,
         } => wrap_line(vec![
-            Some(hl_text("Unstaked")),
+            Some(hl_text("ScheduledUnstake")),
             Some(normal_text("amount: ")),
             Some(wrap_amt(*amount)),
             Some(normal_text("shares: ")),
@@ -353,12 +353,10 @@ pub fn entry_node<T>(entry: &Api3, addr: H160, state: &AppState) -> Node<T> {
             agent,
             vote_id,
             creator: _,
-            metadata,
+            metadata: _,
         } => wrap_line(vec![
             Some(hl_text("StartVote")),
             wrap_vote(*vote_id, agent, &state.votings),
-            Some(normal_text("metadata: ")),
-            Some(hl_text(metadata)),
         ]),
         Api3::CastVote {
             agent,
