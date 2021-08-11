@@ -59,59 +59,83 @@ impl Screen {
                     </strong>
                     <span class="darken">" shares. "</span>
                 </p>
-                <p style="text-align: center">
-                    <span class="darken">" There were "</span>
-                    <strong title={nice::amount(total_minted, 18)}>
-                        { text(nice::ceil(total_minted, 18)) }
-                    </strong>
-                    <span class="darken">" API3 tokens minted and locked as staking rewards "</span>
-                    {
-                        if total_votes == total_shares {
-                            span(vec![], vec![])
-                        } else {
-                            div(vec![class("warn")], vec![
-                                text("There is a calculation mismatch. Numbers might be not accurate")
-                            ])
-                        }
+                {if total_minted > U256::from(0) {
+                    node!{
+                        <p style="text-align: center">
+                            <span class="darken">" There were "</span>
+                            <strong title={nice::amount(total_minted, 18)}>
+                                { text(nice::ceil(total_minted, 18)) }
+                            </strong>
+                            <span class="darken">" API3 tokens minted and locked as staking rewards "</span>
+                            {
+                                if total_votes == total_shares {
+                                    span(vec![], vec![])
+                                } else {
+                                    div(vec![class("warn")], vec![
+                                        text("There is a calculation mismatch. Numbers might be not accurate")
+                                    ])
+                                }
+                            }
+                        </p>
                     }
-                </p>
-                <p style="text-align: center">
-                    <span class="darken">" Stakes of "</span>
-                    <strong>
-                        { text(nice::int(total_vesting_members)) }
-                    </strong>
-                    <span class="darken">" DAO members are known to be vested, owning  "</span>
-                    <strong title={nice::amount(total_vesting_shares, 18)}>
-                        { text(nice::ceil(total_vesting_shares, 18)) }
-                    </strong>
-                    <span class="darken">" shares ("</span>
-                    <strong>
-                        {text(nice::pct_of(total_vesting_shares, total_shares, 18))}
-                        "%"
-                    </strong>
-                    <span class="darken">" of current voting power)"</span>
-                </p>
-                <p style="text-align: center">
-                    <strong>
-                        { text(nice::int(total_delegating_members)) }
-                    </strong>
-                    <span class="darken">" DAO members are delegating their voting power of "</span>
-                    <strong title={nice::amount(total_delegating_shares, 18)}>
-                        { text(nice::ceil(total_delegating_shares, 18)) }
-                    </strong>
-                    <span class="darken">" shares ("</span>
-                    <strong>
-                        {text(nice::pct_of(total_delegating_shares, total_shares, 18))}
-                        "%"
-                    </strong>
-                    <span class="darken">") to others."</span>
-                </p>
-                <p style="text-align: center">
-                    <strong>
-                        { text(nice::int(total_left)) }
-                    </strong>
-                    <span class="darken">" DAO members withdrew most of their stakes and left. "</span>
-                </p>
+                } else {
+                    div(vec![], vec![])
+                }}
+                {if total_vesting_members > 0 {
+                    node!{
+                        <p style="text-align: center">
+                            <span class="darken">" Stakes of "</span>
+                            <strong>
+                                { text(nice::int(total_vesting_members)) }
+                            </strong>
+                            <span class="darken">" DAO members are known to be vested, owning  "</span>
+                            <strong title={nice::amount(total_vesting_shares, 18)}>
+                                { text(nice::ceil(total_vesting_shares, 18)) }
+                            </strong>
+                            <span class="darken">" shares ("</span>
+                            <strong>
+                                {text(nice::pct_of(total_vesting_shares, total_shares, 18))}
+                                "%"
+                            </strong>
+                            <span class="darken">" of current voting power)"</span>
+                        </p>
+                    }
+                } else {
+                    div(vec![], vec![])
+                }}
+                { if total_delegating_members > 0 {
+                    node! {
+                        <p style="text-align: center">
+                            <strong>
+                                { text(nice::int(total_delegating_members)) }
+                            </strong>
+                            <span class="darken">" DAO members are delegating their voting power of "</span>
+                            <strong title={nice::amount(total_delegating_shares, 18)}>
+                                { text(nice::ceil(total_delegating_shares, 18)) }
+                            </strong>
+                            <span class="darken">" shares ("</span>
+                            <strong>
+                                {text(nice::pct_of(total_delegating_shares, total_shares, 18))}
+                                "%"
+                            </strong>
+                            <span class="darken">") to others."</span>
+                        </p>
+                    }
+                } else {
+                    div(vec![], vec![])
+                }}
+                {if total_left > 0 {
+                    node!{
+                        <p style="text-align: center">
+                            <strong>
+                                { text(nice::int(total_left)) }
+                            </strong>
+                            <span class="darken">" DAO members withdrew most of their stakes and left. "</span>
+                        </p>
+                    }
+                } else {
+                    div(vec![],vec![])
+                }}
 
             </div>
         }

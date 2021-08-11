@@ -1,5 +1,5 @@
-use sauron::prelude::*;
 use crate::state::AppState;
+use sauron::prelude::*;
 
 pub struct MenuItem {
     is_active: bool,
@@ -49,14 +49,14 @@ pub fn render<T>(active_menu: &'static str, state: &AppState) -> Node<T> {
     ];
 
     let testnet: Node<T> = if state.chain_id == 4 {
-        span(vec![class("badge badge-testnet")], vec![text("rinkeby")]) 
+        span(vec![class("badge badge-testnet")], vec![text("rinkeby")])
     } else if state.chain_id != 1 {
-        span(vec![class("badge badge-testnet")], vec![text("testnet")]) 
+        span(vec![class("badge badge-testnet")], vec![text("testnet")])
     } else {
-        span(vec![],vec![])
+        span(vec![], vec![])
     };
-    
-    let header_class= if state.chain_id == 1 { "" }  else { "testnet" };
+
+    let header_class = if state.chain_id == 1 { "" } else { "testnet" };
     node! {
       <header class={header_class}>
         <div class="inner">
