@@ -338,7 +338,10 @@ pub fn routes_loading() -> impl Filter<Extract = impl warp::Reply, Error = warp:
         )
         .into_response()
     });
-    liveness
-        .or(warp::get())
-        .map(move |_| warp::reply::html(LOADING_HTML))
+    liveness.or(warp::get()).map(move |_| {
+        warp::reply::with_status(
+            warp::reply::html(LOADING_HTML),
+            warp::http::StatusCode::INTERNAL_SERVER_ERROR,
+        )
+    })
 }
