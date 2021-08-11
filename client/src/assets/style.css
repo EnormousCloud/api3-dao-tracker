@@ -60,6 +60,11 @@ ul {
     width: 100%;
   }
 
+  header.testnet {
+    box-shadow: 0px 2px 4px red;
+  }
+
+
   .inner {
     margin: 0px auto;
   }
@@ -105,6 +110,10 @@ ul {
     background: var(--color-body);
     color: var(--color-text);
   }
+  footer.testnet {
+    border-top: 2px red solid;
+  }
+
   @media (min-width: 640px) {
     footer {
       width: 100vw;
@@ -491,6 +500,14 @@ table.table tbody tr:nth-child(odd) {
   background: #ffa0a0;
   color: #000;
 }
+
+.badge-testnet {
+  background: #ffa0a0;
+  color: #000;
+  text-transform: uppercase;
+  margin-right: 5px;
+}
+
 .badge-not-staking {
   background: #ffffa0;
   color: #444;

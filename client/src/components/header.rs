@@ -1,4 +1,5 @@
 use sauron::prelude::*;
+use crate::state::AppState;
 
 pub struct MenuItem {
     is_active: bool,
@@ -19,7 +20,7 @@ impl MenuItem {
 const TITLE: &'static str = "API3 DAO Tracker";
 const SLOGAN: &'static str = "on-chain analytics: members, staking rewards, API3 token supply";
 
-pub fn render<T>(active_menu: &'static str) -> Node<T> {
+pub fn render<T>(active_menu: &'static str, state: &AppState) -> Node<T> {
     let is_default = !active_menu.starts_with("/rewards")
         && !active_menu.starts_with("/wallets")
         && !active_menu.starts_with("/votings");
@@ -47,15 +48,24 @@ pub fn render<T>(active_menu: &'static str) -> Node<T> {
         },
     ];
 
+    let testnet: Node<T> = if state.chain_id == 4 {
+        span(vec![class("badge badge-testnet")], vec![text("rinkeby")]) 
+    } else if state.chain_id != 1 {
+        span(vec![class("badge badge-testnet")], vec![text("testnet")]) 
+    } else {
+        span(vec![],vec![])
+    };
+    
+    let header_class= if state.chain_id == 1 { "" }  else { "testnet" };
     node! {
-      <header>
+      <header class={header_class}>
         <div class="inner">
           <div class="nav-brand">
             <span class="nav-brand__label">
               {text(TITLE)}
             </span>
             <span class="nav-brand__slogan">
-              {text(SLOGAN)}
+              {testnet} {text(SLOGAN)}
             </span>
           </div>
           <div class="mid"></div>

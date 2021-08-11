@@ -20,7 +20,7 @@ impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
         node! {
             <div class="screen-failure">
-                { header::render("") }
+                { header::render("", &self.state) }
                 <div class="inner">
                     <h1>{ text(self.msg.as_str()) }</h1>
                 </div>

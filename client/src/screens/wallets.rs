@@ -252,7 +252,7 @@ impl Component<Msg> for Screen {
         let total_votes = self.state.get_votes_total();
         node! {
             <div class="screen-wallets">
-                { header::render("/wallets") }
+                { header::render("/wallets", &self.state) }
                 <div class="inner">
                     <h1>{text(format!("API3 DAO: {} Member Wallets", self.state.wallets.len()))}</h1>
                     {self.render_info()}

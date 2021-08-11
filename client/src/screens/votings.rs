@@ -114,7 +114,7 @@ impl Component<Msg> for Screen {
         let sorted: Vec<Voting> = self.state.votings.values().cloned().collect();
         node! {
             <div class="screen-votings">
-                { header::render("/votings") }
+                { header::render("/votings", &self.state) }
                 <div class="inner">
                     <h1>"API3 DAO Votings"</h1>
                     {if self.state.votings.len() > 0 {

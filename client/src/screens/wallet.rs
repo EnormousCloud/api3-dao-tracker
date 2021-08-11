@@ -376,7 +376,7 @@ impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
         node! {
             <div class="screen-wallet">
-                { header::render("/wallets") }
+                { header::render("/wallets", &self.state) }
                 <div class="inner">
                     {
                         match self.state.wallets.get(&self.addr) {

@@ -316,7 +316,7 @@ impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
         node! {
             <div class="screen-home">
-                { header::render("") }
+                { header::render("", &self.state) }
                 <div class="inner">
                     <div class="centered">
                         <h1>"API3 DAO Tracker"</h1>

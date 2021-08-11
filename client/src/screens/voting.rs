@@ -182,7 +182,7 @@ impl Component<Msg> for Screen {
         let decision = "text-align:center; border: 1px #888 solid; padding: 30px";
         node! {
             <div class="screen-voting">
-                { header::render("/votings") }
+                { header::render("/votings", &self.state) }
                 <div class="inner">
                     <h1>{text(v.title.clone())}</h1>
                     <h2 style="text-align: center">{text(subtitle)}</h2>

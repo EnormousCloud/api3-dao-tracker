@@ -142,7 +142,7 @@ impl Component<Msg> for Screen {
         let reached = nice::dec(stake_target, 10) <= nice::dec(total_staked, 18);
         node! {
             <div class="screen-rewards">
-                { header::render("/rewards") }
+                { header::render("/rewards", &self.state) }
                 <div class="inner">
                     <div class="centered">
                         <h1>"API3 DAO Staking Rewards History"</h1>
