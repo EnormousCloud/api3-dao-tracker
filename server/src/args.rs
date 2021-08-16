@@ -27,7 +27,10 @@ pub struct Args {
     /// Ethereum JSON+RPC batch size for reading
     #[structopt(long, default_value = "500", env = "RPC_BATCH_SIZE")]
     pub rpc_batch_size: u64,
-    /// API3 token contract address (not used yet)
+    /// USDC token contract address
+    #[structopt(long, default_value = "", env = "ADDR_USDC_TOKEN")]
+    pub address_usdc_token: String,
+    /// API3 token contract address
     #[structopt(long, default_value = "", env = "ADDR_API3_TOKEN")]
     pub address_api3_token: String,
     /// API3 pool contract address

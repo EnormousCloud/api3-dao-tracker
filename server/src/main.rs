@@ -125,6 +125,7 @@ async fn main() -> anyhow::Result<()> {
     };
     let addr_pool = H160::from_str(args.address_api3_pool.as_str()).expect("ADDR_API3_POOL");
     let addr_token = H160::from_str(args.address_api3_token.as_str()).expect("ADDR_API3_TOKEN");
+    let addr_usdc_token = H160::from_str(args.address_usdc_token.as_str()).expect("ADDR_USDC_TOKEN");
     let addr_convenience =
         H160::from_str(args.address_convenience.as_str()).expect("ADDR_API3_CONVENIENCE");
     let addr_voting1 =
@@ -309,6 +310,8 @@ async fn main() -> anyhow::Result<()> {
                     } else {
                         tracing::info!("circulation info - failed to update");
                     }
+
+                    // for each trasures conrtacts - read
                 }
             });
         }
