@@ -400,3 +400,37 @@ impl<T: web3::Transport> Supply<T> {
         })
     }
 }
+
+#[derive(Debug)]
+pub struct Erc20Contract<T>
+where
+    T: web3::Transport,
+{
+    contract: Contract<T>,
+}
+
+impl<T: web3::Transport> Erc20Contract<T> {
+    pub fn new(web3: &web3::Web3<T>, address: H160) -> Self {
+        let contract = Contract::from_json(
+            web3.eth(),
+            address,
+            include_bytes!("./contract/erc20.abi.json"),
+        )
+        .expect("fail contract::from_json(erc20.abi.json)");
+        Erc20Contract { contract: contract }
+    }
+
+    pub async fn get_balance(&self, wallet: H160) -> Option<U256> {
+        match self
+            .contract
+            .query("balanceOf", wallet, None, Options::default(), None)
+            .await
+        {
+            Ok(x) => Some(x),
+            Err(e) => {
+                warn!("balanceOf {}", e);
+                return None;
+            }
+        }
+    }
+}

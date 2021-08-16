@@ -329,6 +329,31 @@ impl LabelBadge {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Treasury {
+    pub name: String,
+    pub wallet: H160,
+    pub balances: BTreeMap<String, U256>,
+    pub updated_at: i64,
+}
+
+impl Treasury {
+    pub fn new(name: String, wallet: H160) -> Self {
+        Treasury {
+            name: name.clone(),
+            wallet: wallet.clone(),
+            balances: BTreeMap::new(),
+            updated_at: 0,
+        }
+    }
+
+    pub fn update(&mut self, balances: BTreeMap<String, U256>) {
+        self.balances = balances.clone();
+        let dt = chrono::Utc::now().naive_utc();
+        self.updated_at = dt.timestamp()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppState {
     /// version of the state
     pub version: String,
@@ -361,6 +386,8 @@ pub struct AppState {
     pub wallets_events: BTreeMap<H160, Vec<OnChainEvent>>,
     /// list of wallets that are vesting and their balance is excluded from circulating supply
     pub vested: Vec<H160>,
+    /// list of treasuries with their balances
+    pub treasuries: BTreeMap<String, Treasury>,
 }
 
 impl AppState {
@@ -380,6 +407,7 @@ impl AppState {
             vested: vec![],
             pool_info: None,
             circulation: None,
+            treasuries: BTreeMap::new(),
         }
     }
 
@@ -757,16 +785,16 @@ impl AppState {
         let total_stake = self.get_staked_total();
         let total_shares = self.get_shares_total();
         if let Some(w) = self.wallets.get_mut(&user) {
-            let ww = w.clone();
+            let _ww = w.clone();
             let shares = *amount * total_shares / total_stake;
 
             match &mut w.scheduled_unstake {
                 Some(scheduled) => {
                     if scheduled.shares < shares {
-                        warn!(
-                            "unstaking shares {:?} amount {:?} was not scheduled, wallet {:?}",
-                            shares, *amount, &ww
-                        )
+                        // warn!(
+                        //     "unstaking shares {:?} amount {:?} was not scheduled, wallet {:?}",
+                        //     shares, *amount, &ww
+                        // )
                     }
                     w.scheduled_unstake = None;
                 }

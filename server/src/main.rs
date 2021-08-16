@@ -5,11 +5,12 @@ pub mod endpoints;
 pub mod ens;
 pub mod inject;
 pub mod reader;
+pub mod treasury;
 
 use args::DumpMode;
 use client::state::{AppState, OnChainEvent};
 use futures::{FutureExt, StreamExt};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -125,7 +126,8 @@ async fn main() -> anyhow::Result<()> {
     };
     let addr_pool = H160::from_str(args.address_api3_pool.as_str()).expect("ADDR_API3_POOL");
     let addr_token = H160::from_str(args.address_api3_token.as_str()).expect("ADDR_API3_TOKEN");
-    let addr_usdc_token = H160::from_str(args.address_usdc_token.as_str()).expect("ADDR_USDC_TOKEN");
+    let addr_usdc_token =
+        H160::from_str(args.address_usdc_token.as_str()).expect("ADDR_USDC_TOKEN");
     let addr_convenience =
         H160::from_str(args.address_convenience.as_str()).expect("ADDR_API3_CONVENIENCE");
     let addr_voting1 =
@@ -136,6 +138,10 @@ async fn main() -> anyhow::Result<()> {
         H160::from_str(args.address_voting2.as_str()).expect("ADDR_API3_VOTING_SECONDARY");
     let addr_agent2 =
         H160::from_str(args.address_agent2.as_str()).expect("ADDR_API3_AGENT_SECONDARY");
+
+    let mut treasury_tokens: BTreeMap<String, H160> = BTreeMap::new();
+    treasury_tokens.insert("USDC".into(), addr_usdc_token);
+    treasury_tokens.insert("API3".into(), addr_token);
 
     if let Some(_) = args.rpc_endpoint.find("http://") {
         return Err(anyhow::Error::msg(
@@ -212,6 +218,10 @@ async fn main() -> anyhow::Result<()> {
     let server_state = State::new(subscribers.clone(), chain_id);
     let state = Arc::new(Mutex::new(server_state));
 
+    let mut treasury_wallets: BTreeMap<String, H160> = BTreeMap::new();
+    treasury_wallets.insert("Primary Treasury".into(), addr_agent1);
+    treasury_wallets.insert("Secondary Treasury".into(), addr_agent2);
+
     // Turn our "state" into a new Filter...
     let subscribers = warp::any().map(move || subscribers.clone());
     let last_block = {
@@ -237,7 +247,13 @@ async fn main() -> anyhow::Result<()> {
             .read()
             .await;
             tracing::info!("circulation info {:?}", s.app.circulation);
+            if let Some(ci) = &s.app.circulation {
+                treasury_wallets.insert("V1 Treasury".into(), ci.addr_v1_treasury);
+            }
         }
+
+        s.app.treasuries = crate::treasury::read_treasuries(&web3, &treasury_tokens, &treasury_wallets).await;
+        tracing::info!("treasuries {:?}", s.app.treasuries);
 
         // re-read votings and extract static data for votes
         let conv = crate::contracts::Convenience::new(&web3, addr_convenience);
@@ -310,8 +326,6 @@ async fn main() -> anyhow::Result<()> {
                     } else {
                         tracing::info!("circulation info - failed to update");
                     }
-
-                    // for each trasures conrtacts - read
                 }
             });
         }
