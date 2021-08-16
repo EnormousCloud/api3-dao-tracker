@@ -388,6 +388,15 @@ pub struct AppState {
     pub vested: Vec<H160>,
     /// list of treasuries with their balances
     pub treasuries: BTreeMap<String, Treasury>,
+    /// decimals for tokens
+    pub decimals: BTreeMap<String, usize>,
+}
+
+pub fn get_known_decimals() -> BTreeMap<String, usize> {
+    let mut res = BTreeMap::new();
+    res.insert("USDC".into(), 6);
+    res.insert("API3".into(), 18);
+    res
 }
 
 impl AppState {
@@ -408,6 +417,7 @@ impl AppState {
             pool_info: None,
             circulation: None,
             treasuries: BTreeMap::new(),
+            decimals: get_known_decimals(),
         }
     }
 

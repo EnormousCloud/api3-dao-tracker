@@ -48,6 +48,9 @@ pub fn main(serialized_state: String) {
         "/wallets" => {
             Program::new_replace_mount(screens::wallets::Screen::new(appstate), &root);
         }
+        "/treasury" => {
+            Program::new_replace_mount(screens::treasury::Screen::new(appstate), &root);
+        }
         _ => {
             if pathname.starts_with("/votings/") {
                 let offs = "/votings/".len();

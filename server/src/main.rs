@@ -219,8 +219,8 @@ async fn main() -> anyhow::Result<()> {
     let state = Arc::new(Mutex::new(server_state));
 
     let mut treasury_wallets: BTreeMap<String, H160> = BTreeMap::new();
-    treasury_wallets.insert("Primary Treasury".into(), addr_agent1);
-    treasury_wallets.insert("Secondary Treasury".into(), addr_agent2);
+    treasury_wallets.insert("Primary".into(), addr_agent1);
+    treasury_wallets.insert("Secondary".into(), addr_agent2);
 
     // Turn our "state" into a new Filter...
     let subscribers = warp::any().map(move || subscribers.clone());
@@ -252,7 +252,8 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-        s.app.treasuries = crate::treasury::read_treasuries(&web3, &treasury_tokens, &treasury_wallets).await;
+        s.app.treasuries =
+            crate::treasury::read_treasuries(&web3, &treasury_tokens, &treasury_wallets).await;
         tracing::info!("treasuries {:?}", s.app.treasuries);
 
         // re-read votings and extract static data for votes

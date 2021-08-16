@@ -13,7 +13,7 @@ API3 DAO Tracker provides a web interface to see on-chain details of the API3 DA
 
 ### Changes coming in the nearest time
 - [x] User-friendly event history (compacted, colourful and without pennies)
-- [ ] Display DAO treasuries balances
+- [x] Display DAO treasuries balances
 - [ ] Hourly re-checks of ENS, vote scripts and treasuries instead of checks on start
 - [ ] Include shares/rewards/stakes in rewards snapshots and display both stakes in wallet history
 - [ ] Match total number of shares (check unstaking cases)

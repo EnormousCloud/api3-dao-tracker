@@ -23,7 +23,8 @@ const SLOGAN: &'static str = "on-chain analytics: members, staking rewards, API3
 pub fn render<T>(active_menu: &'static str, state: &AppState) -> Node<T> {
     let is_default = !active_menu.starts_with("/rewards")
         && !active_menu.starts_with("/wallets")
-        && !active_menu.starts_with("/votings");
+        && !active_menu.starts_with("/votings")
+        && !active_menu.starts_with("/treasury");
 
     let menu: Vec<MenuItem> = vec![
         MenuItem {
@@ -45,6 +46,11 @@ pub fn render<T>(active_menu: &'static str, state: &AppState) -> Node<T> {
             href: "./votings",
             title: "Votings",
             is_active: active_menu.starts_with("/votings"),
+        },
+        MenuItem {
+            href: "./treasury",
+            title: "Treasury",
+            is_active: active_menu.starts_with("/treasury"),
         },
     ];
 

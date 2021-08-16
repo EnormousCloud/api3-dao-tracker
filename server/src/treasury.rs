@@ -1,7 +1,7 @@
 use crate::contracts::Erc20Contract;
 use client::state::Treasury;
 use std::collections::BTreeMap;
-use web3::types::{H160};
+use web3::types::H160;
 
 pub async fn get_treasury<T>(
     web3: &web3::Web3<T>,
@@ -35,7 +35,10 @@ where
 {
     let mut res = BTreeMap::new();
     for (name, wallet) in wallets {
-        res.insert(name.to_owned(), get_treasury(web3, name.clone(), wallet.clone(), tokens).await);
+        res.insert(
+            name.to_owned(),
+            get_treasury(web3, name.clone(), wallet.clone(), tokens).await,
+        );
     }
     res
 }
