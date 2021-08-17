@@ -247,6 +247,21 @@ pub fn routes(
             }
         }
     });
+    let treasury =  warp::path!("treasury")
+        .map({
+            let state_rc = state.clone();
+            let d = dir.clone();
+            move || {
+                let state = state_rc.lock().unwrap();
+                let screen = screens::treasury::Screen {
+                    state: state.clone().app,
+                };
+                let (comp, page) = (Box::new(screen.view()), Box::new(screen));
+                render_html(&d, &state.app, comp, page).into_response()
+            }
+        })
+        .or(warp::fs::dir(static_dir.clone()));
+
     let home = warp::path::end()
         .map({
             let state_rc = state.clone();
@@ -263,6 +278,7 @@ pub fn routes(
         .or(warp::fs::dir(static_dir.clone()));
 
     let pages = home
+        .or(treasury)
         .or(rewards)
         .or(wallet)
         .or(wallets)

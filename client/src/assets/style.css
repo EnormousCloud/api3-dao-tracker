@@ -534,3 +534,7 @@ table.table tbody tr:nth-child(odd) {
   text-align: center;
   line-height: 1.75;
 }
+
+.screen-treasury .border-inner {
+  min-width: 240px;
+}
