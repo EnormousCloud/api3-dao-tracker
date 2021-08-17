@@ -15,7 +15,7 @@ use std::path::Path;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{oneshot, mpsc, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
 use warp::Filter;
@@ -32,6 +32,8 @@ pub struct State {
     pub subscribers: Subscribers,
     /// client application state
     pub app: AppState,
+    /// whether it is loading
+    pub loading: bool,
 }
 
 impl State {
@@ -39,6 +41,7 @@ impl State {
         Self {
             subscribers,
             verbose: false,
+            loading: true,
             app: AppState::new(chain_id),
         }
     }
@@ -181,15 +184,20 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let socket_addr: std::net::SocketAddr = args.listen.parse().expect("invalid bind to listen");
+    let (tx, rx) = oneshot::channel();
     // starting a "loading" only server
     // and do not start if we are in dump-mode
     let loading_server = match args.dump {
-        None => Some(tokio::spawn(async move {
-            let routes = endpoints::routes_loading();
-            warp::serve(routes.with(warp::trace::request()))
-                .run(socket_addr)
-                .await;
-        })),
+        None => {
+            Some(tokio::spawn(async move {
+                let routes = endpoints::routes_loading();
+                let (_addr, server) = warp::serve(routes.with(warp::trace::request()))
+                    .bind_with_graceful_shutdown(socket_addr, async {
+                        rx.await.ok();
+                    });
+                server.await
+            }))
+        },
         _ => None,
     };
 
@@ -284,9 +292,12 @@ async fn main() -> anyhow::Result<()> {
     }
 
     loading_server.map(|server| {
+        tracing::info!("Killing temporary HTTP server");
+        let _ = tx.send(());
+        std::thread::sleep(std::time::Duration::from_secs(3)); // wait for server to shutdown
         server.abort();
-        std::thread::sleep(std::time::Duration::from_secs(1)); // wait for server to shutdown
     });
+
 
     if args.watch {
         let w3 = web3.clone();
