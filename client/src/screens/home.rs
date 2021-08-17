@@ -1,6 +1,7 @@
 use crate::components::footer;
 use crate::components::header;
 use crate::components::panel;
+use crate::components::target::staking_note;
 use crate::nice;
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::AppState;
@@ -43,8 +44,8 @@ impl Screen {
                     Some(x) => c.total_supply * x.stake_target / U256::exp10(26),
                     None => U256::from(0),
                 };
-                let total_staked = self.state.get_staked_total();
-                let reached = nice::dec(stake_target, 10) <= nice::dec(total_staked, 18);
+                let minted = self.state.get_minted_total();
+                let total_shares = self.state.get_shares_total();
                 node! {
                     <div>
                         {panel::render("API3 Circulating Supply", "", node! {
@@ -63,9 +64,9 @@ impl Screen {
 
                         <div class="dash-row" id="staking">
                             <div class="dash-col dash-col-2 cell-t">
-                                <h3 class="cell-title"> "Staked in DAO" </h3>
-                                <strong title={nice::amount(total_staked, 18)}>
-                                    {text(nice::ceil(total_staked, 18))}
+                                <h3 class="cell-title"> "Total Staked" </h3>
+                                <strong title={nice::amount(total_shares + minted, 18)}>
+                                    {text(nice::ceil(total_shares + minted, 18))}
                                     " tokens"
                                 </strong>
                             </div>
@@ -78,19 +79,7 @@ impl Screen {
                             </div>
                         </div>
                         <div class="dash-row">
-                            <p class="note">
-                                {if !reached {
-                                    span(
-                                        vec![styles([("color", "var(--color-accent)")])],
-                                        vec![text("DAO staking target is not reached, so APR will be increased by 1% for the next epoch until it reaches 75%")],
-                                    )
-                                } else {
-                                    span(
-                                        vec![styles([("color", "var(--color-warning)")])],
-                                        vec![text("DAO staking target is reached, so APR will be decreased by 1% for the next epoch until it reaches 2.5%")],
-                                    )
-                                }}
-                            </p>
+                            {staking_note(self.state.apr, stake_target, total_shares + minted)}
                         </div>
                     </div>
                 }

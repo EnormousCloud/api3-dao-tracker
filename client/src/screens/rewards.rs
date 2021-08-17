@@ -1,5 +1,6 @@
 use crate::components::footer;
 use crate::components::header;
+use crate::components::target::staking_note;
 use crate::nice;
 use crate::router::link_eventlog;
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
@@ -134,12 +135,11 @@ impl Screen {
 impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
         let minted = self.state.get_minted_total();
-        let total_staked = self.state.get_staked_total();
+        let total_shares = self.state.get_shares_total();
         let stake_target: U256 = match &self.state.pool_info {
             Some(x) => x.clone().stake_target,
             None => U256::from(0),
         };
-        let reached = nice::dec(stake_target, 10) <= nice::dec(total_staked, 18);
         node! {
             <div class="screen-rewards">
                 { header::render("/rewards", &self.state) }
@@ -166,20 +166,7 @@ impl Component<Msg> for Screen {
                             </strong>
                             <span class="darken">" to your current stake and your locked rewards."</span>
                         </p>
-                        <p class="note" style="text-align: center">
-                            {if !reached {
-                                span(
-                                    vec![styles([("color", "var(--color-accent)")])],
-                                    vec![text("DAO staking target is not reached, so APR will be increased by 1% for the next epoch until it reaches 75%")],
-                                )
-                            } else {
-                                span(
-                                    vec![styles([("color", "var(--color-warning)")])],
-                                    vec![text("DAO staking target is reached, so APR will be decreased by 1% for the next epoch until it reaches 2.5%")],
-                                )
-                            }}
-                        </p>
-
+                        {staking_note(self.state.apr, stake_target, total_shares + minted)}
                         {if self.state.epochs.len() > 0 {
                             div(vec![], vec![
                                 div(vec![class("desktop-only")], vec![

@@ -18,7 +18,7 @@ API3 DAO Tracker provides a web interface to see on-chain details of the API3 DA
 - [ ] Include shares/rewards/stakes in rewards snapshots and display both stakes in wallet history
 - [ ] Match total number of shares (check unstaking cases)
 - [ ] Finish mobile look
-- [ ] Fix message about staking target for the lowest and highest value
+- [x] Fix message about staking target for the lowest and highest value
 - [ ] Clean up code for vote script parsing
 - [ ] Votes: group into PENDING/EXECUTED/REJECTED, order would better be by reverse start date. Current order is incorrect
 - [ ] Votes: missing the date of expiration and date of execution
