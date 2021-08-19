@@ -266,14 +266,35 @@ async fn main() -> anyhow::Result<()> {
 
         // re-read votings and extract static data for votes
         let conv = crate::contracts::Convenience::new(&web3, addr_convenience);
+        let mut new_wallets: BTreeMap<H160, u64> = BTreeMap::new();
         for (_, v) in &mut s.app.votings {
-            let static_data = conv
-                .get_voting_static_data(v.primary, v.creator, v.vote_id)
-                .await;
-            println!("voting_static_data = {:?}", static_data);
-            if let Some(data) = static_data {
-                v.votes_total = data.voting_power; // adjust with precise #
-                v.details = Some(data.into_details());
+            if let None = v.details {
+                let static_data = conv
+                    .get_voting_static_data(v.primary, v.creator, v.vote_id)
+                    .await;
+                println!("voting_static_data = {:?}", static_data);
+                if let Some(data) = static_data {
+                    v.votes_total = data.voting_power; // adjust with precise #
+                    let details = data.into_details();
+                    if let Some(action) = &details.action {
+                        if let Some(wallet) = action.wallet {
+                            new_wallets.insert(wallet.clone(), v.tm);
+                        }
+                    }
+                    v.details = Some(details);
+                }
+            }
+        }
+        for (wallet, tm) in new_wallets {
+            s.app.grants.insert(wallet, tm);
+            // insert wallets that are missing
+            if let None = s.app.wallets_events.get(&wallet) {
+                s.app.wallets_events.insert(wallet.clone(), vec![]);
+                let mut w = client::state::Wallet::default();
+                w.delegated = BTreeMap::new();
+                w.address = wallet.clone();
+                w.created_at = tm;
+                s.app.wallets.insert(wallet.clone(), w);
             }
         }
         last_block

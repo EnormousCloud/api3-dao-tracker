@@ -341,6 +341,8 @@ pub struct AppState {
     pub treasuries: BTreeMap<String, Treasury>,
     /// decimals for tokens
     pub decimals: BTreeMap<String, usize>,
+    /// list of wallets that were in voting actions
+    pub grants: BTreeMap<H160, u64>,
 }
 
 pub fn get_known_decimals() -> BTreeMap<String, usize> {
@@ -369,6 +371,7 @@ impl AppState {
             circulation: None,
             treasuries: BTreeMap::new(),
             decimals: get_known_decimals(),
+            grants: BTreeMap::new(),
         }
     }
 
