@@ -273,7 +273,7 @@ async fn main() -> anyhow::Result<()> {
             println!("voting_static_data = {:?}", static_data);
             if let Some(data) = static_data {
                 v.votes_total = data.voting_power; // adjust with precise #
-                v.static_data = Some(data.clone());
+                v.details = Some(data.into_details());
             }
         }
         last_block

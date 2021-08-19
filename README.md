@@ -19,7 +19,7 @@ API3 DAO Tracker provides a web interface to see on-chain details of the API3 DA
 - [ ] Match total number of shares (check unstaking cases)
 - [ ] Finish mobile look
 - [x] Fix message about staking target for the lowest and highest value
-- [ ] Clean up code for vote script parsing
+- [x] Clean up code for vote script parsing
 - [ ] Votes: group into PENDING/EXECUTED/REJECTED, order would better be by reverse start date. Current order is incorrect
 - [ ] Votes: missing the date of expiration and date of execution
 - [ ] Improve filter for DAO members by classificaiton

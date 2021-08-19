@@ -1,5 +1,6 @@
 use crate::components::footer;
 use crate::components::header;
+use crate::eventsnode::wrap_vote_details;
 use crate::nice;
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, Voting};
@@ -68,9 +69,7 @@ impl Screen {
                             <strong>{text(v.title.clone())}</strong>
                         </a>
                     </div>
-                    <div>
-                        <small>{text(v.trigger_str())}</small>
-                    </div>
+                    {wrap_vote_details(&v.details)}
                 </td>
                 <td class={class_yes}>{text(pct_yes)}"%"</td>
                 {

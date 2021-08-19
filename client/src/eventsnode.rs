@@ -1,6 +1,6 @@
 use crate::events::{Api3, VotingAgent};
 use crate::nice;
-use crate::state::{AppState, Voting};
+use crate::state::{AppState, Voting, VotingDetails};
 use sauron::prelude::*;
 use std::collections::BTreeMap;
 use web3::types::{H160, U256};
@@ -46,6 +46,34 @@ pub fn wrap_vote<T>(
             </span>)),
         None => None,
     }
+}
+
+pub fn wrap_vote_details<T>(details: &Option<VotingDetails>) -> Node<T> {
+    if let Some(d) = details {
+        if let Some(action) = &d.action {
+            if let Some(w) = action.wallet {
+                return node!(
+                    <small>
+                        {text(action.action.clone())}
+                        " "
+                        {wrap_amt_dec(action.amount, action.decimals)}
+                        " "
+                        {text(action.token.clone())}
+                        " to "
+                        {wrap_address(w)}
+                    </small>
+                )
+            } else {
+                return node!(<small>{text(action)}</small>)
+            }
+        }
+    }
+    div(vec![], vec![])
+}
+
+
+pub fn wrap_amt_dec<T>(val: U256, decimals: usize) -> Node<T> {
+    node!(<strong style="color: var(--color-panel-title)" title={nice::amount(val, decimals)}>{text(nice::ceil(val,decimals))}</strong>)
 }
 
 pub fn wrap_amt<T>(val: U256) -> Node<T> {

@@ -2,6 +2,7 @@ use crate::components::err_box;
 use crate::components::footer;
 use crate::components::header;
 use crate::events::{self, Api3, VotingAgent};
+use crate::eventsnode::wrap_vote_details;
 use crate::nice;
 use crate::router::{link_eventlog, link_wallet};
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
@@ -188,7 +189,7 @@ impl Component<Msg> for Screen {
                     <h2 style="text-align: center">{text(subtitle)}</h2>
                     <p style="text-align: center; line-height: 1.5">{text(v.description.clone())}</p>
                     <p style="text-align: center; line-height: 3">
-                        <strong>{text(v.trigger_str())}</strong>
+                        {wrap_vote_details(&v.details)}
                     </p>
                     <p style="text-align: center">
                         <span class="darken">"At the time of the voting DAO had "</span>
