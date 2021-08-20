@@ -26,6 +26,17 @@ API3 DAO Tracker provides a web interface to see on-chain details of the API3 DA
 - [ ] CSV export: Votings, Votes, Wallets, Rewards, Delegations, Events
 - [ ] Prometheus metrics
 
+### Running locally
+
+- This tool is built on Rust, and to build it locally you need [Rust toolchain](https://www.rust-lang.org/tools/install)
+- To run this tool locally, you need the connection to gETH IPC endpoint. The tool doesn't do polling from HTTP endpoint (at least yet)
+- The tool contains `client` and `server`. 
+- To build `client`, you need [trunkrs.dev](https://github.com/thedodd/trunk) (which is an alternative to webpack) distribution, and it should be simply `trunk build` to prepare assets for distribution.
+- After your `client/dist` folder is ready, copy environment variables nito `.env` from the environment you want to work with, mainnet or rinkeby
+- After that `server` could be run with `cargo run --release`.
+- The most important - you also need to have patience to wait for all previous events to be cached ;). Please make sure `CACHE_DIR` folder was set up and mentioned as environment variable properly. Downloaded batches of events will be saved, so time on the next run would be less (though it would be still a few minutes for every day of the history).
+- It would be useful to review `run.sh` file, it contains exact scripts that are used for building and deployments
+
 ### Disclaimer
 
 - This is a work in progress. 
