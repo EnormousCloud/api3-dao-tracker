@@ -14,7 +14,7 @@ hex = "0.4"
 hex-literal = "0.3"
 log = "0.4"
 console_log = {version ="0.2", features = ["color"]}
-sauron = { git = "https://github.com/ivanceras/sauron", branch = "master" }
+sauron = "0.40"
 serde = { version = "1.0", features = ["serde_derive"]}
 serde_json = { version = "1.0.63" }
 thiserror = "1.0"
