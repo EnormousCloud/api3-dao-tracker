@@ -538,3 +538,7 @@ table.table tbody tr:nth-child(odd) {
 .screen-treasury .border-inner {
   min-width: 240px;
 }
+
+.vote-script a {
+  color: white !important;
+}

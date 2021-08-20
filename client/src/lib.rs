@@ -41,30 +41,30 @@ pub fn main(serialized_state: String) {
         .expect("cannot get window.location");
     match pathname.as_str() {
         "/votings" => {
-            Program::new_replace_mount(screens::votings::Screen::new(appstate), &root);
+            Program::replace_mount(screens::votings::Screen::new(appstate), &root);
         }
         "/rewards" => {
-            Program::new_replace_mount(screens::rewards::Screen::new(appstate), &root);
+            Program::replace_mount(screens::rewards::Screen::new(appstate), &root);
         }
         "/wallets" => {
-            Program::new_replace_mount(screens::wallets::Screen::new(appstate), &root);
+            Program::replace_mount(screens::wallets::Screen::new(appstate), &root);
         }
         "/treasury" => {
-            Program::new_replace_mount(screens::treasury::Screen::new(appstate), &root);
+            Program::replace_mount(screens::treasury::Screen::new(appstate), &root);
         }
         _ => {
             if pathname.starts_with("/votings/") {
                 let offs = "/votings/".len();
                 let vote_str: String = pathname.chars().skip(offs).collect();
                 let vote_ref = vote_str.parse::<u64>().unwrap();
-                Program::new_replace_mount(screens::voting::Screen::new(appstate, vote_ref), &root);
+                Program::replace_mount(screens::voting::Screen::new(appstate, vote_ref), &root);
             } else if pathname.starts_with("/wallets/") {
                 let offs = "/wallets/".len();
                 let wallet_str: String = pathname.chars().skip(offs).collect();
                 let addr = H160::from_str(&wallet_str).unwrap();
-                Program::new_replace_mount(screens::wallet::Screen::new(appstate, &addr), &root);
+                Program::replace_mount(screens::wallet::Screen::new(appstate, &addr), &root);
             } else {
-                Program::new_replace_mount(screens::home::Screen::new(appstate), &root);
+                Program::replace_mount(screens::home::Screen::new(appstate), &root);
             }
         }
     };

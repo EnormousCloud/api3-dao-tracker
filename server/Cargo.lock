@@ -1070,6 +1070,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "markup5ever_rcdom"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f015da43bcd8d4f144559a3423f4591d69b8ce0652c905374da7205df336ae2b"
+dependencies = [
+ "html5ever",
+ "markup5ever",
+ "tendril",
+ "xml5ever",
+]
+
+[[package]]
 name = "matchers"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1130,9 +1142,9 @@ dependencies = [
 
 [[package]]
 name = "mt-dom"
-version = "0.6.2"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7346fa1cf50d616ddadc7bf5015b5cf7634df202ecdad7c1a315d76192ac3df"
+checksum = "ebd45bf7812c748451670113bd5a6715cd8fe6976f0b281932600d9f0e095d18"
 dependencies = [
  "log",
 ]
@@ -1746,18 +1758,21 @@ checksum = "ef703b7cb59335eae2eb93ceb664c0eb7ea6bf567079d843e09420219668e072"
 
 [[package]]
 name = "sauron"
-version = "0.34.0"
-source = "git+https://github.com/ivanceras/sauron?branch=master#250d7f660f95ab7b21f6ceaac59d4bf5159967e7"
+version = "0.40.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b62ea28080d4d7163c2d33aee78c7a86b9f6bed50ad4fc5c52ee89f9418860fb"
 dependencies = [
  "cfg-if 0.1.10",
  "sauron-core",
  "sauron-node-macro",
+ "sauron-parse",
 ]
 
 [[package]]
 name = "sauron-core"
-version = "0.34.0"
-source = "git+https://github.com/ivanceras/sauron?branch=master#250d7f660f95ab7b21f6ceaac59d4bf5159967e7"
+version = "0.40.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61e86eef719f1a485e2952669e96fca5209b316772f680a51778b4ca94fcd162"
 dependencies = [
  "cfg-if 0.1.10",
  "doc-comment",
@@ -1773,13 +1788,29 @@ dependencies = [
 
 [[package]]
 name = "sauron-node-macro"
-version = "0.34.0"
-source = "git+https://github.com/ivanceras/sauron?branch=master#250d7f660f95ab7b21f6ceaac59d4bf5159967e7"
+version = "0.40.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c84d883db7b43686c73ea51bf87fc1d77f41b77e5188af747f6ac9b44e271120"
 dependencies = [
  "proc-macro2",
  "quote",
+ "sauron-parse",
  "syn",
  "syn-rsx",
+]
+
+[[package]]
+name = "sauron-parse"
+version = "0.40.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54227afe288350243aa0cb00e03bb54825f85592ac41fbf07e89a1d745618571"
+dependencies = [
+ "html5ever",
+ "log",
+ "markup5ever_rcdom",
+ "once_cell",
+ "sauron-core",
+ "thiserror",
 ]
 
 [[package]]
@@ -2109,9 +2140,9 @@ dependencies = [
 
 [[package]]
 name = "syn-rsx"
-version = "0.7.3"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22ff75cba682dea31200f91acf163a87f3dffc6406f14d0f7704c0b12d612af4"
+checksum = "03cf9fee627ff24a7b867de595a6951a3b835407f0c0af9475729acb287ed8bf"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2757,3 +2788,15 @@ name = "wyz"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85e60b0d1b5f99db2556934e21937020776a5d31520bf169e851ac44e6420214"
+
+[[package]]
+name = "xml5ever"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b1b52e6e8614d4a58b8e70cf51ec0cc21b256ad8206708bcff8139b5bbd6a59"
+dependencies = [
+ "log",
+ "mac",
+ "markup5ever",
+ "time",
+]
