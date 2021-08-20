@@ -247,7 +247,7 @@ pub fn routes(
             }
         }
     });
-    let treasury =  warp::path!("treasury")
+    let treasury = warp::path!("treasury")
         .map({
             let state_rc = state.clone();
             let d = dir.clone();

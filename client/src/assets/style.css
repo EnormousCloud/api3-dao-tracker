@@ -501,6 +501,10 @@ table.table tbody tr:nth-child(odd) {
   color: #000;
 }
 
+.badge-grant {
+  background: #f0c0f0;
+}
+
 .badge-testnet {
   background: #ffa0a0;
   color: #000;
@@ -541,4 +545,11 @@ table.table tbody tr:nth-child(odd) {
 
 .vote-script a {
   color: white !important;
+}
+
+.epochs-empty,
+.votings-empty,
+.events-empty {
+  text-align: center;
+  color: var(--color-grey) !important;
 }

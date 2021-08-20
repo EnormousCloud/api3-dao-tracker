@@ -18,7 +18,7 @@ pub fn wrap_line<T>(nodes: Vec<Option<Node<T>>>) -> Node<T> {
 }
 
 pub fn wrap_address<T>(addr: H160) -> Node<T> {
-    node!(<a href={format!("/wallets/{:?}", addr)}>{text(format!("{:?}", addr))}</a>)
+    node!(<a href={format!("wallets/{:?}", addr)}>{text(format!("{:?}", addr))}</a>)
 }
 
 pub fn wrap_vote<T>(
@@ -62,15 +62,14 @@ pub fn wrap_vote_details<T>(details: &Option<VotingDetails>) -> Node<T> {
                         " to "
                         {wrap_address(w)}
                     </small>
-                )
+                );
             } else {
-                return node!(<small>{text(action)}</small>)
+                return node!(<small>{text(action)}</small>);
             }
         }
     }
     div(vec![], vec![])
 }
-
 
 pub fn wrap_amt_dec<T>(val: U256, decimals: usize) -> Node<T> {
     node!(<strong style="color: var(--color-panel-title)" title={nice::amount(val, decimals)}>{text(nice::ceil(val,decimals))}</strong>)

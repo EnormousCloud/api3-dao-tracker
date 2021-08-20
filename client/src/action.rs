@@ -90,13 +90,13 @@ impl VotingAction {
                     .collect();
                 let amt_hex = format!("0x{}", hex::encode(amt));
                 let amount: U256 = U256::from_str(&amt_hex).unwrap();
-                return Some(Self { 
+                return Some(Self {
                     action: "Transfer".to_owned(),
                     amount,
                     wallet: Some(H160::from_slice(&to)),
                     token: t.name,
                     decimals: t.decimals,
-                 });
+                });
             }
         }
 

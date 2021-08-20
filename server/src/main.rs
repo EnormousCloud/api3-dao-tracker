@@ -15,7 +15,7 @@ use std::path::Path;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use tokio::sync::{oneshot, mpsc, RwLock};
+use tokio::sync::{mpsc, oneshot, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
 use warp::Filter;
@@ -188,16 +188,14 @@ async fn main() -> anyhow::Result<()> {
     // starting a "loading" only server
     // and do not start if we are in dump-mode
     let loading_server = match args.dump {
-        None => {
-            Some(tokio::spawn(async move {
-                let routes = endpoints::routes_loading();
-                let (_addr, server) = warp::serve(routes.with(warp::trace::request()))
-                    .bind_with_graceful_shutdown(socket_addr, async {
-                        rx.await.ok();
-                    });
-                server.await
-            }))
-        },
+        None => Some(tokio::spawn(async move {
+            let routes = endpoints::routes_loading();
+            let (_addr, server) = warp::serve(routes.with(warp::trace::request()))
+                .bind_with_graceful_shutdown(socket_addr, async {
+                    rx.await.ok();
+                });
+            server.await
+        })),
         _ => None,
     };
 
@@ -318,7 +316,6 @@ async fn main() -> anyhow::Result<()> {
         std::thread::sleep(std::time::Duration::from_secs(3)); // wait for server to shutdown
         server.abort();
     });
-
 
     if args.watch {
         let w3 = web3.clone();

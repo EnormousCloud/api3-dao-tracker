@@ -356,7 +356,7 @@ impl AppState {
     pub fn new(chain_id: u64) -> Self {
         let apr: f64 = 0.3875;
         Self {
-            version: "20210108".to_owned(),
+            version: "20210820".to_owned(),
             chain_id,
             epoch_index: 1,
             apr,
@@ -381,6 +381,14 @@ impl AppState {
             Some(amt) => *amt > U256::from(0),
             None => false,
         };
+
+        if let Some(_) = self.grants.get(&w.address) {
+            labels.push(LabelBadge::new(
+                "badge-grant",
+                "grant",
+                "This address was a participant of voting as recipient",
+            ));
+        }
 
         if w.vested || self.is_vested_deposit(&w.address) {
             labels.push(LabelBadge::new(
