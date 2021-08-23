@@ -47,4 +47,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 `
 
 ### License
-MIT DAO staking target is reached, so APR will be decreased by 1% for the next epoch until it reaches 2.5% 
+MIT
