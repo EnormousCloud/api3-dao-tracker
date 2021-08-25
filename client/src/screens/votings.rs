@@ -106,11 +106,56 @@ impl Screen {
             </li>
         }
     }
+
+    pub fn render_votings_group(&self, sorted: &Vec<Voting>, title: &str, empty_msg: &str) -> Node<Msg> {
+        if sorted.len() == 0 {
+            return div(vec![class("votings-empty")], vec![
+                text(empty_msg.clone())
+            ])
+        }
+        div(vec![], vec![
+            h2(vec![styles([("text-align", "center")])], vec![
+                text(format!("{} {}", sorted.len(), title))
+            ]),
+            div(vec![class("desktop-only")], vec![
+                table(vec
+                    ![class("table votings-table")],
+                    vec![
+                        thead(vec![], vec![ self.render_voting_header() ]),
+                        tbody(vec![], sorted.iter().enumerate().map(|(i, v)| self.render_voting_tr(i, v)).collect::<Vec<Node<Msg>>>()),
+                    ]
+                )
+            ]),
+            div(vec![class("mobile-only")], vec![
+                ol(vec
+                    ![class("votings-list")],
+                    sorted.iter().enumerate().map(|(_, v)| self.render_voting(v)).collect::<Vec<Node<Msg>>>()
+                )
+            ])
+        ])
+    }
 }
 
 impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
-        let sorted: Vec<Voting> = self.state.votings.values().cloned().collect();
+        // votings are 1 - pending, 2 - executed, 3 - rejected
+        let pending: Vec<Voting> = self.state.votings.values().cloned().filter(
+            |v| {
+                let pct_required = if v.primary { 50u64 } else { 15u64 };
+                let required = v.votes_total * U256::from(pct_required) / U256::from(100);
+                !v.executed && v.voted_no < required
+            }
+        ).collect();
+        let executed: Vec<Voting> = self.state.votings.values().cloned().filter(
+            |v| v.executed
+        ).collect();
+        let rejected: Vec<Voting> = self.state.votings.values().cloned().filter(
+            |v| {
+                let pct_required = if v.primary { 50u64 } else { 15u64 };
+                let required = v.votes_total * U256::from(pct_required) / U256::from(100);
+                !v.executed && v.voted_no >= required
+            }
+        ).collect();
         node! {
             <div class="screen-votings">
                 { header::render("/votings", &self.state) }
@@ -118,21 +163,9 @@ impl Component<Msg> for Screen {
                     <h1>"API3 DAO Votings"</h1>
                     {if self.state.votings.len() > 0 {
                         div(vec![], vec![
-                            div(vec![class("desktop-only")], vec![
-                                table(vec
-                                    ![class("table votings-table")],
-                                    vec![
-                                        thead(vec![], vec![ self.render_voting_header() ]),
-                                        tbody(vec![], sorted.iter().enumerate().map(|(i, v)| self.render_voting_tr(i, v)).collect::<Vec<Node<Msg>>>()),
-                                    ]
-                                )
-                            ]),
-                            div(vec![class("mobile-only")], vec![
-                                ol(vec
-                                    ![class("votings-list")],
-                                    sorted.iter().enumerate().map(|(_, v)| self.render_voting(v)).collect::<Vec<Node<Msg>>>()
-                                )
-                            ])
+                            self.render_votings_group(&pending, "Pending Proposals", "There are no pending proposals"),
+                            self.render_votings_group(&executed, "Executed Proposals", "There are no executed proposals"),
+                            self.render_votings_group(&rejected, "Rejected Proposals", "There are no rejected proposals"),
                         ])
                     } else {
                         div(vec![class("votings-empty")], vec![
