@@ -20,7 +20,7 @@ API3 DAO Tracker provides a web interface to see on-chain details of the API3 DA
 - [ ] Finish mobile look
 - [x] Fix message about staking target for the lowest and highest value
 - [x] Clean up code for vote script parsing
-- [ ] Introduce more links to Etherscan
+- [x] Introduce more links to Etherscan
 - [ ] Introduce configuration for `known tokens`. For treasuries and scripts parsing
 - [ ] Votes: group into PENDING/EXECUTED/REJECTED, order would better be by reverse start date. Current order is incorrect
 - [ ] Votes: missing the date of expiration and date of execution

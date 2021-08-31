@@ -137,7 +137,10 @@ impl Component<Msg> for Screen {
         let minted = self.state.get_minted_total();
         let total_shares = self.state.get_shares_total();
         let stake_target: U256 = match &self.state.pool_info {
-            Some(x) => x.clone().stake_target,
+            Some(x) => match &self.state.circulation {
+                Some(c) => c.total_supply * x.stake_target / U256::exp10(26),
+                None => x.stake_target,
+            },
             None => U256::from(0),
         };
         node! {
