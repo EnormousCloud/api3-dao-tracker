@@ -2,13 +2,13 @@ use crate::components::footer;
 use crate::components::header;
 use crate::components::panel;
 use crate::nice;
+use crate::router::link_address;
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::AppState;
-use crate::router::link_address;
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap as Map;
-use web3::types::{U256, H160};
+use web3::types::{H160, U256};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Screen {

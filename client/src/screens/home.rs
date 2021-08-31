@@ -3,6 +3,7 @@ use crate::components::header;
 use crate::components::panel;
 use crate::components::target::staking_note;
 use crate::nice;
+use crate::router::link_address;
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::AppState;
 use sauron::prelude::*;
@@ -136,39 +137,57 @@ impl Screen {
                         <ul>
                             <li>
                                 <label class="cell-title">"API3 pool contract address: "</label>
-                                <div class="eth-address">{text(format!("{:?}", c.addr_pool))}</div>
+                                <div class="eth-address">
+                                    {link_address(self.state.chain_id, c.addr_pool, true)}
+                                </div>
                             </li>
                             <li>
                                 <label class="cell-title">"API3 token contract address: "</label>
-                                <div class="eth-address">{text(format!("{:?}", c.addr_token))}</div>
+                                <div class="eth-address">
+                                    {link_address(self.state.chain_id, c.addr_token, true)}
+                                </div>
                             </li>
                             <li>
                                 <label class="cell-title">"Time-lock manager contract: "</label>
-                                <div class="eth-address">{text(format!("{:?} ", c.addr_time_lock))}</div>
+                                <div class="eth-address">
+                                    {link_address(self.state.chain_id, c.addr_time_lock, true)}
+                                </div>
                             </li>
                             <li>
                                 <label class="cell-title">"Primary voting contract: "</label>
-                                <div class="eth-address">{text(format!("{:?}", c.addr_primary_contract))}</div>
+                                <div class="eth-address">
+                                    {link_address(self.state.chain_id, c.addr_primary_contract, true)}
+                                </div>
                             </li>
                             <li>
                                 <label class="cell-title">"Primary treasury agent: "</label>
-                                <div class="eth-address">{text(format!("{:?}", c.addr_primary_treasury))}</div>
+                                <div class="eth-address">
+                                    {link_address(self.state.chain_id, c.addr_primary_treasury, true)}
+                                </div>
                             </li>
                             <li>
                                 <label class="cell-title">"Secondary voting contract: "</label>
-                                <div class="eth-address">{text(format!("{:?}", c.addr_secondary_contract))}</div>
+                                <div class="eth-address">
+                                    {link_address(self.state.chain_id, c.addr_secondary_contract, true)}
+                                </div>
                             </li>
                             <li>
                                 <label class="cell-title">"Secondary treasury agent: "</label>
-                                <div class="eth-address">{text(format!("{:?}", c.addr_secondary_treasury))}</div>
+                                <div class="eth-address">
+                                    {link_address(self.state.chain_id, c.addr_secondary_treasury, true)}
+                                </div>
                             </li>
                             <li>
                                 <label class="cell-title">"V1 Treasury address: "</label>
-                                <div class="eth-address">{text(format!("{:?}", c.addr_v1_treasury))}</div>
+                                <div class="eth-address">
+                                    {link_address(self.state.chain_id, c.addr_v1_treasury, true)}
+                                </div>
                             </li>
                             <li>
                                 <label class="cell-title">"Convenience contract: "</label>
-                                <div class="eth-address">{text(format!("{:?}", c.addr_convenience))}</div>
+                                <div class="eth-address">
+                                    {link_address(self.state.chain_id, c.addr_convenience, true)}
+                                </div>
                             </li>
                         </ul>
                     </div>

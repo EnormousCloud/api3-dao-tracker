@@ -4,7 +4,7 @@ use crate::components::header;
 use crate::components::panel;
 use crate::eventsnode::entry_node;
 use crate::nice;
-use crate::router::{link_eventlog, link_wallet, link_address};
+use crate::router::{link_address, link_eventlog, link_wallet};
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, Epoch, OnChainEvent, Wallet};
 use sauron::prelude::*;

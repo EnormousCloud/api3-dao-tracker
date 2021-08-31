@@ -22,7 +22,7 @@ pub fn link_eventlog<T>(chain_id: u64, block_number: u64, tx: H256) -> Node<T> {
 pub fn icon_external<T>() -> Node<T> {
     node! {
         <svg
-            version="1.1" 
+            version="1.1"
             xmlns="http://www.w3.org/2000/svg"
             xmlns:xlink="http://www.w3.org/1999/xlink"
             class="link-icon"
@@ -30,7 +30,7 @@ pub fn icon_external<T>() -> Node<T> {
             width="511.626px"
             height="511.627px"
             viewBox="0 0 511.626 511.627"
-	        xml:space="preserve"
+            xml:space="preserve"
         >
             <g>
                 <path d="M392.857,292.354h-18.274c-2.669,0-4.859,0.855-6.563,2.573c-1.718,1.708-2.573,3.897-2.573,6.563v91.361
@@ -55,7 +55,10 @@ pub fn link_address<T>(chain_id: u64, address: H160, show_text: bool) -> Node<T>
     let address_str = format!("{:?}", address);
     let link = match chain_id {
         1 => Some(format!("https://etherscan.io/address/{}", address_str)),
-        4 => Some(format!("https://rinkeby.etherscan.io/adddress/{}", address_str)),
+        4 => Some(format!(
+            "https://rinkeby.etherscan.io/adddress/{}",
+            address_str
+        )),
         _ => None,
     };
     match link {
