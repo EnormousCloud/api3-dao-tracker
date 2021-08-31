@@ -4,10 +4,11 @@ use crate::components::panel;
 use crate::nice;
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::AppState;
+use crate::router::link_address;
 use sauron::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap as Map;
-use web3::types::U256;
+use web3::types::{U256, H160};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Screen {
@@ -35,27 +36,36 @@ impl Screen {
         &self,
         divclass: &'static str,
         title: String,
+        wallet: H160,
         tokens: Map<String, U256>,
         decimals: Map<String, usize>,
     ) -> Node<Msg> {
         panel::render(
             &title,
             divclass,
+        div(vec![], vec![
+            node!{
+                <div style="text-align:center; margin-bottom: 20px;">
+                    <span class="darken">{text(format!("{} ", wallet))}</span>
+                    {link_address(self.state.chain_id, wallet, false)}
+                </div>
+            },
             div(vec![], tokens.iter().map(|(tokenname, value)| {
-                let default = 18 as usize;
-                let decimal = decimals.get(tokenname).unwrap_or(&default);
-                let cls = if *value == U256::from(0) { "darken big-title" } else { "big-title" };
-                node!{
-                    <div style="margin-bottom: 20px">
-                        <h3 style="text-align: center" class="cell-title">{text(tokenname.clone())} </h3>
-                        <div style="text-align: center">
-                            <strong class={cls} title={nice::amount(*value, *decimal)}>
-                                {text(nice::ceil(*value, *decimal))}
-                            </strong>
+                    let default = 18 as usize;
+                    let decimal = decimals.get(tokenname).unwrap_or(&default);
+                    let cls = if *value == U256::from(0) { "darken big-title" } else { "big-title" };
+                    node!{
+                        <div style="margin-bottom: 20px">
+                            <h3 style="text-align: center" class="cell-title">{text(tokenname.clone())} </h3>
+                            <div style="text-align: center">
+                                <strong class={cls} title={nice::amount(*value, *decimal)}>
+                                    {text(nice::ceil(*value, *decimal))}
+                                </strong>
+                            </div>
                         </div>
-                    </div>
-                }
-            }).collect())
+                    }
+                }).collect()),
+            ]),
         )
     }
 }
@@ -77,7 +87,7 @@ impl Component<Msg> for Screen {
                         <div style="height: 20px">" "</div>
 
                         {div(vec![class("dash-row")], self.state.treasuries.iter().map(|(_, t)| {
-                            self.render_treasury("dash-col dash-col-3", t.name.clone(), t.balances.clone(), decimals.clone())
+                            self.render_treasury("dash-col dash-col-3", t.name.clone(), t.wallet.clone(), t.balances.clone(), decimals.clone())
                         }).collect())}
 
                         <div style="height: 30px">" "</div>
