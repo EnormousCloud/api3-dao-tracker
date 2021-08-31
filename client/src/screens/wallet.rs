@@ -4,7 +4,7 @@ use crate::components::header;
 use crate::components::panel;
 use crate::eventsnode::entry_node;
 use crate::nice;
-use crate::router::{link_eventlog, link_wallet};
+use crate::router::{link_eventlog, link_wallet, link_address};
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, Epoch, OnChainEvent, Wallet};
 use sauron::prelude::*;
@@ -384,7 +384,10 @@ impl Component<Msg> for Screen {
                                 vec![class("wallets-details")],
                                 vec![
                                     h1(vec![], vec![get_wallet_title(&w)]),
-                                    h2(vec![styles([("text-align", "center")])], vec![text(format!("{:?}", w.address))]),
+                                    h2(vec![styles([("text-align", "center")])], vec![
+                                        text(format!("{:?} ", w.address)),
+                                        link_address(self.state.chain_id, w.address, false),
+                                    ]),
                                     self.render_wallet_info(&w),
                                     h2(vec![styles([("text-align", "center")])], vec![text("User Rewards")]),
                                     self.render_rewards(&w),
