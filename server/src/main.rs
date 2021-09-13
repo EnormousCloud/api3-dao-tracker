@@ -163,6 +163,7 @@ async fn main() -> anyhow::Result<()> {
         .expect("Failed to connect to IPC");
     let web3 = web3::Web3::new(transport);
     let chain_id = web3.eth().chain_id().await?.as_u64();
+    let cache_dir = args.cache_dir.clone();
 
     let mut addresses = vec![addr_pool, addr_convenience];
     if let Some(address_api3_circulation) = args
@@ -298,11 +299,11 @@ async fn main() -> anyhow::Result<()> {
         last_block
     };
     if !args.no_ens {
-        let ens = crate::ens::ENS::new(web3.clone(), args.cache_dir.as_str());
+        let ens = crate::ens::ENS::new(&web3, args.cache_dir.as_str());
         let rc = state.clone();
         let mut s = rc.lock().unwrap();
         for (addr, w) in &mut s.app.wallets {
-            if let Some(name) = ens.name(addr.clone()).await {
+            if let Some(name) = ens.name(&addr).await {
                 tracing::info!("ENS for {:?} is {:?}", addr, name);
                 w.ens = Some(name);
             };
@@ -326,10 +327,13 @@ async fn main() -> anyhow::Result<()> {
             scanner.watch_ipc(&web3, last_block, rc).await.unwrap();
         });
 
+        
         // one more thread fto update ppol and circulation hourly
         if let Some(addr_supply) = addr_circulation {
             let rc = state.clone();
+            let no_ens = args.no_ens;
             tokio::spawn(async move {
+                let ens = crate::ens::ENS::new(&w3, &cache_dir);
                 let mut interval = tokio::time::interval(std::time::Duration::from_secs(60 * 60));
                 let contract_pool = crate::contracts::Pool::new(&w3, addr_pool.clone());
                 let contract_circulation = crate::contracts::Supply::new(
@@ -356,6 +360,23 @@ async fn main() -> anyhow::Result<()> {
                     } else {
                         tracing::info!("circulation info - failed to update");
                     }
+                    if !no_ens {
+                        tracing::info!("Reading ENS started");
+                        let mut s = rc.lock().unwrap();
+                        for (addr, wallet) in &mut s.app.wallets {
+                             // insert wallets that are missing
+                            if let None = wallet.ens {
+                                futures::executor::block_on(async {
+                                    if let Some(name) = ens.name(addr).await {
+                                        tracing::info!("New ENS for {:?} is {:?}", addr, name);
+                                        wallet.ens = Some(name)
+                                    }
+                                });
+                             }
+                        }
+                        tracing::info!("Reading ENS finished");
+                    }
+
                 }
             });
         }

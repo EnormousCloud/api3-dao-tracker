@@ -85,7 +85,7 @@ pub struct ENS<T: web3::Transport> {
 }
 
 impl<T: web3::Transport> ENS<T> {
-    pub fn new(web3: web3::Web3<T>, cache_dir: &str) -> Self {
+    pub fn new(web3: &web3::Web3<T>, cache_dir: &str) -> Self {
         let contract = Contract::from_json(
             web3.eth(),
             ENS_SETTING.mainnet_addr,
@@ -93,8 +93,8 @@ impl<T: web3::Transport> ENS<T> {
         )
         .expect("fail contract::from_json(ens_registry.abi.json)");
         ENS {
-            web3: web3,
-            contract: contract,
+            web3: web3.clone(),
+            contract,
             cache_dir: cache_dir.to_string(),
         }
     }
@@ -130,7 +130,7 @@ impl<T: web3::Transport> ENS<T> {
         Ok(())
     }
 
-    pub async fn name(&self, address: Address) -> Option<String> {
+    pub async fn name(&self, address: &Address) -> Option<String> {
         let resolver_addr = format!("{:x}.{}", address, ENS_REVERSE_REGISTRAR_DOMAIN);
         if self.has_cached(&resolver_addr) {
             if let Ok(cached) = self.get_cached(&resolver_addr) {
