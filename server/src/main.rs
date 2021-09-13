@@ -376,7 +376,10 @@ async fn main() -> anyhow::Result<()> {
                         }
                         tracing::info!("Reading ENS finished");
                     }
-
+                    futures::executor::block_on(async {
+                        let mut s = rc.lock().unwrap();
+                        s.app.treasuries = crate::treasury::read_treasuries(&w3, &treasury_tokens, &treasury_wallets).await;
+                    });
                 }
             });
         }
