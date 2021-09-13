@@ -327,7 +327,6 @@ async fn main() -> anyhow::Result<()> {
             scanner.watch_ipc(&web3, last_block, rc).await.unwrap();
         });
 
-        
         // one more thread fto update ppol and circulation hourly
         if let Some(addr_supply) = addr_circulation {
             let rc = state.clone();
@@ -364,7 +363,7 @@ async fn main() -> anyhow::Result<()> {
                         tracing::info!("Reading ENS started");
                         let mut s = rc.lock().unwrap();
                         for (addr, wallet) in &mut s.app.wallets {
-                             // insert wallets that are missing
+                            // insert wallets that are missing
                             if let None = wallet.ens {
                                 futures::executor::block_on(async {
                                     if let Some(name) = ens.name(addr).await {
@@ -372,13 +371,32 @@ async fn main() -> anyhow::Result<()> {
                                         wallet.ens = Some(name)
                                     }
                                 });
-                             }
+                            }
                         }
                         tracing::info!("Reading ENS finished");
                     }
                     futures::executor::block_on(async {
                         let mut s = rc.lock().unwrap();
-                        s.app.treasuries = crate::treasury::read_treasuries(&w3, &treasury_tokens, &treasury_wallets).await;
+                        s.app.treasuries = crate::treasury::read_treasuries(
+                            &w3,
+                            &treasury_tokens,
+                            &treasury_wallets,
+                        )
+                        .await;
+                        // re-read votings and extract static data for votes
+                        let conv = crate::contracts::Convenience::new(&w3, addr_convenience);
+                        for (_, v) in &mut s.app.votings {
+                            if let None = v.details {
+                                let static_data = conv
+                                    .get_voting_static_data(v.primary, v.creator, v.vote_id)
+                                    .await;
+                                println!("voting_static_data = {:?}", static_data);
+                                if let Some(data) = static_data {
+                                    v.votes_total = data.voting_power; // adjust with precise #
+                                    v.details = Some(data.into_details());
+                                }
+                            }
+                        }
                     });
                 }
             });
