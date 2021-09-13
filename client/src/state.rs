@@ -288,9 +288,9 @@ pub struct Treasury {
 }
 
 impl Treasury {
-    pub fn new(name: String, wallet: H160) -> Self {
+    pub fn new(name: &str, wallet: &H160) -> Self {
         Treasury {
-            name: name.clone(),
+            name: name.to_string(),
             wallet: wallet.clone(),
             balances: BTreeMap::new(),
             updated_at: 0,

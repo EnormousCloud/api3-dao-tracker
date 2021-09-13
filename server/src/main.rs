@@ -259,8 +259,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-        s.app.treasuries =
-            crate::treasury::read_treasuries(&web3, &treasury_tokens, &treasury_wallets).await;
+        s.app.treasuries = crate::treasury::read_treasuries(&web3, &treasury_tokens, &treasury_wallets).await;
         tracing::info!("treasuries {:?}", s.app.treasuries);
 
         // re-read votings and extract static data for votes
@@ -320,6 +319,9 @@ async fn main() -> anyhow::Result<()> {
 
     if args.watch {
         let w3 = web3.clone();
+        let w3t = web3.clone();
+        let w3v= web3.clone();
+        let w3e= web3.clone();
         let rc = state.clone();
         rc.lock().unwrap().verbose = true;
         let rc = state.clone();
@@ -327,12 +329,81 @@ async fn main() -> anyhow::Result<()> {
             scanner.watch_ipc(&web3, last_block, rc).await.unwrap();
         });
 
+        let rc = state.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(60 * 60));
+            loop {
+                futures::executor::block_on(interval.tick());
+                // interval.tick().await; // wait an hour
+                tracing::info!("Reading Treasuries");
+                let out = futures::executor::block_on(crate::treasury::read_treasuries_box(
+                    &w3t,
+                    &treasury_tokens,
+                    &treasury_wallets,
+                ));
+                let mut s = rc.lock().unwrap();    
+                s.app.treasuries = out.as_ref().clone();
+            }
+        });
+        let rc = state.clone();
+        tokio::task::spawn_blocking(move || {
+            let conv = crate::contracts::Convenience::new(&w3v, addr_convenience);
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(60 * 60));
+            loop {
+                futures::executor::block_on(interval.tick());
+                // re-read votings and extract static data for votes
+                let mut s = rc.lock().unwrap();
+                tracing::info!("Re-reading Votings {}", s.app.votings.len());
+                for (_, v) in &mut s.app.votings {
+                    if let None = v.details {
+                        let static_data = futures::executor::block_on(conv
+                            .get_voting_static_data(v.primary, v.creator, v.vote_id));
+                        println!("voting_static_data = {:?}", static_data);
+                        if let Some(data) = static_data {
+                            v.votes_total = data.voting_power; // adjust with precise #
+                            v.details = Some(data.into_details());
+                        }
+                    }
+                }            
+            }
+        });
+
+        if !args.no_ens {
+            let rc = state.clone();
+            tokio::task::spawn_blocking(move || {
+                let ens = crate::ens::ENS::new(&w3e, &cache_dir);
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(15 * 60));
+                loop {
+                    futures::executor::block_on(interval.tick());
+                    let start = std::time::Instant::now();
+                    let wallets: Vec<H160> = {
+                        let s = rc.lock().unwrap();
+                        s.app.wallets.iter().map(|(addr, wallet)| {
+                            match &wallet.ens {
+                                Some(_) => None,
+                                None => Some(addr.clone()),
+                            }
+                        }).flatten().collect()
+                    };
+                    tracing::info!("Reading ENS started {} wallets missing names", wallets.len());
+                    for addr in wallets {
+                        futures::executor::block_on(async {
+                            if let Some(name) = ens.name(&addr).await {
+                                let mut s = rc.lock().unwrap();
+                                tracing::info!("New ENS for {:?} is {:?}", addr, name);
+                                s.app.wallets.get_mut(&addr).unwrap().ens = Some(name)
+                            }
+                        });
+                    }
+                    tracing::info!("Reading ENS finished {:?}", start.elapsed());
+                }
+            });
+        }
+
         // one more thread fto update ppol and circulation hourly
         if let Some(addr_supply) = addr_circulation {
             let rc = state.clone();
-            let no_ens = args.no_ens;
             tokio::spawn(async move {
-                let ens = crate::ens::ENS::new(&w3, &cache_dir);
                 let mut interval = tokio::time::interval(std::time::Duration::from_secs(60 * 60));
                 let contract_pool = crate::contracts::Pool::new(&w3, addr_pool.clone());
                 let contract_circulation = crate::contracts::Supply::new(
@@ -359,45 +430,6 @@ async fn main() -> anyhow::Result<()> {
                     } else {
                         tracing::info!("circulation info - failed to update");
                     }
-                    if !no_ens {
-                        tracing::info!("Reading ENS started");
-                        let mut s = rc.lock().unwrap();
-                        for (addr, wallet) in &mut s.app.wallets {
-                            // insert wallets that are missing
-                            if let None = wallet.ens {
-                                futures::executor::block_on(async {
-                                    if let Some(name) = ens.name(addr).await {
-                                        tracing::info!("New ENS for {:?} is {:?}", addr, name);
-                                        wallet.ens = Some(name)
-                                    }
-                                });
-                            }
-                        }
-                        tracing::info!("Reading ENS finished");
-                    }
-                    futures::executor::block_on(async {
-                        let mut s = rc.lock().unwrap();
-                        s.app.treasuries = crate::treasury::read_treasuries(
-                            &w3,
-                            &treasury_tokens,
-                            &treasury_wallets,
-                        )
-                        .await;
-                        // re-read votings and extract static data for votes
-                        let conv = crate::contracts::Convenience::new(&w3, addr_convenience);
-                        for (_, v) in &mut s.app.votings {
-                            if let None = v.details {
-                                let static_data = conv
-                                    .get_voting_static_data(v.primary, v.creator, v.vote_id)
-                                    .await;
-                                println!("voting_static_data = {:?}", static_data);
-                                if let Some(data) = static_data {
-                                    v.votes_total = data.voting_power; // adjust with precise #
-                                    v.details = Some(data.into_details());
-                                }
-                            }
-                        }
-                    });
                 }
             });
         }

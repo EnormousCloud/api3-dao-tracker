@@ -5,17 +5,17 @@ use web3::types::H160;
 
 pub async fn get_treasury<T>(
     web3: &web3::Web3<T>,
-    name: String,
-    wallet: H160,
+    name: &str,
+    wallet: &H160,
     contracts: &BTreeMap<String, H160>,
 ) -> Treasury
 where
     T: web3::Transport,
 {
-    let mut treasury = Treasury::new(name.clone(), wallet.clone());
+    let mut treasury = Treasury::new(name, wallet);
     for (token, addr) in contracts {
         let contract = Erc20Contract::new(&web3, *addr);
-        let val = contract.get_balance(wallet).await;
+        let val = contract.get_balance(wallet.clone()).await;
         if let Some(v) = &val {
             treasury.balances.insert(token.clone(), v.clone());
         }
@@ -37,8 +37,26 @@ where
     for (name, wallet) in wallets {
         res.insert(
             name.to_owned(),
-            get_treasury(web3, name.clone(), wallet.clone(), tokens).await,
+            get_treasury(web3, name, wallet, tokens).await,
         );
     }
     res
+}
+
+pub async fn read_treasuries_box<T>(
+    web3: &web3::Web3<T>,
+    tokens: &BTreeMap<String, H160>,
+    wallets: &BTreeMap<String, H160>,
+) -> Box<BTreeMap<String, Treasury>>
+where
+    T: web3::Transport,
+{
+    let mut res = BTreeMap::new();
+    for (name, wallet) in wallets {
+        res.insert(
+            name.to_owned(),
+            get_treasury(web3, name, wallet, tokens).await,
+        );
+    }
+    Box::new(res)
 }
