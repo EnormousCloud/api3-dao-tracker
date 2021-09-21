@@ -39,6 +39,15 @@ API3 DAO Tracker provides a web interface to see on-chain details of the API3 DA
 - The most important - you also need to have patience to wait for all previous events to be cached ;). Please make sure `CACHE_DIR` folder was set up and mentioned as environment variable properly. Downloaded batches of events will be saved, so time on the next run would be less (though it would be still a few minutes for every day of the history).
 - It would be useful to review `run.sh` file, it contains exact scripts that are used for building and deployments
 
+### Developing only client-side
+
+- This tool uses [trunkrs.dev](https://github.com/thedodd/trunk). Please install at least 0.14 version.
+- You need to download state as JSON file into your client folder as JSON file
+```
+wget https://enormous.cloud/dao/api3/tracker/api/state -O appstate.json
+```
+- Run `trunk serve` from the client folder, and it will rebuild the client-side on every save, watching your changes.
+
 ### Disclaimer
 
 - This is a work in progress. 

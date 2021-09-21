@@ -4,21 +4,21 @@ export STATIC_DIR=$(pwd)/client/dist
 [[ "$1" == "client" ]] && {
     shift
     cd client
-    trunk-wcrbrm build
+    trunk build
     cd -
 }
 
 [[ "$1" == "client-mainnet" ]] && {
     shift
     cd client
-    trunk-wcrbrm build --public-url=/dao/api3/tracker/ 
+    trunk build --public-url=/dao/api3/tracker/ 
     cd -
 }
 
 [[ "$1" == "client-rinkeby" ]] && {
     shift
     cd client
-    trunk-wcrbrm build --public-url=/dao/api3/tracker-rinkeby/ 
+    trunk build --public-url=/dao/api3/tracker-rinkeby/ 
     cd -
 }
 

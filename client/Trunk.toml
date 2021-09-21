@@ -2,6 +2,6 @@
 public_url = "/"
 dist = "dist"
 pattern_script = '''
-   <script type="module">import init, {main} from '{base}{js}'; await init('{base}{wasm}'); main(`{@appstate}`);</script>
+   <script type="module">import init, {main} from '{base}{js}'; await init('{base}{wasm}'); main(`{appstate}`);</script>
 '''
-pattern_params = { "@appstate" = "appstate.json" }
+pattern_params = { "appstate" = "@appstate.json" }
