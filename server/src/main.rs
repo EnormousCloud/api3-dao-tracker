@@ -4,6 +4,7 @@ pub mod dumper;
 pub mod endpoints;
 pub mod ens;
 pub mod inject;
+pub mod metrics;
 pub mod reader;
 pub mod treasury;
 

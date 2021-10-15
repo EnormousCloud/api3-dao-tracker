@@ -285,7 +285,18 @@ pub fn routes(
         .or(voting)
         .or(votings);
     let liveness = warp::path!("_liveness").map(|| format!("# API3 DAO Tracker"));
-    liveness.or(api).or(pages)
+    let prom = warp::path!("metrics").map({
+        let state_rc = state.clone();
+        move || {
+            let state = state_rc.lock().unwrap();
+            warp::reply::with_status(
+                crate::metrics::handler(&state.app),
+                warp::http::StatusCode::OK,
+            )
+            .into_response()
+        }
+    });
+    liveness.or(prom).or(api).or(pages)
 }
 
 const LOADING_HTML: &'static str = r#"
@@ -354,10 +365,15 @@ pub fn routes_loading() -> impl Filter<Extract = impl warp::Reply, Error = warp:
         )
         .into_response()
     });
-    liveness.or(warp::get()).map(move |_| {
+    let prom = warp::path!("metrics").map(|| {
+        warp::reply::with_status(crate::metrics::syncing(), warp::http::StatusCode::OK)
+            .into_response()
+    });
+    let fallback = warp::path::end().map(|| {
         warp::reply::with_status(
             warp::reply::html(LOADING_HTML),
             warp::http::StatusCode::INTERNAL_SERVER_ERROR,
         )
-    })
+    });
+    liveness.or(prom).or(fallback)
 }
