@@ -1,12 +1,24 @@
 use client::state::AppState;
 use lazy_static::lazy_static;
-use prometheus::{labels, opts, register_counter}; //, register_gauge, register_histogram_vec}
-use prometheus::{Counter, Encoder, TextEncoder};
+use prometheus::{labels, opts, register_int_gauge}; //, register_gauge, register_histogram_vec}
+use prometheus::{Encoder, IntGauge, TextEncoder};
 
 lazy_static! {
-    static ref HTTP_COUNTER: Counter = register_counter!(opts!(
-        "example_http_requests_total",
-        "Number of HTTP requests made.",
+    pub static ref SYNC_CHAIN_ID_GAUGE: IntGauge = register_int_gauge!(opts!(
+        "sync_chain_id",
+        "Chain ID that is being syncing",
+        labels! {"handler" => "all",}
+    ))
+    .unwrap();
+    pub static ref SYNC_BLOCK_START_GAUGE: IntGauge = register_int_gauge!(opts!(
+        "sync_block_start",
+        "Number of block that is being synced",
+        labels! {"handler" => "all",}
+    ))
+    .unwrap();
+    pub static ref SYNC_BLOCK_END_GAUGE: IntGauge = register_int_gauge!(opts!(
+        "sync_block_end",
+        "Number of block that is being synced",
         labels! {"handler" => "all",}
     ))
     .unwrap();
@@ -14,7 +26,6 @@ lazy_static! {
 
 pub fn handler(_state: &AppState) -> String {
     let encoder = TextEncoder::new();
-    HTTP_COUNTER.inc();
 
     let metric_families = prometheus::gather();
     let mut buffer = Vec::<u8>::new();
@@ -24,7 +35,6 @@ pub fn handler(_state: &AppState) -> String {
 
 pub fn syncing() -> String {
     let encoder = TextEncoder::new();
-    HTTP_COUNTER.inc();
 
     let metric_families = prometheus::gather();
     let mut buffer = Vec::<u8>::new();

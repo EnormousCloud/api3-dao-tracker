@@ -260,7 +260,8 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-        s.app.treasuries = crate::treasury::read_treasuries(&web3, &treasury_tokens, &treasury_wallets).await;
+        s.app.treasuries =
+            crate::treasury::read_treasuries(&web3, &treasury_tokens, &treasury_wallets).await;
         tracing::info!("treasuries {:?}", s.app.treasuries);
 
         // re-read votings and extract static data for votes
@@ -321,8 +322,8 @@ async fn main() -> anyhow::Result<()> {
     if args.watch {
         let w3 = web3.clone();
         let w3t = web3.clone();
-        let w3v= web3.clone();
-        let w3e= web3.clone();
+        let w3v = web3.clone();
+        let w3e = web3.clone();
         let rc = state.clone();
         rc.lock().unwrap().verbose = true;
         let rc = state.clone();
@@ -342,7 +343,7 @@ async fn main() -> anyhow::Result<()> {
                     &treasury_tokens,
                     &treasury_wallets,
                 ));
-                let mut s = rc.lock().unwrap();    
+                let mut s = rc.lock().unwrap();
                 s.app.treasuries = out.as_ref().clone();
             }
         });
@@ -357,15 +358,16 @@ async fn main() -> anyhow::Result<()> {
                 tracing::info!("Re-reading Votings {}", s.app.votings.len());
                 for (_, v) in &mut s.app.votings {
                     if let None = v.details {
-                        let static_data = futures::executor::block_on(conv
-                            .get_voting_static_data(v.primary, v.creator, v.vote_id));
+                        let static_data = futures::executor::block_on(
+                            conv.get_voting_static_data(v.primary, v.creator, v.vote_id),
+                        );
                         println!("voting_static_data = {:?}", static_data);
                         if let Some(data) = static_data {
                             v.votes_total = data.voting_power; // adjust with precise #
                             v.details = Some(data.into_details());
                         }
                     }
-                }            
+                }
             }
         });
 
@@ -379,14 +381,20 @@ async fn main() -> anyhow::Result<()> {
                     let start = std::time::Instant::now();
                     let wallets: Vec<H160> = {
                         let s = rc.lock().unwrap();
-                        s.app.wallets.iter().map(|(addr, wallet)| {
-                            match &wallet.ens {
+                        s.app
+                            .wallets
+                            .iter()
+                            .map(|(addr, wallet)| match &wallet.ens {
                                 Some(_) => None,
                                 None => Some(addr.clone()),
-                            }
-                        }).flatten().collect()
+                            })
+                            .flatten()
+                            .collect()
                     };
-                    tracing::info!("Reading ENS started {} wallets missing names", wallets.len());
+                    tracing::info!(
+                        "Reading ENS started {} wallets missing names",
+                        wallets.len()
+                    );
                     for addr in wallets {
                         futures::executor::block_on(async {
                             if let Some(name) = ens.name(&addr).await {
