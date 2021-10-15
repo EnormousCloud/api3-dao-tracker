@@ -56,7 +56,7 @@ pub fn link_address<T>(chain_id: u64, address: H160, show_text: bool) -> Node<T>
     let link = match chain_id {
         1 => Some(format!("https://etherscan.io/address/{}", address_str)),
         4 => Some(format!(
-            "https://rinkeby.etherscan.io/adddress/{}",
+            "https://rinkeby.etherscan.io/address/{}",
             address_str
         )),
         _ => None,
