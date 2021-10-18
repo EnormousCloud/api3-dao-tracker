@@ -210,7 +210,7 @@ impl Scanner {
         T: Transport,
     {
         let chain_id = self.chain_id;
-        crate::metrics::SYNC_CHAIN_ID_GAUGE.set(chain_id as i64);
+        crate::metrics::CHAIN_ID_GAUGE.set(chain_id as i64);
 
         let mut last_block = self.genesis_block;
         for b in get_batches(
@@ -221,8 +221,8 @@ impl Scanner {
         )
         .await
         {
-            crate::metrics::SYNC_BLOCK_START_GAUGE.set(b.from as i64);
-            crate::metrics::SYNC_BLOCK_END_GAUGE.set(b.to as i64);
+            crate::metrics::BLOCK_START_GAUGE.set(b.from as i64);
+            crate::metrics::BLOCK_END_GAUGE.set(b.to as i64);
             let start = std::time::Instant::now();
             let mut method = "".to_owned();
             let _ = method; // dummy warning workaround
@@ -310,8 +310,8 @@ impl Scanner {
             );
             last_block = b.to;
         }
-        crate::metrics::SYNC_BLOCK_START_GAUGE.set(0);
-        crate::metrics::SYNC_BLOCK_END_GAUGE.set(0);
+        crate::metrics::BLOCK_START_GAUGE.set(0);
+        crate::metrics::BLOCK_END_GAUGE.set(0);
         Ok(last_block)
     }
 
@@ -332,6 +332,8 @@ impl Scanner {
         futures::pin_mut!(logs_stream);
         loop {
             tracing::info!("waiting for entries");
+            crate::metrics::WATCHING.set(1);
+
             let l: Log = logs_stream.next().await.unwrap().unwrap();
             if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
                 let tmkey: H256 = l.block_hash.unwrap();
