@@ -40,7 +40,7 @@ export STATIC_DIR=$(pwd)/client/dist
 	cd server
     cp -f .env.mainnet .env
     LOG_LEVEL=api3tracker=debug,info \
-    RUST_BACKTRACE=1 \
+    RUST_BACKTRACE=full \
 	RPC_ENDPOINT=$HOME/.ethereum/geth.ipc \
         cargo run --release -- $@
 }
@@ -53,7 +53,7 @@ export STATIC_DIR=$(pwd)/client/dist
 	cd server
     cp -f .env.rinkeby .env
     LOG_LEVEL=api3tracker=debug,info \
-    RUST_BACKTRACE=1 \
+    RUST_BACKTRACE=full \
 	RPC_ENDPOINT=$HOME/.ethereum/rinkeby/geth.ipc \
         cargo run --release -- $@
 }
