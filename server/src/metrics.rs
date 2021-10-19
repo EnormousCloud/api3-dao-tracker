@@ -2,7 +2,7 @@ use client::nice;
 use client::state::AppState;
 use lazy_static::lazy_static;
 use prometheus::{opts, register_gauge, register_int_gauge};
-use prometheus::{Encoder, Gauge, IntGauge, Registry, TextEncoder};
+use prometheus::{Encoder, Gauge, IntGauge, Opts, Registry, TextEncoder};
 use std::collections::HashMap;
 
 lazy_static! {
@@ -105,6 +105,17 @@ pub fn handler(state: &AppState) -> String {
         LOCKED_VESTINGS.set(nice::dec(ci.locked_vestings, 18));
         TIME_LOCKED.set(nice::dec(ci.time_locked, 18));
         TOTAL_LOCKED.set(nice::dec(ci.total_locked, 18));
+    }
+    for (name, treasury) in &state.treasuries {
+        for (coin, balance) in &treasury.balances {
+            let decimals = state.decimals.get(coin).unwrap();
+            let gauge_opts = Opts::new("balance", "treasury balance")
+                .const_label("coin", coin.as_str())
+                .const_label("treasury", name.as_str());
+            let gauge = Gauge::with_opts(gauge_opts).unwrap();
+            gauge.set(nice::dec(balance, *decimals));
+            sr.register(Box::new(gauge.clone())).unwrap();
+        }
     }
 
     let mut buffer = Vec::<u8>::new();
