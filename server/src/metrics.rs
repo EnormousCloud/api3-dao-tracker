@@ -39,6 +39,20 @@ lazy_static! {
         register_int_gauge!(opts!("unstake_wait_period", "Unstake Wait Period",)).unwrap();
     pub static ref REWARD_PERIOD: IntGauge =
         register_int_gauge!(opts!("reward_vesting_period", "Reward Vesting Period",)).unwrap();
+    pub static ref CIRCULATING_SUPPLY: Gauge =
+        register_gauge!(opts!("circulating_supply", "API3 Circulating Supply",)).unwrap();
+    pub static ref TOTAL_SUPPLY: Gauge =
+        register_gauge!(opts!("total_supply", "API3 Total Supply",)).unwrap();
+    pub static ref LOCKED_GOV: Gauge =
+        register_gauge!(opts!("locked_by_governance", "Locked By Governance",)).unwrap();
+    pub static ref LOCKED_REWARDS: Gauge =
+        register_gauge!(opts!("locked_rewards", "Locked Rewards",)).unwrap();
+    pub static ref LOCKED_VESTINGS: Gauge =
+        register_gauge!(opts!("locked_vestings", "Locked Vestings",)).unwrap();
+    pub static ref TIME_LOCKED: Gauge =
+        register_gauge!(opts!("time_locked", "Time Locked",)).unwrap();
+    pub static ref TOTAL_LOCKED: Gauge =
+        register_gauge!(opts!("total_locked", "Total Locked",)).unwrap();
 }
 
 pub fn handler(state: &AppState) -> String {
@@ -53,12 +67,21 @@ pub fn handler(state: &AppState) -> String {
     sr.register(Box::new(EPOCH_INDEX.clone())).unwrap();
     sr.register(Box::new(APR.clone())).unwrap();
     sr.register(Box::new(LAST_BLOCK.clone())).unwrap();
+    // pool info
     sr.register(Box::new(GENESIS_APR.clone())).unwrap();
     sr.register(Box::new(MIN_APR.clone())).unwrap();
     sr.register(Box::new(MAX_APR.clone())).unwrap();
     sr.register(Box::new(STAKE_TARGET.clone())).unwrap();
     sr.register(Box::new(UNSTAKE_WAIT_PERIOD.clone())).unwrap();
     sr.register(Box::new(REWARD_PERIOD.clone())).unwrap();
+    // circulating supply
+    sr.register(Box::new(CIRCULATING_SUPPLY.clone())).unwrap();
+    sr.register(Box::new(TOTAL_SUPPLY.clone())).unwrap();
+    sr.register(Box::new(LOCKED_GOV.clone())).unwrap();
+    sr.register(Box::new(LOCKED_REWARDS.clone())).unwrap();
+    sr.register(Box::new(LOCKED_VESTINGS.clone())).unwrap();
+    sr.register(Box::new(TIME_LOCKED.clone())).unwrap();
+    sr.register(Box::new(TOTAL_LOCKED.clone())).unwrap();
 
     NUM_ADDRESSES.set(state.wallets.len() as i64);
     NUM_VOTINGS.set(state.votings.len() as i64);
@@ -73,6 +96,15 @@ pub fn handler(state: &AppState) -> String {
         STAKE_TARGET.set(nice::dec(pool.stake_target, 18));
         UNSTAKE_WAIT_PERIOD.set(pool.unstake_wait_period as i64);
         REWARD_PERIOD.set(pool.reward_vesting_period as i64);
+    }
+    if let Some(ci) = &state.circulation {
+        CIRCULATING_SUPPLY.set(nice::dec(ci.circulating_supply, 18));
+        TOTAL_SUPPLY.set(nice::dec(ci.total_supply, 18));
+        LOCKED_GOV.set(nice::dec(ci.locked_by_governance, 18));
+        LOCKED_REWARDS.set(nice::dec(ci.locked_rewards, 18));
+        LOCKED_VESTINGS.set(nice::dec(ci.locked_vestings, 18));
+        TIME_LOCKED.set(nice::dec(ci.time_locked, 18));
+        TOTAL_LOCKED.set(nice::dec(ci.total_locked, 18));
     }
 
     let mut buffer = Vec::<u8>::new();
