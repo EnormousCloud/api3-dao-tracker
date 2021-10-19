@@ -26,7 +26,7 @@ API3 DAO Tracker provides a web interface to see on-chain details of the API3 DA
 - [ ] Votes: missing the date of expiration and date of execution
 - [ ] Improve filter for DAO members by classificaiton
 - [ ] CSV export: Votings, Votes, Wallets, Rewards, Delegations, Events
-- [ ] Prometheus metrics
+- [x] Prometheus metrics
 
 ### Running locally
 
