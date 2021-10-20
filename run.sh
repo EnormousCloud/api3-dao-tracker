@@ -29,7 +29,16 @@ export STATIC_DIR=$(pwd)/client/dist
 
 [[ "$1" == "stop" ]] && {
     shift
-	docker rm -f api3tracker-mainnet
+    docker rm -f api3tracker-mainnet
+}
+
+[[ "$1" == "copy-cache-mainnet" ]] && {
+    shift
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@enormous.cloud 'cd /opt; tar zcf cache.tar.gz ./cache'
+    scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@enormous.cloud:/opt/cache.tar.gz ./
+    tar xvzf ./cache.tar.gz 
+    mv -f cache/* ./.cache/
+    rm -rf cache.tar.gz cache/ || true
 }
     
 [[ "$1" == "run-local-mainnet" ]] && {
