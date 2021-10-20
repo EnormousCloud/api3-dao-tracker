@@ -219,6 +219,16 @@ impl Wallet {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddressStake {
+    #[serde(rename="s")]
+    staked: U256,
+    #[serde(rename="h")]
+    shares: U256,
+    #[serde(rename="r")]
+    rewards: U256,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Epoch {
     /// index of an epoch
     pub index: u64,
@@ -229,7 +239,7 @@ pub struct Epoch {
     /// Total stake during the last MintedReward event
     pub total: U256,
     /// Staking amount for each wallet (including locked rewards)
-    pub stake: BTreeMap<H160, U256>,
+    pub stake: BTreeMap<H160, AddressStake>,
     /// Timestamp of the epoch
     pub tm: u64,
     /// Block number of the epoch
@@ -244,7 +254,7 @@ impl Epoch {
         apr: f64,
         minted: U256,
         total: U256,
-        stake: BTreeMap<H160, U256>,
+        stake: BTreeMap<H160, AddressStake>,
         tm: u64,
         block_number: u64,
         tx: H256,
