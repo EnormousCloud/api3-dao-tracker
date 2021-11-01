@@ -369,7 +369,7 @@ pub fn routes_loading() -> impl Filter<Extract = impl warp::Reply, Error = warp:
         warp::reply::with_status(crate::metrics::syncing(), warp::http::StatusCode::OK)
             .into_response()
     });
-    let fallback = warp::path::end().map(|| {
+    let fallback = warp::get().map(|| {
         warp::reply::with_status(
             warp::reply::html(LOADING_HTML),
             warp::http::StatusCode::INTERNAL_SERVER_ERROR,
