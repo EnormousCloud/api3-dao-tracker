@@ -41,6 +41,15 @@ export STATIC_DIR=$(pwd)/client/dist
     rm -rf cache.tar.gz cache/ || true
 }
     
+[[ "$1" == "copy-cache-rinkeby" ]] && {
+    shift
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@rinkeby.enormous.cloud 'cd /opt; tar zcf cache.tar.gz ./cache'
+    scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@rinkeby.enormous.cloud:/opt/cache.tar.gz ./
+    tar xvzf ./cache.tar.gz 
+    mv -f cache/* ./.cache/
+    rm -rf cache.tar.gz cache/ || true
+}
+    
 [[ "$1" == "run-local-mainnet" ]] && {
     shift
     export CACHE_DIR=$(pwd)/.cache
