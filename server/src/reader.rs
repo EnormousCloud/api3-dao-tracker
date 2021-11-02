@@ -1,3 +1,4 @@
+use crate::cache::blockstime;
 use client::events::{Api3, VotingAgent};
 use client::state::OnChainEvent;
 use crc32fast::Hasher;
@@ -79,45 +80,6 @@ pub struct Scanner {
     blocks_time: BTreeMap<H256, u64>,
 }
 
-pub fn blockstime_fn(cache_dir: &str, chain_id: u64) -> String {
-    format!("{}/blockstime{}.json", cache_dir, chain_id)
-}
-
-pub fn load_blockstime(cache_dir: &str, chain_id: u64) -> BTreeMap<H256, u64> {
-    if let Ok(mut f) = File::open(blockstime_fn(cache_dir, chain_id)) {
-        let mut data = String::new();
-        match f.read_to_string(&mut data) {
-            Ok(_) => match serde_json::from_str::<BTreeMap<H256, u64>>(&data) {
-                Ok(x) => {
-                    tracing::info!("blockstime cache {} records loaded", x.len());
-                    x
-                }
-                Err(e) => {
-                    tracing::info!("blockstime JSON parsing failure {}", e);
-                    BTreeMap::new()
-                }
-            },
-            Err(_) => BTreeMap::new(),
-        }
-    } else {
-        BTreeMap::new()
-    }
-}
-
-pub fn save_blockstime(
-    cache_dir: &str,
-    chain_id: u64,
-    blocks_time: &BTreeMap<H256, u64>,
-) -> anyhow::Result<()> {
-    if cache_dir.len() == 0 || blocks_time.len() == 0 {
-        return Ok(());
-    }
-    let f =
-        File::create(blockstime_fn(cache_dir, chain_id)).expect("Unable to create blockstime file");
-    serde_json::to_writer(&f, blocks_time)?;
-    Ok(())
-}
-
 impl Scanner {
     pub fn new(
         chain_id: u64,
@@ -146,7 +108,7 @@ impl Scanner {
             genesis_block,
             max_block,
             batch_size,
-            blocks_time: load_blockstime(&cache_dir, chain_id),
+            blocks_time: blockstime::load(&cache_dir, chain_id),
         }
     }
     pub fn agent(&self, address: H160) -> Option<VotingAgent> {
@@ -300,7 +262,7 @@ impl Scanner {
                     handler_dur += handlerstart.elapsed();
                 }
             }
-            save_blockstime(&self.cache_dir, chain_id, &self.blocks_time)?;
+            blockstime::save(&self.cache_dir, chain_id, &self.blocks_time)?;
             tracing::info!(
                 "{} events, took {:?}, blocks {:?} ({})",
                 logs.len(),
@@ -337,14 +299,22 @@ impl Scanner {
             let l: Log = logs_stream.next().await.unwrap().unwrap();
             if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
                 let tmkey: H256 = l.block_hash.unwrap();
-                let tm: u64 = web3
-                    .eth()
-                    .block(BlockId::Hash(l.block_hash.unwrap()))
-                    .await
-                    .expect("block failure")
-                    .expect("block timestamp failure")
-                    .timestamp
-                    .as_u64();
+                let tm = match self.blocks_time.get(&tmkey) {
+                    Some(x) => *x,
+                    None => {
+                        let tm: u64 = web3
+                            .eth()
+                            .block(BlockId::Hash(l.block_hash.unwrap()))
+                            .await
+                            .expect("block failure")
+                            .expect("block timestamp failure")
+                            .timestamp
+                            .as_u64();
+                        self.blocks_time.insert(tmkey, tm);
+                        blockstime::save(&self.cache_dir, self.chain_id, &self.blocks_time)?;
+                        tm
+                    }
+                };
 
                 handler_mux.lock().unwrap().on(
                     OnChainEvent {
@@ -356,8 +326,6 @@ impl Scanner {
                     },
                     l,
                 );
-                self.blocks_time.insert(tmkey, tm);
-                save_blockstime(&self.cache_dir, self.chain_id, &self.blocks_time)?;
 
                 // match &entry {
                 //     Api3::StartVote{ agent, vote_id, creator: _, metadata: _ } => {
