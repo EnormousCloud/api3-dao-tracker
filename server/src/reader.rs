@@ -1,12 +1,9 @@
 use crate::cache::blockstime;
+use crate::cache::logsbatch::{self, BlockBatch};
 use client::events::{Api3, VotingAgent};
 use client::state::OnChainEvent;
-use crc32fast::Hasher;
 use futures::StreamExt;
 use std::collections::BTreeMap;
-use std::fs::File;
-use std::io::Read;
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tracing::debug;
@@ -31,12 +28,6 @@ pub async fn get_transport(source: String) -> Either<Http, Ipc> {
         debug!("Connecting to {:?}", source);
         Either::Left(transport)
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct BlockBatch {
-    pub from: u64,
-    pub to: u64,
 }
 
 pub async fn get_batches<T: Transport>(
@@ -122,47 +113,6 @@ impl Scanner {
         v
     }
 
-    pub fn cache_fn(&self, chain_id: u64, b: &BlockBatch) -> String {
-        let mut hasher = Hasher::new();
-        self.addr_watched.iter().for_each(|a| {
-            hasher.update(format!("{:?}", a).as_bytes());
-        });
-        let checksum = hasher.finalize();
-        format!(
-            "{}/chain{}-{}-{}-{}.json",
-            self.cache_dir, chain_id, b.from, b.to, checksum
-        )
-    }
-
-    pub fn has_logs(&self, chain_id: u64, b: &BlockBatch) -> bool {
-        if self.cache_dir.len() == 0 {
-            return false;
-        }
-        Path::new(self.cache_fn(chain_id, b).as_str()).exists()
-    }
-
-    pub async fn get_logs(&self, chain_id: u64, b: &BlockBatch) -> anyhow::Result<Vec<Log>> {
-        let mut f = File::open(self.cache_fn(chain_id, &b)).expect("Unable to open file");
-        let mut data = String::new();
-        f.read_to_string(&mut data).expect("Reading failure");
-        let logs: Vec<Log> = serde_json::from_str(&data).expect("JSON parsing failure");
-        Ok(logs)
-    }
-
-    pub async fn save_logs(
-        &self,
-        chain_id: u64,
-        b: &BlockBatch,
-        logs: &Vec<Log>,
-    ) -> anyhow::Result<()> {
-        if self.cache_dir.len() == 0 {
-            return Ok(());
-        }
-        let f = File::create(self.cache_fn(chain_id, &b)).expect("Unable to create file");
-        serde_json::to_writer(&f, logs)?;
-        Ok(())
-    }
-
     pub async fn scan<T>(
         &mut self,
         web3: &Web3<T>,
@@ -172,6 +122,8 @@ impl Scanner {
         T: Transport,
     {
         let chain_id = self.chain_id;
+        let cache_dir = self.cache_dir.clone();
+        let checksum = logsbatch::checksum(&self.addr_watched);
         crate::metrics::CHAIN_ID_GAUGE.set(chain_id as i64);
 
         let mut last_block = self.genesis_block;
@@ -188,8 +140,8 @@ impl Scanner {
             let start = std::time::Instant::now();
             let mut method = "".to_owned();
             let _ = method; // dummy warning workaround
-            let logs: Vec<Log> = if self.has_logs(chain_id, &b) {
-                let logs = self.get_logs(chain_id, &b).await?;
+            let logs: Vec<Log> = if logsbatch::exists(&cache_dir, chain_id, checksum, &b) {
+                let logs = logsbatch::load(&cache_dir, chain_id, checksum, &b).await?;
                 method = format!(
                     "cached {}..{}/{} in {:?}",
                     b.from,
@@ -205,7 +157,7 @@ impl Scanner {
                     .address(self.addr_watched.clone())
                     .build();
                 let logs: Vec<Log> = web3.eth().logs(filter).await?;
-                self.save_logs(chain_id, &b, &logs).await?;
+                logsbatch::save(&cache_dir, chain_id, checksum, &b, &logs).await?;
                 method = format!(
                     "scanned {}..{}/{} in {:?}",
                     b.from,
