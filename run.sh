@@ -59,7 +59,7 @@ export STATIC_DIR=$(pwd)/client/dist
     cp -f .env.mainnet .env
     LOG_LEVEL=api3tracker=debug,info \
     RUST_BACKTRACE=full \
-	RPC_ENDPOINT=$HOME/.ethereum/geth.ipc \
+	RPC_ENDPOINT=http://20.56.124.174/rpc/mki2jdimfm7o-j7d9my6frt2ar0w5gvow \
         cargo run --release -- $@
 }
 

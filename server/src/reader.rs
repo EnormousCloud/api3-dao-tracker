@@ -1,33 +1,19 @@
 use crate::cache::blockstime;
 use crate::cache::logsbatch::{self, BlockBatch};
+use crate::web3sync::EthClient;
 use client::events::{Api3, VotingAgent};
 use client::state::OnChainEvent;
 use futures::StreamExt;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use tracing::debug;
 use web3::api::Eth;
-use web3::transports::{Either, Http, Ipc};
+use web3::transports::Ipc;
 use web3::types::{BlockId, FilterBuilder, Log, H160, H256};
 use web3::{Transport, Web3};
 
 pub trait EventHandler {
     fn on(&mut self, entry: OnChainEvent, l: Log) -> ();
-}
-
-pub async fn get_transport(source: String) -> Either<Http, Ipc> {
-    if source.contains(".ipc") {
-        let transport = Ipc::new(source.as_str())
-            .await
-            .expect("Failed to connect to IPC file");
-        debug!("Connected to {:?}", source);
-        Either::Right(transport)
-    } else {
-        let transport = Http::new(source.as_str()).expect("Invalid RPC HTTP endpoint");
-        debug!("Connecting to {:?}", source);
-        Either::Left(transport)
-    }
 }
 
 pub async fn get_batches<T: Transport>(
@@ -227,6 +213,76 @@ impl Scanner {
         crate::metrics::BLOCK_START_GAUGE.set(0);
         crate::metrics::BLOCK_END_GAUGE.set(0);
         Ok(last_block)
+    }
+
+    // continuously watch incoming blocks.
+    pub fn watch_http(
+        &mut self,
+        endpoint_addr: &str,
+        from_block: u64,
+        handler_mux: &Mutex<impl EventHandler>,
+    ) -> anyhow::Result<()> {
+        tracing::info!(
+            "listening to blocks from {} in real-time {}",
+            from_block,
+            endpoint_addr
+        );
+        let client = EthClient::new(endpoint_addr);
+        let filter = FilterBuilder::default()
+            .from_block(from_block.into())
+            .address(self.addr_watched.clone())
+            .build();
+        let filter_id = client.new_filter(&filter).expect("new_filter error");
+        crate::metrics::WATCHING.set(1);
+        // let mut interval = tokio::time::interval(std::time::Duration::from_secs(20));
+        loop {
+            tracing::info!("waiting {:?}", std::time::Duration::from_secs(20));
+            std::thread::sleep(std::time::Duration::from_secs(20));
+            tracing::info!("filter_id {:?} from block {}", filter_id, from_block);
+            match client.filter_changes(filter_id) {
+                Ok(logs) => {
+                    for l in logs {
+                        if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
+                            let bhash: H256 = l.block_hash.expect("block hash");
+                            let block_number = l.block_number.expect("block number").as_u64();
+                            let tx = l.transaction_hash.expect("tx hash");
+                            let log_index = l.log_index.expect("log_index").as_u64();
+                            let tm = match self.blocks_time.get(&bhash) {
+                                Some(x) => *x,
+                                None => {
+                                    let tm = client
+                                        .block(bhash)
+                                        .expect("block timestamp failure")
+                                        .timestamp
+                                        .as_u64();
+                                    self.blocks_time.insert(bhash, tm);
+                                    blockstime::save(
+                                        &self.cache_dir,
+                                        self.chain_id,
+                                        &self.blocks_time,
+                                    )?;
+                                    tm
+                                }
+                            };
+                            handler_mux.lock().expect("unlock event handler mutex").on(
+                                OnChainEvent {
+                                    block_number,
+                                    tx,
+                                    log_index,
+                                    entry,
+                                    tm,
+                                },
+                                l,
+                            );
+                        }
+                    }
+                }
+                Err(err) => {
+                    tracing::error!("filter_id error {:?}", err);
+                    return Err(err);
+                }
+            };
+        }
     }
 
     // continuously watch incoming blocks

@@ -8,12 +8,12 @@ pub mod inject;
 pub mod metrics;
 pub mod reader;
 pub mod treasury;
+pub mod web3sync;
 
 use args::DumpMode;
 use client::state::{AppState, OnChainEvent};
 use futures::{FutureExt, StreamExt};
 use std::collections::{BTreeMap, HashMap};
-use std::path::Path;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -148,21 +148,10 @@ async fn main() -> anyhow::Result<()> {
     treasury_tokens.insert("USDC".into(), addr_usdc_token);
     treasury_tokens.insert("API3".into(), addr_token);
 
-    if let Some(_) = args.rpc_endpoint.find("http://") {
-        return Err(anyhow::Error::msg(
-            "only IPC endpoint is allowed. No real time events tracking with HTTP",
-        ));
-    } else if let Some(_) = args.rpc_endpoint.find("https://") {
-        return Err(anyhow::Error::msg(
-            "only IPC endpoint is allowed. No real time events tracking with HTTPS",
-        ));
+    if let Some(_) = args.rpc_endpoint.find(".opc") {
+        return Err(anyhow::Error::msg("only HTTP(s) endpoint is allowed"));
     }
-    if !Path::new(args.rpc_endpoint.as_str()).exists() {
-        return Err(anyhow::Error::msg("IPC file doesn't exists"));
-    }
-    let transport = web3::transports::Ipc::new(args.rpc_endpoint.as_str())
-        .await
-        .expect("Failed to connect to IPC");
+    let transport = web3::transports::Http::new(args.rpc_endpoint.as_str()).expect("HTTP endpoint");
     let web3 = web3::Web3::new(transport);
     let chain_id = web3.eth().chain_id().await?.as_u64();
     let cache_dir = args.cache_dir.clone();
@@ -233,7 +222,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Turn our "state" into a new Filter...
     let subscribers = warp::any().map(move || subscribers.clone());
-    let last_block = {
+    let _last_block = {
         let rc = state.clone();
         let last_block = scanner.scan(&web3, &mut *rc.lock().unwrap()).await?;
         let mut s = rc.lock().unwrap();
@@ -322,22 +311,36 @@ async fn main() -> anyhow::Result<()> {
 
     if args.watch {
         let w3 = web3.clone();
-        let w3t = web3.clone();
         let w3v = web3.clone();
         let w3e = web3.clone();
         let rc = state.clone();
         rc.lock().unwrap().verbose = true;
-        let rc = state.clone();
-        tokio::spawn(async move {
-            scanner.watch_ipc(&web3, last_block, rc).await.unwrap();
-        });
 
         let rc = state.clone();
+        let rc2 = state.clone();
+        let addr = args.rpc_endpoint.clone();
+        tokio::spawn(async move {
+            loop {
+                let lblock = {
+                    let s = rc2.lock().unwrap();
+                    s.app.last_block
+                };
+                tracing::warn!("watcher stopped: at block {}", lblock);
+                if let Err(e) = scanner.watch_http(&addr, lblock, rc.as_ref()) {
+                    tracing::error!("watcher failure: {}", e);
+                    std::thread::sleep(std::time::Duration::from_secs(3));
+                }
+            }
+        });
+        let period = std::time::Duration::from_secs(20 * 60);
+        let ens_period = std::time::Duration::from_secs(15 * 60);
+        let rc = state.clone();
+        let w3t = web3.clone();
+
         tokio::task::spawn_blocking(move || {
-            let mut interval = tokio::time::interval(std::time::Duration::from_secs(60 * 60));
+            let mut interval = tokio::time::interval(period);
             loop {
                 futures::executor::block_on(interval.tick());
-                // interval.tick().await; // wait an hour
                 tracing::info!("Reading Treasuries");
                 let out = futures::executor::block_on(crate::treasury::read_treasuries_box(
                     &w3t,
@@ -351,7 +354,7 @@ async fn main() -> anyhow::Result<()> {
         let rc = state.clone();
         tokio::task::spawn_blocking(move || {
             let conv = crate::contracts::Convenience::new(&w3v, addr_convenience);
-            let mut interval = tokio::time::interval(std::time::Duration::from_secs(60 * 60));
+            let mut interval = tokio::time::interval(period);
             loop {
                 futures::executor::block_on(interval.tick());
                 // re-read votings and extract static data for votes
@@ -376,7 +379,7 @@ async fn main() -> anyhow::Result<()> {
             let rc = state.clone();
             tokio::task::spawn_blocking(move || {
                 let ens = crate::ens::ENS::new(&w3e, &cache_dir);
-                let mut interval = tokio::time::interval(std::time::Duration::from_secs(15 * 60));
+                let mut interval = tokio::time::interval(ens_period);
                 loop {
                     futures::executor::block_on(interval.tick());
                     let start = std::time::Instant::now();
@@ -413,8 +416,8 @@ async fn main() -> anyhow::Result<()> {
         // one more thread fto update ppol and circulation hourly
         if let Some(addr_supply) = addr_circulation {
             let rc = state.clone();
-            tokio::spawn(async move {
-                let mut interval = tokio::time::interval(std::time::Duration::from_secs(60 * 60));
+            tokio::task::spawn_blocking(move || {
+                let mut interval = tokio::time::interval(period);
                 let contract_pool = crate::contracts::Pool::new(&w3, addr_pool.clone());
                 let contract_circulation = crate::contracts::Supply::new(
                     &w3,
@@ -425,21 +428,23 @@ async fn main() -> anyhow::Result<()> {
                     addr_voting2,
                 );
                 loop {
-                    interval.tick().await; // wait an hour
-                    if let Some(pool) = contract_pool.read().await {
-                        tracing::info!("pool info {:?}", pool);
-                        let mut s = rc.lock().unwrap();
-                        s.app.pool_info = Some(pool);
-                    } else {
-                        tracing::info!("pool info - failed to update");
-                    }
-                    if let Some(circulation) = contract_circulation.read().await {
-                        tracing::info!("circulation info {:?}", circulation);
-                        let mut s = rc.lock().unwrap();
-                        s.app.circulation = Some(circulation);
-                    } else {
-                        tracing::info!("circulation info - failed to update");
-                    }
+                    futures::executor::block_on(async {
+                        interval.tick().await;
+                        if let Some(pool) = contract_pool.read().await {
+                            tracing::info!("pool info {:?}", pool);
+                            let mut s = rc.lock().unwrap();
+                            s.app.pool_info = Some(pool);
+                        } else {
+                            tracing::info!("pool info - failed to update");
+                        }
+                        if let Some(circulation) = contract_circulation.read().await {
+                            tracing::info!("circulation info {:?}", circulation);
+                            let mut s = rc.lock().unwrap();
+                            s.app.circulation = Some(circulation);
+                        } else {
+                            tracing::info!("circulation info - failed to update");
+                        }
+                    })
                 }
             });
         }
