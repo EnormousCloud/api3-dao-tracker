@@ -319,17 +319,15 @@ async fn main() -> anyhow::Result<()> {
         let rc = state.clone();
         let rc2 = state.clone();
         let addr = args.rpc_endpoint.clone();
-        tokio::spawn(async move {
-            loop {
-                let lblock = {
-                    let s = rc2.lock().unwrap();
-                    s.app.last_block
-                };
-                tracing::warn!("watcher stopped: at block {}", lblock);
-                if let Err(e) = scanner.watch_http(&addr, lblock, rc.as_ref()) {
-                    tracing::error!("watcher failure: {}", e);
-                    std::thread::sleep(std::time::Duration::from_secs(3));
-                }
+        tokio::task::spawn_blocking(move || loop {
+            let lblock = {
+                let s = rc2.lock().unwrap();
+                s.app.last_block
+            };
+            tracing::warn!("watcher starting at block {}", lblock);
+            if let Err(e) = scanner.watch_http(&addr, lblock, rc.as_ref()) {
+                tracing::error!("watcher failure: {}", e);
+                std::thread::sleep(std::time::Duration::from_secs(3));
             }
         });
         let period = std::time::Duration::from_secs(20 * 60);

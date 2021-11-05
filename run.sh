@@ -111,9 +111,10 @@ export STATIC_DIR=$(pwd)/client/dist
 }
 
 [[ "$1" == "publish-mainnet" ]] && {
+    #export SSH_HOST="root@mainnet.enormous.cloud"
     export SSH_HOST="root@enormous.cloud"
-    docker save api3tracker | bzip2 | ssh $SSH_HOST 'bunzip2 | docker load'
-    ssh $SSH_HOST 'cd /opt/api3tracker-mainnet; docker rm -f api3tracker-mainnet; docker-compose up -d'
+    docker save api3tracker | bzip2 | ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null  $SSH_HOST 'bunzip2 | docker load'
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_HOST 'cd /opt/api3tracker-mainnet; docker rm -f api3tracker-mainnet; docker-compose up -d'
 }
 
 
@@ -124,9 +125,9 @@ export STATIC_DIR=$(pwd)/client/dist
 
 [[ "$1" == "publish-rinkeby" ]] && {
     export SSH_HOST="root@rinkeby.enormous.cloud"
-    scp "$(pwd)"/server/.env.rinkeby $SSH_HOST:/opt/.env.rinkeby
-    docker save api3tracker | bzip2 | ssh $SSH_HOST 'bunzip2 | docker load'
-    ssh $SSH_HOST '/opt/api3tracker-rinkeby.sh'
+    scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$(pwd)"/server/.env.rinkeby $SSH_HOST:/opt/.env.rinkeby
+    docker save api3tracker | bzip2 | ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null$SSH_HOST 'bunzip2 | docker load'
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null$SSH_HOST '/opt/api3tracker-rinkeby.sh'
 }
 
 [[ "$1" == "cache-rinkeby" ]] && {
