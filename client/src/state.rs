@@ -1,8 +1,10 @@
 use crate::action::VotingAction;
 use crate::events::{Api3, VotingAgent};
 use crate::nice;
+use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::time::Duration;
 use web3::types::{H160, H256, U256};
 
 // General API3 Pool information
@@ -144,6 +146,12 @@ impl Voting {
             VotingAgent::Secondary
         };
         crate::events::voting_to_string(&agent, self.vote_id)
+    }
+
+    pub fn is_expired(&self) -> bool {
+        let now = Utc::now().naive_utc();
+        let tmv = NaiveDateTime::from_timestamp(self.tm as i64, 0);
+        (now - tmv) > chrono::Duration::weeks(1)
     }
 }
 

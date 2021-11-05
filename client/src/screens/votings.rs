@@ -42,6 +42,9 @@ impl Screen {
         let required = v.votes_total * U256::from(pct_required) / U256::from(100);
         let pct_yes = nice::pct3_of(v.voted_yes, v.votes_total, 18);
         let pct_no = nice::pct3_of(v.voted_no, v.votes_total, 18);
+        let rejected = v.voted_no >= required;
+        let passing = !rejected && v.voted_yes >= required && v.voted_no < required;
+
         let class_yes = if v.voted_yes > required {
             "r accent"
         } else {
@@ -82,6 +85,10 @@ impl Screen {
                 <td class="r">{
                     if v.executed {
                         span(vec![class("badge")], vec![text("Executed ")])
+                    } else if !passing && rejected {
+                        span(vec![class(class_no)], vec![text("Rejected ")])
+                    } else if !passing && v.is_expired() {
+                        span(vec![class(class_no)], vec![text("Expired ")])
                     } else {
                         span(vec![class(class_no)], vec![text("NO ")])
                     }
@@ -167,7 +174,9 @@ impl Component<Msg> for Screen {
             .filter(|v| {
                 let pct_required = if v.primary { 50u64 } else { 15u64 };
                 let required = v.votes_total * U256::from(pct_required) / U256::from(100);
-                !v.executed && v.voted_no < required
+                let rejected = v.voted_no >= required;
+                let passing = !rejected && v.voted_yes >= required && v.voted_no < required;
+                !v.executed && (passing || !v.is_expired())
             })
             .collect();
         let executed: Vec<Voting> = self
@@ -185,7 +194,9 @@ impl Component<Msg> for Screen {
             .filter(|v| {
                 let pct_required = if v.primary { 50u64 } else { 15u64 };
                 let required = v.votes_total * U256::from(pct_required) / U256::from(100);
-                !v.executed && v.voted_no >= required
+                let rejected = v.voted_no >= required;
+                let passing = !rejected && v.voted_yes >= required && v.voted_no < required;
+                !v.executed && (rejected || (!passing && v.is_expired()))
             })
             .collect();
         node! {
