@@ -64,6 +64,17 @@ where
     0f64
 }
 
+pub fn shifted_float(f: f64, decimals: usize) -> anyhow::Result<U256> {
+    let str = format!("{}", f);
+    let after_dot: String = match str.find(".") {
+        Some(dotpos) => str.chars().skip(dotpos + 1).collect(),
+        None => "".to_owned(),
+    };
+    let fill: String = (0..decimals - after_dot.len()).map(|_| "0").collect();
+    let out = format!("{}{}{}", f as i64, after_dot, fill);
+    U256::from_dec_str(&out).map_err(|x| anyhow::Error::new(x))
+}
+
 // this is actually cutting decimals,
 // so it is far from being accurate
 pub fn pct_of(amt: U256, total: U256, decimals: usize) -> String {
@@ -125,4 +136,5 @@ mod tests {
         assert_eq!(with_commas("68"), "68");
         assert_eq!(with_commas("6"), "6");
     }
+
 }
