@@ -2,12 +2,15 @@ pub mod action;
 pub mod components;
 pub mod events;
 pub mod eventsnode;
+pub mod fees;
 pub mod logreader;
 pub mod nice;
 pub mod router;
 pub mod screens;
 pub mod state;
+pub mod usdprice;
 
+use crate::events::{voting_from_str, voting_to_u64};
 use sauron::prelude::*;
 use state::AppState;
 use std::str::FromStr;
@@ -56,7 +59,8 @@ pub fn main(serialized_state: String) {
             if pathname.starts_with("/votings/") {
                 let offs = "/votings/".len();
                 let vote_str: String = pathname.chars().skip(offs).collect();
-                let vote_ref = vote_str.parse::<u64>().unwrap();
+                let (agent, vote_id) = voting_from_str(&vote_str);
+                let vote_ref = voting_to_u64(&agent, vote_id);
                 Program::replace_mount(screens::voting::Screen::new(appstate, vote_ref), &root);
             } else if pathname.starts_with("/wallets/") {
                 let offs = "/wallets/".len();
