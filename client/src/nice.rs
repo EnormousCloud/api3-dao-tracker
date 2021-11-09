@@ -137,4 +137,24 @@ mod tests {
         assert_eq!(with_commas("6"), "6");
     }
 
+    #[test]
+    pub fn test_shifted_float_1() {
+        let expected = U256::from_dec_str("1000000000000000000").unwrap();
+        assert_eq!(shifted_float(1.0, 18).unwrap(), expected);
+    }
+
+    #[test]
+    pub fn test_shifted_float() {
+        let input = 2126.4424673902;
+        let expected = U256::from_dec_str("21264424673902").unwrap();
+        assert_eq!(shifted_float(input, 10).unwrap(), expected);
+    }
+
+    #[test]
+    pub fn test_shifted_float_below1() {
+        let input = 0.21264424673902;
+        let expected = U256::from_dec_str("21264424673902").unwrap();
+        assert_eq!(shifted_float(input, 14).unwrap(), expected);
+    }
+
 }
