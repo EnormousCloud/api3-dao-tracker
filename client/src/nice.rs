@@ -75,6 +75,12 @@ pub fn shifted_float(f: f64, decimals: usize) -> anyhow::Result<U256> {
     U256::from_dec_str(&out).map_err(|x| anyhow::Error::new(x))
 }
 
+pub fn multiplied(i: U256, v: U256, decimals: usize) -> U256 {
+    let str = format!("{}", i * v);
+    let out: String = str.chars().take(str.len() - decimals).collect();
+    U256::from_dec_str(&out).unwrap()
+}
+
 // this is actually cutting decimals,
 // so it is far from being accurate
 pub fn pct_of(amt: U256, total: U256, decimals: usize) -> String {
@@ -155,6 +161,14 @@ mod tests {
         let input = 0.21264424673902;
         let expected = U256::from_dec_str("21264424673902").unwrap();
         assert_eq!(shifted_float(input, 14).unwrap(), expected);
+    }
+
+    #[test]
+    pub fn test_multiplied() {
+        let decimals = 18;
+        let val = U256::from_dec_str("129350385688932754").unwrap();
+        let one = shifted_float(1.0, decimals).unwrap();
+        assert_eq!(multiplied(val, one, decimals), val);
     }
 
 }
