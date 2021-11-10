@@ -81,6 +81,27 @@ pub fn multiplied(i: U256, v: U256, decimals: usize) -> U256 {
     U256::from_dec_str(&out).unwrap()
 }
 
+pub fn float<T>(src: T, decimals: usize, precision: usize) -> f64
+where
+    T: std::fmt::Display,
+{
+    let str = format!("{}", src);
+    let (before, after) = if str.len() > decimals {
+        let before_dot: String = str.chars().take(str.len() - decimals).collect();
+        let right_rev: String = str.chars().rev().take(decimals).collect();
+        let after_dot: String = right_rev.chars().rev().take(precision).collect();
+        (before_dot, after_dot)
+    } else {
+        ("0".to_owned(), str.chars().take(precision).collect())
+    };
+    let combined = if precision > 0 {
+        format!("{}.{}", before, after)
+    } else {
+        before
+    };
+    combined.parse().unwrap()
+}
+
 // this is actually cutting decimals,
 // so it is far from being accurate
 pub fn pct_of(amt: U256, total: U256, decimals: usize) -> String {
@@ -171,4 +192,11 @@ mod tests {
         assert_eq!(multiplied(val, one, decimals), val);
     }
 
+    #[test]
+    pub fn test_float() {
+        let val = U256::from_dec_str("129350385688932754").unwrap();
+        assert_eq!(float(val, 18, 3), 0.129);
+        let val2 = U256::from_dec_str("5129350385688932754").unwrap();
+        assert_eq!(float(val2, 18, 3), 5.129);
+    }
 }
