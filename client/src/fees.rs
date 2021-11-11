@@ -50,3 +50,45 @@ impl TxFee {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TxFeeTotal {
+    eth: U256,
+    usd: Option<f64>,
+}
+
+impl TxFeeTotal {
+    pub fn new(events: &Vec<OnChainEvent>) -> Self {
+        let mut hs: HashSet<H256> = HashSet::new();
+        let mut eth = U256::from(0);
+        let mut usd = None;
+        events.iter().for_each(|x| {
+            if !hs.contains(&x.tx) {
+                eth += x.fees.gas_price
+                    * match x.fees.gas_used {
+                        Some(gas_used) => gas_used,
+                        None => x.fees.gas,
+                    };
+                if let Some(usd_fee) = x.fees.usd {
+                    match usd {
+                        Some(old) => usd = Some(old + usd_fee),
+                        None => usd = Some(usd_fee),
+                    }
+                }
+                hs.insert(x.tx);
+            }
+        });
+        Self { eth, usd }
+    }
+
+    pub fn to_string(&self) -> String {
+        let mut pieces: Vec<String> = vec![];
+        pieces.push(format!(
+            "Spent {} ETH in fees",
+            nice::float(self.eth, 18, 6)
+        ));
+        if let Some(usd) = self.usd {
+            pieces.push(format!("Est ${:.2}", usd));
+        }
+        pieces.join(", ")
+    }
+}
