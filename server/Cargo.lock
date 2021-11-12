@@ -263,6 +263,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "ureq",
  "wasm-bindgen",
  "web3",
 ]

@@ -20,5 +20,5 @@ serde_json = { version = "1.0.63" }
 thiserror = "1.0"
 wasm-bindgen = "0.2.29"
 web3 = { version = "0.17", default-features = false, features = ["wasm"] }
-
+ureq = { version = "2.3" }
 
