@@ -147,5 +147,23 @@ impl EthClient {
         Ok(res.result)
     }
 
+    pub fn transaction(&self, tx_hash: H256) -> anyhow::Result<Transaction> {
+        let payload = format!(
+            "{{\"jsonrpc\":\"2.0\",\"method\":\"eth_getTransactionByHash\",\"params\":[\"{:?}\"],\"id\":\"1\"}}",
+            tx_hash
+        );
+        let res: RpcSingleResponse<Transaction> = self.execute_str(&payload)?;
+        Ok(res.result)
+    }
+
+    pub fn receipt(&self, tx_hash: H256) -> anyhow::Result<Receipt> {
+        let payload = format!(
+            "{{\"jsonrpc\":\"2.0\",\"method\":\"eth_getTransactionReceipt\",\"params\":[\"{:?}\"],\"id\":\"1\"}}",
+            tx_hash
+        );
+        let res: RpcSingleResponse<Receipt> = self.execute_str(&payload)?;
+        Ok(res.result)
+    }
+
 }
 
