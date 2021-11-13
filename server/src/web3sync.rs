@@ -1,8 +1,12 @@
+use chrono::NaiveDateTime;
+use client::fees::TxFee;
 use jsonrpc_core::types::params::Params;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::time::Duration;
-use web3::types::{Block, Filter, Log, H256, U256};
+use web3::types::TransactionReceipt as Receipt;
+use web3::types::{Block, Filter, Log, Transaction, H256, U256};
 
 pub struct EthClient {
     rpc_addr: String,
@@ -27,6 +31,11 @@ struct RpcError {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+struct RpcId {
+    pub id: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 struct RpcErrorResponse {
     pub id: serde_json::Value,
     pub error: RpcError,
@@ -38,6 +47,29 @@ struct RpcSingleRequest {
     pub id: String,
     pub method: String,
     pub params: Params,
+}
+
+type RpcBatchRequest = Vec<RpcSingleRequest>;
+type RpcBatchResponse = Vec<Value>;
+
+pub fn batch_fragment<T>(response: &RpcBatchResponse, id_match: &str) -> anyhow::Result<T>
+where
+    T: DeserializeOwned,
+{
+    for v in response {
+        let id = v.as_object().unwrap().get("id").unwrap().as_str();
+        if let Some(id_val) = id {
+            if id_val == id_match {
+                let s = serde_json::to_string(&v).unwrap();
+                if let Ok(err) = serde_json::from_str::<RpcErrorResponse>(&s) {
+                    return Err(anyhow::Error::msg(err.error.message));
+                }
+                let out: RpcSingleResponse<T> = serde_json::from_str(&s).unwrap();
+                return Ok(out.result);
+            }
+        }
+    }
+    Err(anyhow::Error::msg("result not found in the batch"))
 }
 
 impl EthClient {
@@ -114,4 +146,6 @@ impl EthClient {
         let res: RpcSingleResponse<Block<H256>> = self.execute_str(&payload)?;
         Ok(res.result)
     }
+
 }
+
