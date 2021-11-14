@@ -165,5 +165,26 @@ impl EthClient {
         Ok(res.result)
     }
 
+    pub fn fees(&self, tx_hash: H256, dt: NaiveDateTime) -> anyhow::Result<TxFee> {
+        let txh = Value::from(format!("{:?}", tx_hash));
+        let rq1 = RpcSingleRequest {
+            jsonrpc: "2.0".to_owned(),
+            id: "hash".to_owned(),
+            method: "eth_getTransactionByHash".to_owned(),
+            params: Params::Array(vec![txh.clone()]),
+        };
+        let rq2 = RpcSingleRequest {
+            jsonrpc: "2.0".to_owned(),
+            id: "receipt".to_owned(),
+            method: "eth_getTransactionReceipt".to_owned(),
+            params: Params::Array(vec![txh.clone()]),
+        };
+        let batch: RpcBatchRequest = vec![rq1, rq2];
+        let payload = serde_json::to_string(&batch).unwrap();
+        let response: RpcBatchResponse = self.execute_str(&payload)?;
+        let tx: Transaction = batch_fragment(&response, "hash").unwrap();
+        let receipt: Receipt = batch_fragment(&response, "receipt").unwrap();
+        Ok(TxFee::new(&tx, &receipt, dt))
+    }
 }
 
