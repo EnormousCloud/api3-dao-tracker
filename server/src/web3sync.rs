@@ -188,3 +188,22 @@ impl EthClient {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDateTime;
+    use hex_literal::hex;
+
+    #[test]
+    pub fn it_works() {
+        let rpc_addr = "http://localhost:8545";
+        let client = EthClient::new(rpc_addr);
+
+        let time =
+            NaiveDateTime::parse_from_str("2021-11-18 12:10:51", "%Y-%m-%d %H:%M:%S").unwrap();
+        let tx_hash: H256 =
+            hex!("38407b1df1d03632a9874c6ca304dbb55eeebdbe3af8d6478e7c07e405cecb41").into();
+        let fees = client.fees(tx_hash, time).unwrap();
+        println!("fees {:?}", fees);
+    }
+}
