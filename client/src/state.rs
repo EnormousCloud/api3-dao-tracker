@@ -1,5 +1,6 @@
 use crate::action::{ActionSignature, VotingAction};
 use crate::events::{Api3, VotingAgent};
+use crate::fees::TxFee;
 use crate::nice;
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -71,6 +72,7 @@ pub struct OnChainEvent {
     pub block_number: u64,
     pub tx: H256,
     pub log_index: u64,
+    pub fees: TxFee,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -361,6 +363,8 @@ pub struct AppState {
     pub decimals: BTreeMap<String, usize>,
     /// list of wallets that were in voting actions
     pub grants: BTreeMap<H160, u64>,
+    /// fees of the transactions
+    pub fees: BTreeMap<H256, TxFee>,
 }
 
 pub fn get_known_decimals() -> BTreeMap<String, usize> {
@@ -374,7 +378,7 @@ impl AppState {
     pub fn new(chain_id: u64) -> Self {
         let apr: f64 = 0.3875;
         Self {
-            version: "20210820".to_owned(),
+            version: "20211101".to_owned(),
             chain_id,
             epoch_index: 1,
             apr,
@@ -390,6 +394,7 @@ impl AppState {
             treasuries: BTreeMap::new(),
             decimals: get_known_decimals(),
             grants: BTreeMap::new(),
+            fees: BTreeMap::new(),
         }
     }
 
@@ -841,6 +846,7 @@ impl AppState {
         log.block_number.map(|block_number| {
             self.last_block = block_number.as_u64();
         });
+        self.fees.insert(e.tx, e.fees.clone());
 
         // if e.entry.is_broadcast() {
         //     self.wallets_events.iter_mut().for_each(|(_, w)| {
