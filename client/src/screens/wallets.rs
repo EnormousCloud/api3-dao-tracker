@@ -1,5 +1,6 @@
 use crate::components::footer;
 use crate::components::header;
+use crate::fees::TxFeeTotal;
 use crate::nice;
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, Wallet};
@@ -165,6 +166,11 @@ impl Screen {
         };
         // let rewards = self.state.get_rewards(&w.address, 10000000000u64);
         let labels = self.state.get_labels(w);
+        let totals = self
+            .state
+            .wallets_events
+            .get(&w.address)
+            .map(|e| TxFeeTotal::new(e).to_string());
         node! {
             <tr>
                 <td class="c">{text(format!("{}.", index + 1))}</td>
@@ -186,6 +192,10 @@ impl Screen {
                         </div>
                         <div>{text(format!("{:?}", w.address))}</div>
                     </a>
+                    { match totals {
+                        Some(t) => node!(<div><small class="darken">{text(t)}</small></div>),
+                        None => text(""),
+                    }}
                 </td>
                 <td class={voting_class} title={nice::amount(w.voting_power, 18)}>{text(nice::ceil(w.voting_power,18))}</td>
                 {if pct != "000.0" {
@@ -212,23 +222,23 @@ impl Screen {
             <li>
                 <div class="wallet">
                     <div>
-                    <a class="eth-address" href={format!("wallets/{:?}", w.address) }>
-                        { text(format!("{:?}", w.address)) }
-                        {
-                            if w.vested {
-                                span(vec![class("vested")],vec![text(" VESTED ")])
+                        <a class="eth-address" href={format!("wallets/{:?}", w.address) }>
+                            { text(format!("{:?}", w.address)) }
+                            {
+                                if w.vested {
+                                    span(vec![class("vested")],vec![text(" VESTED ")])
+                                } else {
+                                    text("")
+                                }
+                            }
+                            {
+                            if let Some(ens) = &w.ens {
+                                text(format!(" {:?}", ens))
                             } else {
                                 text("")
                             }
-                        }
-                        {
-                          if let Some(ens) = &w.ens {
-                            text(format!(" {:?}", ens))
-                          } else {
-                            text("")
-                          }
-                        }
-                    </a>
+                            }
+                        </a>
                     </div>
                     " "
                     <span class="amt">
