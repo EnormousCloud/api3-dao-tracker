@@ -3,6 +3,7 @@ use crate::components::footer;
 use crate::components::header;
 use crate::components::panel;
 use crate::eventsnode::entry_node;
+use crate::fees::TxFeeTotal;
 use crate::nice;
 use crate::router::{link_address, link_eventlog, link_wallet};
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
@@ -42,12 +43,25 @@ impl Screen {
     }
 
     pub fn render_event_tr(&self, index: usize, e: &OnChainEvent) -> Node<Msg> {
+        let fees = self.state.fees.get(&e.tx);
         node! {
             <tr>
                 <td class="c">{text(format!("{}.", index + 1))}</td>
                 <td class="c darken dt">{text(nice::date(e.tm))}</td>
                 <td class="c">{link_eventlog(self.state.chain_id, e.block_number, e.tx)}</td>
-                <td class="l entry darken">{entry_node(&e.entry, self.addr, &self.state)}</td>
+                <td class="l entry darken">
+                    <div>{entry_node(&e.entry, self.addr, &self.state)}</div>
+                    <div>
+                        <small class="darken">
+                            {
+                                match fees {
+                                    Some(fees) => text(fees.to_string()),
+                                    None => text(""),
+                                }
+                            }
+                        </small>
+                    </div>
+                </td>
             </tr>
         }
     }
@@ -374,6 +388,11 @@ pub enum Msg {}
 
 impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
+        let totals = self
+            .state
+            .wallets_events
+            .get(&self.addr)
+            .map(|e| TxFeeTotal::new(e).to_string());
         node! {
             <div class="screen-wallet">
                 { header::render("/wallets", &self.state) }
@@ -398,6 +417,11 @@ impl Component<Msg> for Screen {
                         }
                     }
                     <h2 style="text-align:center">"User Events History"</h2>
+                    { match totals {
+                        Some(t) => node!(<h4 style="text-align:center"><small class="darken">{text(t)}</small></h4>),
+                        None => text(""),
+                    }}
+
                     {
                         match self.state.wallets_events.get(&self.addr) {
                             Some(w) => {
