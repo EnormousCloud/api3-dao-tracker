@@ -3,6 +3,7 @@ use crate::components::footer;
 use crate::components::header;
 use crate::events::{self, Api3, VotingAgent};
 use crate::eventsnode::wrap_vote_details;
+use crate::fees::TxFeeTotal;
 use crate::nice;
 use crate::router::{link_eventlog, link_wallet};
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
@@ -115,19 +116,31 @@ impl Screen {
             } => Some(supports),
             _ => None,
         };
-
+        let fees = self.state.fees.get(&e.tx);
         node! {
             <tr>
                 <td class="c">{text(format!("{}.", index + 1))}</td>
                 <td class="c darken dt">{text(nice::date(e.tm))}</td>
                 <td class="c">{link_eventlog(self.state.chain_id, e.block_number, e.tx)}</td>
                 <td class="c darken entry">{text(event)}</td>
-                <td class="l eth-address">{
-                    match voter {
-                        Some(x) => link_wallet(&self.state, x),
-                        None => text(""),
+                <td class="l eth-address">
+                    <div>{
+                        match voter {
+                            Some(x) => link_wallet(&self.state, x),
+                            None => text(""),
+                        }
                     }
-                }
+                    </div>
+                    <div>
+                        <small class="darken">
+                            {
+                                match fees {
+                                    Some(fees) => text(fees.to_string()),
+                                    None => text(""),
+                                }
+                            }
+                        </small>
+                    </div>
                 </td>
                 <td class="c">{
                     match supports {
@@ -181,6 +194,11 @@ impl Component<Msg> for Screen {
         let pct_no = nice::pct3_of(v.voted_no, v.votes_total, 18);
         let sorted: Vec<OnChainEvent> = self.state.votings_events.get(&v.as_u64()).unwrap().clone();
         let decision = "text-align:center; border: 1px #888 solid; padding: 30px";
+        let totals = self
+            .state
+            .votings_events
+            .get(&v.vote_id)
+            .map(|e| TxFeeTotal::new(e).to_string());
         node! {
             <div class="screen-voting">
                 { header::render("/votings", &self.state) }
@@ -240,6 +258,11 @@ impl Component<Msg> for Screen {
                     }}
 
                     <h2 style="text-align: center">"Voting History Log"</h2>
+                    { match totals {
+                        Some(t) => node!(<h4 style="text-align:center"><small class="darken">{text(t)}</small></h4>),
+                        None => text(""),
+                    }}
+
                     {if self.state.votings_events.len() > 0 {
                         div(vec![], vec![
                             div(vec![class("desktop-only")], vec![
