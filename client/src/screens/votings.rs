@@ -1,6 +1,7 @@
 use crate::components::footer;
 use crate::components::header;
 use crate::eventsnode::wrap_vote_details;
+use crate::fees::TxFeeTotal;
 use crate::nice;
 use crate::screens::meta::{MetaProvider, PageMetaInfo};
 use crate::state::{AppState, Voting};
@@ -55,6 +56,12 @@ impl Screen {
         } else {
             "r"
         };
+
+        let totals = self
+            .state
+            .votings_events
+            .get(&v.vote_id)
+            .map(|e| TxFeeTotal::new(e).to_string());
         node! {
             <tr>
                 <td class="c">{text(format!("{}.", index + 1))}</td>
@@ -73,6 +80,10 @@ impl Screen {
                         </a>
                     </div>
                     {wrap_vote_details(&v.details)}
+                    { match totals {
+                        Some(t) => node!(<div><small class="darken">{text(t)}</small></div>),
+                        None => text(""),
+                    }}
                 </td>
                 <td class={class_yes}>{text(pct_yes)}"%"</td>
                 {
@@ -184,9 +195,7 @@ impl Component<Msg> for Screen {
             .votings
             .values()
             .cloned()
-            .filter(|v| {
-                !v.executed && v.is_invalid()
-            })
+            .filter(|v| !v.executed && v.is_invalid())
             .collect();
         let executed: Vec<Voting> = self
             .state
