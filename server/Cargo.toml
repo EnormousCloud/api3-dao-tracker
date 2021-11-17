@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 anyhow = { version = "1.0" }
 async-trait = { version = "0.1" }
-cached = { version = "0.23" }
+cached = { version = "0.26" }
 chrono = { version = "0.4", features = ["serde"] }
 client = { path = "../client" }
 clap = { version = "2.33", default-features = false }
