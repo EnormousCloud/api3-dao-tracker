@@ -1,14 +1,14 @@
 use crate::cache::blockstime;
 use crate::cache::logsbatch::{self, BlockBatch};
+use crate::cache::prices;
 use crate::web3sync::EthClient;
+use chrono::NaiveDateTime;
 use client::events::{Api3, VotingAgent};
+use client::fees::TxFee;
 use client::state::OnChainEvent;
-use futures::StreamExt;
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::sync::Mutex;
 use web3::api::Eth;
-use web3::transports::Ipc;
 use web3::types::{BlockId, FilterBuilder, Log, H160, H256};
 use web3::{Transport, Web3};
 
@@ -46,6 +46,7 @@ pub async fn get_batches<T: Transport>(
 
 #[derive(Debug, Clone)]
 pub struct Scanner {
+    rpc_endpoint: String,
     chain_id: u64,
     cache_dir: String,
     addr_watched: Vec<H160>,
@@ -55,6 +56,7 @@ pub struct Scanner {
     max_block: Option<u64>,
     batch_size: u64,
     blocks_time: BTreeMap<H256, u64>,
+    fees: BTreeMap<H256, TxFee>,
 }
 
 impl Scanner {
@@ -67,6 +69,7 @@ impl Scanner {
         genesis_block: u64,
         max_block: Option<u64>,
         batch_size: u64,
+        rpc_endpoint: &str,
     ) -> Self {
         let mut addr_watched: Vec<H160> = addr.clone();
         addr_primary
@@ -79,6 +82,7 @@ impl Scanner {
         Self {
             chain_id,
             cache_dir: cache_dir.to_owned(),
+            rpc_endpoint: rpc_endpoint.to_string(),
             addr_watched,
             addr_primary,
             addr_secondary,
@@ -86,6 +90,7 @@ impl Scanner {
             max_block,
             batch_size,
             blocks_time: blockstime::load(&cache_dir, chain_id),
+            fees: prices::load(&cache_dir, chain_id),
         }
     }
     pub fn agent(&self, address: H160) -> Option<VotingAgent> {
@@ -111,6 +116,7 @@ impl Scanner {
         let cache_dir = self.cache_dir.clone();
         let checksum = logsbatch::checksum(&self.addr_watched);
         crate::metrics::CHAIN_ID_GAUGE.set(chain_id as i64);
+        let w3client = EthClient::new(&self.rpc_endpoint);
 
         let mut last_block = self.genesis_block;
         for b in get_batches(
@@ -156,6 +162,7 @@ impl Scanner {
 
             // let start = std::time::Instant::now();
             let mut blocktime_dur = std::time::Duration::from_nanos(0);
+            let mut prices_dur = std::time::Duration::from_nanos(0);
             let mut handler_dur = std::time::Duration::from_nanos(0);
             for l in &logs {
                 if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
@@ -183,17 +190,32 @@ impl Scanner {
                             .as_u64()
                     };
                     self.blocks_time.insert(tmkey, ts);
-
                     blocktime_dur += blockstart.elapsed();
+
+                    let txkey: H256 = l.transaction_hash.unwrap();
+                    let pricesstart = std::time::Instant::now();
+                    let dt = NaiveDateTime::from_timestamp(ts as i64, 0);
+
+                    let fees = match self.fees.get(&txkey) {
+                        Some(x) => x.clone(),
+                        None => {
+                            let txfee = w3client.fees(txkey, dt).unwrap();
+                            prices::save(&self.cache_dir, self.chain_id, &self.fees)?;
+                            txfee
+                        }
+                    };
+                    self.fees.insert(txkey, fees.clone());
+                    prices_dur += pricesstart.elapsed();
 
                     let handlerstart = std::time::Instant::now();
                     handler.on(
                         OnChainEvent {
                             block_number: l.block_number.unwrap().as_u64(),
-                            tx: l.transaction_hash.unwrap(),
+                            tx: txkey,
                             log_index: l.log_index.unwrap().as_u64(),
                             entry,
                             tm: ts,
+                            fees,
                         },
                         l.clone(),
                     );
@@ -202,10 +224,11 @@ impl Scanner {
             }
             blockstime::save(&self.cache_dir, chain_id, &self.blocks_time)?;
             tracing::info!(
-                "{} events, took {:?}, blocks {:?} ({})",
+                "{} events, took {:?}, blocks {:?}, prices {:?} ({})",
                 logs.len(),
                 handler_dur,
                 blocktime_dur,
+                prices_dur,
                 method,
             );
             last_block = b.to;
@@ -227,19 +250,19 @@ impl Scanner {
             from_block,
             endpoint_addr
         );
-        let client = EthClient::new(endpoint_addr);
+        let w3client = EthClient::new(endpoint_addr);
         let filter = FilterBuilder::default()
             .from_block(from_block.into())
             .address(self.addr_watched.clone())
             .build();
-        let filter_id = client.new_filter(&filter).expect("new_filter error");
+        let filter_id = w3client.new_filter(&filter).expect("new_filter error");
         crate::metrics::WATCHING.set(1);
         // let mut interval = tokio::time::interval(std::time::Duration::from_secs(20));
         loop {
             tracing::info!("waiting {:?}", std::time::Duration::from_secs(20));
             std::thread::sleep(std::time::Duration::from_secs(20));
             tracing::info!("filter_id {:?} from block {}", filter_id, from_block);
-            match client.filter_changes(filter_id) {
+            match w3client.filter_changes(filter_id) {
                 Ok(logs) => {
                     for l in logs {
                         if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
@@ -250,7 +273,7 @@ impl Scanner {
                             let tm = match self.blocks_time.get(&bhash) {
                                 Some(x) => *x,
                                 None => {
-                                    let tm = client
+                                    let tm = w3client
                                         .block(bhash)
                                         .expect("block timestamp failure")
                                         .timestamp
@@ -264,6 +287,16 @@ impl Scanner {
                                     tm
                                 }
                             };
+                            let dt = NaiveDateTime::from_timestamp(tm as i64, 0);
+                            let fees = match self.fees.get(&bhash) {
+                                Some(x) => (*x).clone(),
+                                None => {
+                                    let txfee = w3client.fees(tx, dt).unwrap();
+                                    self.fees.insert(bhash, txfee.clone());
+                                    prices::save(&self.cache_dir, self.chain_id, &self.fees)?;
+                                    txfee
+                                }
+                            };
                             handler_mux.lock().expect("unlock event handler mutex").on(
                                 OnChainEvent {
                                     block_number,
@@ -271,6 +304,7 @@ impl Scanner {
                                     log_index,
                                     entry,
                                     tm,
+                                    fees,
                                 },
                                 l,
                             );
@@ -282,74 +316,6 @@ impl Scanner {
                     return Err(err);
                 }
             };
-        }
-    }
-
-    // continuously watch incoming blocks
-    pub async fn watch_ipc(
-        &mut self,
-        web3: &Web3<Ipc>,
-        from_block: u64,
-        handler_mux: Arc<Mutex<impl EventHandler>>,
-    ) -> anyhow::Result<()> {
-        tracing::info!("listening to blocks from {} in real-time", from_block);
-        let filter = FilterBuilder::default()
-            .from_block(from_block.into())
-            .address(self.addr_watched.clone())
-            .build();
-        let filter = web3.eth_filter().create_logs_filter(filter).await.unwrap();
-        let logs_stream = filter.stream(Duration::from_secs(10));
-        futures::pin_mut!(logs_stream);
-        loop {
-            tracing::info!("waiting for entries");
-            crate::metrics::WATCHING.set(1);
-
-            let l: Log = logs_stream.next().await.unwrap().unwrap();
-            if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
-                let tmkey: H256 = l.block_hash.unwrap();
-                let tm = match self.blocks_time.get(&tmkey) {
-                    Some(x) => *x,
-                    None => {
-                        let tm: u64 = web3
-                            .eth()
-                            .block(BlockId::Hash(l.block_hash.unwrap()))
-                            .await
-                            .expect("block failure")
-                            .expect("block timestamp failure")
-                            .timestamp
-                            .as_u64();
-                        self.blocks_time.insert(tmkey, tm);
-                        blockstime::save(&self.cache_dir, self.chain_id, &self.blocks_time)?;
-                        tm
-                    }
-                };
-
-                handler_mux.lock().unwrap().on(
-                    OnChainEvent {
-                        block_number: l.block_number.unwrap().as_u64(),
-                        tx: l.transaction_hash.unwrap(),
-                        log_index: l.log_index.unwrap().as_u64(),
-                        entry,
-                        tm,
-                    },
-                    l,
-                );
-
-                // match &entry {
-                //     Api3::StartVote{ agent, vote_id, creator: _, metadata: _ } => {
-                //         let key = voting_to_u64(agent, vote_id.as_u64());
-                //         if let Some(v) = self.votings.get_mut(&key) {
-                //             let static_data = conv.get_voting_static_data(v.primary, v.creator, v.vote_id).await;
-                //             println!("voting_static_data = {:?}", static_data);
-                //             if let Some(data) = static_data  {
-                //                 v.votes_total = data.voting_power; // adjust with precise #
-                //                 v.static_data = static_data;
-                //             }
-                //         }
-                //     },
-                //     _ => {},
-                // };
-            }
         }
     }
 }
