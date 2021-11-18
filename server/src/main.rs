@@ -148,7 +148,7 @@ async fn main() -> anyhow::Result<()> {
     treasury_tokens.insert("USDC".into(), addr_usdc_token);
     treasury_tokens.insert("API3".into(), addr_token);
 
-    if let Some(_) = args.rpc_endpoint.find(".opc") {
+    if let Some(_) = args.rpc_endpoint.find(".ipc") {
         return Err(anyhow::Error::msg("only HTTP(s) endpoint is allowed"));
     }
     let transport = web3::transports::Http::new(args.rpc_endpoint.as_str()).expect("HTTP endpoint");
