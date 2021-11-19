@@ -57,9 +57,8 @@ export STATIC_DIR=$(pwd)/client/dist
 
 	cd server
     cp -f .env.mainnet .env
-    LOG_LEVEL=api3tracker=debug,info \
+    LOG_LEVEL=api3tracker=debug,api3tracker::web3sync=info,info \
     RUST_BACKTRACE=full \
-	RPC_ENDPOINT=http://20.56.124.174/rpc/mki2jdimfm7o-j7d9my6frt2ar0w5gvow \
         cargo run --release -- $@
 }
 

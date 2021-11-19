@@ -16,7 +16,7 @@ FROM alpine:latest
 EXPOSE 8000
 ENV TZ=Etc/UTC \
     APP_USER=appuser \
-    LOG_LEVEL=api3tracker=debug,info \
+    LOG_LEVEL=api3tracker=debug,api3tracker::web3sync=info,info \
     STATIC_DIR=/usr/src/app/dist \
     CACHE_DIR=/cache \
     RUST_BACKTRACE=1
