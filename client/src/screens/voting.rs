@@ -123,8 +123,8 @@ impl Screen {
                 <td class="c darken dt">{text(nice::date(e.tm))}</td>
                 <td class="c">{link_eventlog(self.state.chain_id, e.block_number, e.tx)}</td>
                 <td class="c darken entry">{text(event)}</td>
-                <td class="l eth-address">
-                    <div>{
+                <td class="l">
+                    <div class="eth-address">{
                         match voter {
                             Some(x) => link_wallet(&self.state, x),
                             None => text(""),
@@ -197,7 +197,7 @@ impl Component<Msg> for Screen {
         let totals = self
             .state
             .votings_events
-            .get(&v.vote_id)
+            .get(&v.as_u64())
             .map(|e| TxFeeTotal::new(e).to_string());
         node! {
             <div class="screen-voting">

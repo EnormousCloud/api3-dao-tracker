@@ -176,22 +176,24 @@ impl Screen {
                 <td class="c">{text(format!("{}.", index + 1))}</td>
                 <td class="c darken dt">{text(nice::date(w.created_at))}</td>
                 <td class="c darken dt">{text(nice::date(w.updated_at))}</td>
-                <td class="l eth-address">
-                    <a href={format!("wallets/{:?}", w.address)}>
-                        <div>
-                            {span(vec![class("badges")], labels.iter().map(|v| {
-                                let title = format!("{}", v.title);
-                                node! {
-                                    <span class={format!("badge {}", v.class)} title={title}>{text(v.text.clone().as_str())}</span>
-                                }
-                            }).collect::<Vec<Node<Msg>>>())}
-                            {match &w.ens {
-                                Some(ens) => strong(vec![class("ens")],vec![text(ens)]),
-                                None => span(vec![],vec![]),
-                            }}
-                        </div>
-                        <div>{text(format!("{:?}", w.address))}</div>
-                    </a>
+                <td class="l">
+                    <div class="l eth-address">
+                        <a href={format!("wallets/{:?}", w.address)}>
+                            <div>
+                                {span(vec![class("badges")], labels.iter().map(|v| {
+                                    let title = format!("{}", v.title);
+                                    node! {
+                                        <span class={format!("badge {}", v.class)} title={title}>{text(v.text.clone().as_str())}</span>
+                                    }
+                                }).collect::<Vec<Node<Msg>>>())}
+                                {match &w.ens {
+                                    Some(ens) => strong(vec![class("ens")],vec![text(ens)]),
+                                    None => span(vec![],vec![]),
+                                }}
+                            </div>
+                            <div>{text(format!("{:?}", w.address))}</div>
+                        </a>
+                    </div>
                     { match totals {
                         Some(t) => node!(<div><small class="darken">{text(t)}</small></div>),
                         None => text(""),

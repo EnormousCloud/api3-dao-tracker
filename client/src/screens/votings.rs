@@ -60,7 +60,7 @@ impl Screen {
         let totals = self
             .state
             .votings_events
-            .get(&v.vote_id)
+            .get(&v.as_u64())
             .map(|e| TxFeeTotal::new(e).to_string());
         node! {
             <tr>
