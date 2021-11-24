@@ -5,9 +5,17 @@ use std::fmt;
 use std::str::FromStr;
 use web3::types::{H160, U256};
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ActionSignature {
+    Transfer,
+    // transfer which is invalid
+    InvalidTransfer,
+    UnknownSignature,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VotingAction {
-    pub action: String,       // i.e. "Transfer"
+    pub action: ActionSignature,       // i.e. "Transfer"
     pub token: String,        // i.e. "USDC"
     pub amount: U256,         // amount to be transferred
     pub decimals: usize,      // decimals for the token, i.e. 18
@@ -19,14 +27,14 @@ impl fmt::Display for VotingAction {
             Some(to) => {
                 write!(
                     f,
-                    "{} {} {} to 0x{}",
+                    "{:?} {} {} to 0x{}",
                     self.action,
                     nice::ceil(self.amount, 6),
                     self.token,
                     hex::encode(to)
                 )
             }
-            None => write!(f, "{}", self.action),
+            None => write!(f, "{:?}", self.action),
         }
     }
 }
@@ -53,6 +61,22 @@ impl VotingAction {
             return None;
         }
 
+        let signature = script_data
+            .iter()
+            .skip(160)
+            .take(4)
+            .map(|x| x.clone())
+            .collect::<Vec<u8>>();
+        let signature_str = hex::encode(&signature);
+        println!("signature={}", signature_str);
+        let action = if signature_str == "a9059cbb" {
+            ActionSignature::Transfer
+        } else if signature_str == "9d61d234" { // invalid case of the misleading docs
+            ActionSignature::InvalidTransfer
+        } else {
+            ActionSignature::UnknownSignature
+        };
+        
         let mut tokens: Vec<TokenDescriptor> = vec![];
         tokens.push(TokenDescriptor::new(
             "USDC",
@@ -91,7 +115,7 @@ impl VotingAction {
                 let amt_hex = format!("0x{}", hex::encode(amt));
                 let amount: U256 = U256::from_str(&amt_hex).unwrap();
                 return Some(Self {
-                    action: "Transfer".to_owned(),
+                    action,
                     amount,
                     wallet: Some(H160::from_slice(&to)),
                     token: t.name,
@@ -101,5 +125,19 @@ impl VotingAction {
         }
 
         return None;
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::matches;
+   
+    #[test]
+    pub fn it_reads_action_of_transfer() {
+        let input: Vec<u8> = vec![0, 0, 0, 1, 85, 110, 203, 176, 49, 29, 53, 4, 145, 186, 14, 199, 224, 25, 195, 84, 215, 114, 60, 224, 0, 0, 0, 228, 182, 29, 39, 246, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 160, 184, 105, 145, 198, 33, 139, 54, 193, 209, 157, 74, 46, 158, 176, 206, 54, 6, 235, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 68, 169, 5, 156, 187, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 226, 39, 155, 144, 127, 2, 124, 200, 159, 231, 68, 178, 181, 207, 70, 249, 120, 229, 2, 211, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 248, 227, 108, 192, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let va = VotingAction::from_script(&input).unwrap();
+        assert!(matches!(va.action, ActionSignature::Transfer));
     }
 }

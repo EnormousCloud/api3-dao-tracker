@@ -54,7 +54,7 @@ pub fn wrap_vote_details<T>(details: &Option<VotingDetails>) -> Node<T> {
             if let Some(w) = action.wallet {
                 return node!(
                     <small class="vote-script">
-                        {text(action.action.clone())}
+                        {text(format!("{:?}", action.action))}
                         " "
                         {wrap_amt_dec(action.amount, action.decimals)}
                         " "
