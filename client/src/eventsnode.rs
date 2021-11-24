@@ -1,3 +1,4 @@
+use crate::action::ActionSignature;
 use crate::events::{Api3, VotingAgent};
 use crate::nice;
 use crate::state::{AppState, Voting, VotingDetails};
@@ -54,7 +55,14 @@ pub fn wrap_vote_details<T>(details: &Option<VotingDetails>) -> Node<T> {
             if let Some(w) = action.wallet {
                 return node!(
                     <small class="vote-script">
-                        {text(format!("{:?}", action.action))}
+                        {match &action.action {
+                            ActionSignature::Transfer => text(format!("{:?}", action.action)),
+                            _ => node!{ 
+                                <span class="badge badge-withdrawn">
+                                    {text(format!("{:?}", action.action))}
+                                </span>
+                            }
+                        }}
                         " "
                         {wrap_amt_dec(action.amount, action.decimals)}
                         " "
