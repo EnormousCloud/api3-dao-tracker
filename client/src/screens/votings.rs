@@ -176,7 +176,16 @@ impl Component<Msg> for Screen {
                 let required = v.votes_total * U256::from(pct_required) / U256::from(100);
                 let rejected = v.voted_no >= required;
                 let passing = !rejected && v.voted_yes >= required && v.voted_no < required;
-                !v.executed && (passing || !v.is_expired())
+                !v.executed && !v.is_invalid() && (passing || !v.is_expired())
+            })
+            .collect();
+        let invalid: Vec<Voting> = self
+            .state
+            .votings
+            .values()
+            .cloned()
+            .filter(|v| {
+                !v.executed && v.is_invalid()
             })
             .collect();
         let executed: Vec<Voting> = self
@@ -208,6 +217,7 @@ impl Component<Msg> for Screen {
                         div(vec![], vec![
                             self.render_votings_group(&pending, "Pending Proposals", "There are no pending proposals"),
                             self.render_votings_group(&executed, "Executed Proposals", "There are no executed proposals"),
+                            self.render_votings_group(&invalid, "Invalid Proposals", ""),
                             self.render_votings_group(&rejected, "Rejected Proposals", "There are no rejected proposals"),
                         ])
                     } else {

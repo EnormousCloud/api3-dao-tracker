@@ -1,10 +1,9 @@
-use crate::action::VotingAction;
+use crate::action::{ActionSignature, VotingAction};
 use crate::events::{Api3, VotingAgent};
 use crate::nice;
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::time::Duration;
 use web3::types::{H160, H256, U256};
 
 // General API3 Pool information
@@ -152,6 +151,17 @@ impl Voting {
         let now = Utc::now().naive_utc();
         let tmv = NaiveDateTime::from_timestamp(self.tm as i64, 0);
         (now - tmv) > chrono::Duration::weeks(1)
+    }
+
+    pub fn is_invalid(&self) -> bool {
+        if let Some(details) = &self.details {
+            if let Some(action) = &details.action {
+                if let ActionSignature::InvalidTransfer = action.action {
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
 
