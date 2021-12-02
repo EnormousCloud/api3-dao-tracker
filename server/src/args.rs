@@ -24,6 +24,9 @@ pub struct Args {
     /// Ethereum JSON+RPC HTTP address
     #[structopt(long, default_value = "http://localhost:8545", env = "RPC_ENDPOINT")]
     pub rpc_endpoint: String,
+    /// Another ethereum JSON+RPC HTTP endpoint that would be used to watch events.
+    #[structopt(long, default_value = "", env = "RPC_WATCH_ENDPOINT")]
+    pub watch_endpoint: String,
     /// Ethereum JSON+RPC batch size for reading
     #[structopt(long, default_value = "500", env = "RPC_BATCH_SIZE")]
     pub rpc_batch_size: u64,

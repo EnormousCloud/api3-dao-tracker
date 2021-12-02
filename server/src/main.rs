@@ -173,6 +173,7 @@ async fn main() -> anyhow::Result<()> {
         args.genesis_block,
         args.max_block,
         args.rpc_batch_size,
+        &args.rpc_endpoint,
     );
 
     let socket_addr: std::net::SocketAddr = args.listen.parse().expect("invalid bind to listen");
@@ -318,7 +319,12 @@ async fn main() -> anyhow::Result<()> {
 
         let rc = state.clone();
         let rc2 = state.clone();
-        let addr = args.rpc_endpoint.clone();
+        let addr = if args.watch_endpoint.len() > 0 {
+            args.watch_endpoint.clone()
+        } else {
+            args.rpc_endpoint.clone()
+        };
+
         tokio::task::spawn_blocking(move || loop {
             let lblock = {
                 let s = rc2.lock().unwrap();
