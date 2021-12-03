@@ -28,7 +28,7 @@ impl<T: web3::Transport> Resolver<T> {
     async fn new(ens: &ENS<T>, resolver_addr: &str) -> anyhow::Result<Self> {
         // tracing::debug!("resolving {:?}", resolver_addr);
         let addr_namehash = H256::from_slice(namehash(resolver_addr).as_slice());
-        // tracing::debug!("addr_namehash {:?}", addr_namehash);
+        println!("addr_namehash {:?}", addr_namehash);
         let exists: bool = ens
             .contract
             .query(
@@ -48,7 +48,7 @@ impl<T: web3::Transport> Resolver<T> {
             ens.contract
                 .query("resolver", (addr_namehash,), None, Options::default(), None);
         let resolver_addr: Address = result.await.expect("resolver.result.wait()");
-        // tracing::debug!("resolver_addr {:?}", resolver_addr);
+        println!("resolver_addr {:?}", resolver_addr);
         if resolver_addr == H160::from(hex!("0000000000000000000000000000000000000000")) {
             return Err(anyhow::Error::msg("no resolver addr"));
         }
@@ -182,6 +182,22 @@ fn namehash(name: &str) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hex_literal::hex;
+    use web3::types::H160;
+
+    #[test]
+    pub fn ens_enormous() {
+        let rpc_endpoint = "http://localhost:8545";
+        let transport = web3::transports::Http::new(rpc_endpoint).expect("HTTP endpoint");
+        let web3 = web3::Web3::new(transport);
+        let ens = crate::ens::ENS::new(&web3, "");
+        tokio_test::block_on(async {
+            let addr = H160::from(hex!("6518c695cdcbefa272a4e5ef73bd46e801983e19"));
+            if let Some(name) = ens.name(&addr).await {
+                println!("ENS for {:?} is {:?}", addr, name);
+            }
+        });
+    }
 
     #[test]
     pub fn namehash_works() {
@@ -225,5 +241,6 @@ mod tests {
             namehash("addr.reverse"),
             hex!("91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2")
         );
+        println!("{:x?}", namehash("enormouscloud.eth"));
     }
 }

@@ -33,3 +33,6 @@ tracing-subscriber = { version = "0.2" }
 warp = { version = "0.3" }
 web3 = { version = "0.17" }
 ureq = { version = "2.3" }
+
+[dev-dependencies]
+tokio-test = "*"
