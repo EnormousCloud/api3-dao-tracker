@@ -197,7 +197,7 @@ impl Scanner {
                     let dt = NaiveDateTime::from_timestamp(ts as i64, 0);
 
                     let fees = match self.fees.get(&txkey) {
-                        Some(x) => x.clone(),
+                        Some(x) => x.cloned(dt),
                         None => {
                             let txfee = w3client.fees(txkey, dt).unwrap();
                             prices::save(&self.cache_dir, self.chain_id, &self.fees)?;
