@@ -195,7 +195,11 @@ async fn main() -> anyhow::Result<()> {
     if let Some(mode) = &args.dump {
         match mode {
             DumpMode::Snapshot => {
-                let mut dumper = dumper::SnapshotBuilder::new(args.cache_dir.as_str(), chain_id);
+                let mut dumper = dumper::SnapshotBuilder::new(
+                    args.cache_dir.as_str(),
+                    chain_id,
+                    args.genesis_block,
+                );
                 scanner.scan(&web3, &mut dumper).await?;
                 dumper.done();
             }
