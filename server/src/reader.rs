@@ -104,6 +104,91 @@ impl Scanner {
         v
     }
 
+    async fn handle_logs<T>(
+        &mut self,
+        web3: &Web3<T>,
+        method: &str,
+        handler: &mut impl EventHandler,
+        w3client: &EthClient,
+        logs: &Vec<Log>,
+    ) -> anyhow::Result<u64>
+    where
+        T: Transport,
+    {
+        // let start = std::time::Instant::now();
+        let mut blocktime_dur = std::time::Duration::from_nanos(0);
+        let mut prices_dur = std::time::Duration::from_nanos(0);
+        let mut handler_dur = std::time::Duration::from_nanos(0);
+        for l in logs {
+            if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
+                let blockstart = std::time::Instant::now();
+                let tmkey: H256 = l.block_hash.unwrap();
+                let ts: u64 = if self.blocks_time.contains_key(&tmkey) {
+                    match self.blocks_time.get(&tmkey) {
+                        Some(x) => x.clone(),
+                        None => web3
+                            .eth()
+                            .block(BlockId::Hash(l.block_hash.unwrap()))
+                            .await
+                            .expect("block failure")
+                            .expect("block timestamp failure")
+                            .timestamp
+                            .as_u64(),
+                    }
+                } else {
+                    web3.eth()
+                        .block(BlockId::Hash(l.block_hash.unwrap()))
+                        .await
+                        .expect("block failure")
+                        .expect("block timestamp failure")
+                        .timestamp
+                        .as_u64()
+                };
+                self.blocks_time.insert(tmkey, ts);
+                blocktime_dur += blockstart.elapsed();
+
+                let txkey: H256 = l.transaction_hash.unwrap();
+                let pricesstart = std::time::Instant::now();
+                let dt = NaiveDateTime::from_timestamp(ts as i64, 0);
+
+                let fees = match self.fees.get(&txkey) {
+                    Some(x) => x.cloned(dt),
+                    None => {
+                        let txfee = w3client.fees(txkey, dt).unwrap();
+                        prices::save(&self.cache_dir, self.chain_id, &self.fees)?;
+                        txfee
+                    }
+                };
+                self.fees.insert(txkey, fees.clone());
+                prices_dur += pricesstart.elapsed();
+
+                let handlerstart = std::time::Instant::now();
+                handler.on(
+                    OnChainEvent {
+                        block_number: l.block_number.unwrap().as_u64(),
+                        tx: txkey,
+                        log_index: l.log_index.unwrap().as_u64(),
+                        entry,
+                        tm: ts,
+                        fees,
+                    },
+                    l.clone(),
+                );
+                handler_dur += handlerstart.elapsed();
+            }
+        }
+
+        tracing::info!(
+            "{} events, took {:?}, blocks {:?}, prices {:?} ({})",
+            logs.len(),
+            handler_dur,
+            blocktime_dur,
+            prices_dur,
+            method,
+        );
+        Ok(0)
+    }
+
     pub async fn scan<T>(
         &mut self,
         web3: &Web3<T>,
@@ -117,8 +202,9 @@ impl Scanner {
         let checksum = logsbatch::checksum(&self.addr_watched);
         crate::metrics::CHAIN_ID_GAUGE.set(chain_id as i64);
         let w3client = EthClient::new(&self.rpc_endpoint);
-
         let mut last_block = self.genesis_block;
+
+        // crate::cache::snapshot::load(&cache_dir, chain_id);
         for b in get_batches(
             web3.eth(),
             self.genesis_block,
@@ -157,81 +243,17 @@ impl Scanner {
                     chain_id,
                     start.elapsed()
                 );
+                last_block = b.to;
                 logs
             };
 
-            // let start = std::time::Instant::now();
-            let mut blocktime_dur = std::time::Duration::from_nanos(0);
-            let mut prices_dur = std::time::Duration::from_nanos(0);
-            let mut handler_dur = std::time::Duration::from_nanos(0);
-            for l in &logs {
-                if let Ok(entry) = Api3::from_log(self.agent(l.address), &l) {
-                    let blockstart = std::time::Instant::now();
-                    let tmkey: H256 = l.block_hash.unwrap();
-                    let ts: u64 = if self.blocks_time.contains_key(&tmkey) {
-                        match self.blocks_time.get(&tmkey) {
-                            Some(x) => x.clone(),
-                            None => web3
-                                .eth()
-                                .block(BlockId::Hash(l.block_hash.unwrap()))
-                                .await
-                                .expect("block failure")
-                                .expect("block timestamp failure")
-                                .timestamp
-                                .as_u64(),
-                        }
-                    } else {
-                        web3.eth()
-                            .block(BlockId::Hash(l.block_hash.unwrap()))
-                            .await
-                            .expect("block failure")
-                            .expect("block timestamp failure")
-                            .timestamp
-                            .as_u64()
-                    };
-                    self.blocks_time.insert(tmkey, ts);
-                    blocktime_dur += blockstart.elapsed();
-
-                    let txkey: H256 = l.transaction_hash.unwrap();
-                    let pricesstart = std::time::Instant::now();
-                    let dt = NaiveDateTime::from_timestamp(ts as i64, 0);
-
-                    let fees = match self.fees.get(&txkey) {
-                        Some(x) => x.cloned(dt),
-                        None => {
-                            let txfee = w3client.fees(txkey, dt).unwrap();
-                            prices::save(&self.cache_dir, self.chain_id, &self.fees)?;
-                            txfee
-                        }
-                    };
-                    self.fees.insert(txkey, fees.clone());
-                    prices_dur += pricesstart.elapsed();
-
-                    let handlerstart = std::time::Instant::now();
-                    handler.on(
-                        OnChainEvent {
-                            block_number: l.block_number.unwrap().as_u64(),
-                            tx: txkey,
-                            log_index: l.log_index.unwrap().as_u64(),
-                            entry,
-                            tm: ts,
-                            fees,
-                        },
-                        l.clone(),
-                    );
-                    handler_dur += handlerstart.elapsed();
-                }
+            if let Err(e) = self
+                .handle_logs(web3, &method, handler, &w3client, &logs)
+                .await
+            {
+                tracing::error!("error {}", e);
             }
             blockstime::save(&self.cache_dir, chain_id, &self.blocks_time)?;
-            tracing::info!(
-                "{} events, took {:?}, blocks {:?}, prices {:?} ({})",
-                logs.len(),
-                handler_dur,
-                blocktime_dur,
-                prices_dur,
-                method,
-            );
-            last_block = b.to;
         }
         crate::metrics::BLOCK_START_GAUGE.set(0);
         crate::metrics::BLOCK_END_GAUGE.set(0);
