@@ -204,7 +204,27 @@ impl Scanner {
         let w3client = EthClient::new(&self.rpc_endpoint);
         let mut last_block = self.genesis_block;
 
-        // crate::cache::snapshot::load(&cache_dir, chain_id);
+        if let Some(archive) = crate::cache::snapshot::load(&cache_dir, chain_id) {
+            crate::metrics::BLOCK_START_GAUGE.set(archive.start_block as i64);
+            crate::metrics::BLOCK_END_GAUGE.set(archive.end_block as i64);
+            let start = std::time::Instant::now();
+            let method = format!(
+                "snapshot {}..{}/{}",
+                archive.start_block, archive.end_block, chain_id
+            );
+            if let Err(e) = self
+                .handle_logs(web3, &method, handler, &w3client, &archive.logs)
+                .await
+            {
+                tracing::error!("error {}", e);
+            }
+            blockstime::save(&self.cache_dir, chain_id, &self.blocks_time)?;
+            tracing::info!("{} restored in {:?}", method, start.elapsed());
+            crate::metrics::BLOCK_START_GAUGE.set(0);
+            crate::metrics::BLOCK_END_GAUGE.set(0);
+            return Ok(archive.end_block);
+        }
+
         for b in get_batches(
             web3.eth(),
             self.genesis_block,
