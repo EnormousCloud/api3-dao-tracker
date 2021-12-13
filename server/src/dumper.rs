@@ -52,22 +52,35 @@ pub struct SnapshotBuilder {
     pub cache_dir: String,
     pub chain_id: u64,
     pub logs: Vec<web3::types::Log>,
+    pub start_block: u64,
+    pub end_block: u64,
 }
 impl SnapshotBuilder {
-    pub fn new(cache_dir: &str, chain_id: u64) -> Self {
+    pub fn new(cache_dir: &str, chain_id: u64, start_block: u64) -> Self {
         Self {
             cache_dir: cache_dir.to_string(),
             chain_id,
             logs: vec![],
+            start_block,
+            end_block: 0,
         }
     }
     pub fn done(&self) -> () {
-        let _ = crate::cache::snapshot::save(&self.cache_dir, self.chain_id, &self.logs);
+        let _ = crate::cache::snapshot::save(
+            &self.cache_dir,
+            self.chain_id,
+            &crate::cache::snapshot::Archive {
+                start_block: self.start_block,
+                end_block: self.end_block,
+                logs: self.logs.clone(),
+            },
+        );
     }
 }
 
 impl reader::EventHandler for SnapshotBuilder {
     fn on(&mut self, _e: OnChainEvent, l: web3::types::Log) -> () {
+        self.end_block = l.block_number.unwrap().as_u64();
         self.logs.push(l);
     }
 }

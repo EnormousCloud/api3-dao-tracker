@@ -28,7 +28,7 @@ impl<T: web3::Transport> Resolver<T> {
     async fn new(ens: &ENS<T>, resolver_addr: &str) -> anyhow::Result<Self> {
         // tracing::debug!("resolving {:?}", resolver_addr);
         let addr_namehash = H256::from_slice(namehash(resolver_addr).as_slice());
-        println!("addr_namehash {:?}", addr_namehash);
+        // println!("addr_namehash {:?}", addr_namehash);
         let exists: bool = ens
             .contract
             .query(

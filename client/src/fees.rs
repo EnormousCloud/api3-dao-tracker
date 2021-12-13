@@ -36,6 +36,24 @@ impl TxFee {
         }
     }
 
+    pub fn from(&self, dt: NaiveDateTime) -> Self {
+        let usd = if let None = self.usd {
+            let eth = match self.gas_used {
+                Some(gas_used) => gas_used * self.gas_price,
+                None => self.gas * self.gas_price,
+            };
+            crate::usdprice::coin_price_at("ethereum", eth, 18, dt)
+        } else {
+            self.usd.clone()
+        };
+        Self {
+            gas_price: self.gas_price,
+            gas: self.gas,
+            gas_used: self.gas_used,
+            usd,
+        }
+    }
+
     pub fn to_string(&self) -> String {
         let mut pieces: Vec<String> = vec![];
         pieces.push(match self.gas_used {
