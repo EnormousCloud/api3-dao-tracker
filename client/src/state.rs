@@ -329,6 +329,7 @@ impl Treasury {
 pub struct Times {
     pub update: Option<SystemTime>,
     pub votings: Option<SystemTime>,
+    pub ens: Option<SystemTime>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

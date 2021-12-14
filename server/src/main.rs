@@ -419,6 +419,7 @@ async fn main() -> anyhow::Result<()> {
                             if let Some(name) = ens.name(&addr).await {
                                 let mut s = rc.lock().unwrap();
                                 tracing::info!("New ENS for {:?} is {:?}", addr, name);
+                                s.app.the_last.votings = Some(SystemTime::now());
                                 s.app.wallets.get_mut(&addr).unwrap().ens = Some(name)
                             }
                         });

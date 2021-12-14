@@ -64,6 +64,11 @@ lazy_static! {
         "Seconds since the last votings read",
     ))
     .unwrap();
+    pub static ref SINCE_LAST_ENS: IntGauge = register_int_gauge!(opts!(
+        "since_last_ens_read",
+        "Seconds since the last ENSs read",
+    ))
+    .unwrap();
 }
 
 pub fn handler(state: &AppState) -> String {
@@ -137,6 +142,10 @@ pub fn handler(state: &AppState) -> String {
         None => -1,
     });
     SINCE_LAST_VOTINGS.set(match state.the_last.votings {
+        Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
+        None => -1,
+    });
+    SINCE_LAST_ENS.set(match state.the_last.ens {
         Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
         None => -1,
     });
