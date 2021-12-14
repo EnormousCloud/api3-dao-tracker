@@ -4,6 +4,7 @@ use lazy_static::lazy_static;
 use prometheus::{opts, register_gauge, register_int_gauge};
 use prometheus::{Encoder, Gauge, IntGauge, Opts, Registry, TextEncoder};
 use std::collections::HashMap;
+use std::time::SystemTime;
 
 lazy_static! {
     pub static ref CHAIN_ID_GAUGE: IntGauge =
@@ -53,6 +54,11 @@ lazy_static! {
         register_gauge!(opts!("time_locked", "Time Locked",)).unwrap();
     pub static ref TOTAL_LOCKED: Gauge =
         register_gauge!(opts!("total_locked", "Total Locked",)).unwrap();
+    pub static ref SINCE_LAST_UPDATE: IntGauge = register_int_gauge!(opts!(
+        "since_last_update",
+        "Seconds since the last state update",
+    ))
+    .unwrap();
 }
 
 pub fn handler(state: &AppState) -> String {
@@ -82,6 +88,8 @@ pub fn handler(state: &AppState) -> String {
     sr.register(Box::new(LOCKED_VESTINGS.clone())).unwrap();
     sr.register(Box::new(TIME_LOCKED.clone())).unwrap();
     sr.register(Box::new(TOTAL_LOCKED.clone())).unwrap();
+    // seconds, passed since various events
+    sr.register(Box::new(SINCE_LAST_UPDATE.clone())).unwrap();
 
     NUM_ADDRESSES.set(state.wallets.len() as i64);
     NUM_VOTINGS.set(state.votings.len() as i64);
@@ -117,6 +125,11 @@ pub fn handler(state: &AppState) -> String {
             sr.register(Box::new(gauge.clone())).unwrap();
         }
     }
+    let now = SystemTime::now();
+    SINCE_LAST_UPDATE.set(match state.the_last.update {
+        Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
+        None => -1,
+    });
 
     let mut buffer = Vec::<u8>::new();
     encoder.encode(&sr.gather(), &mut buffer).unwrap();

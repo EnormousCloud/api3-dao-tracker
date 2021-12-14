@@ -5,6 +5,7 @@ use crate::nice;
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::time::SystemTime;
 use web3::types::{H160, H256, U256};
 
 // General API3 Pool information
@@ -324,6 +325,11 @@ impl Treasury {
     }
 }
 
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct Times {
+    pub update: Option<SystemTime>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppState {
     /// version of the state
@@ -365,6 +371,8 @@ pub struct AppState {
     pub grants: BTreeMap<H160, u64>,
     /// fees of the transactions
     pub fees: BTreeMap<H256, TxFee>,
+    /// seconds since
+    pub the_last: Times,
 }
 
 pub fn get_known_decimals() -> BTreeMap<String, usize> {
@@ -378,7 +386,7 @@ impl AppState {
     pub fn new(chain_id: u64) -> Self {
         let apr: f64 = 0.3875;
         Self {
-            version: "20211101".to_owned(),
+            version: "20211201".to_owned(),
             chain_id,
             epoch_index: 1,
             apr,
@@ -395,6 +403,7 @@ impl AppState {
             decimals: get_known_decimals(),
             grants: BTreeMap::new(),
             fees: BTreeMap::new(),
+            the_last: Times::default(),
         }
     }
 
@@ -876,6 +885,7 @@ impl AppState {
                 v.push(e.clone());
             }
         });
+
         match &e.entry {
             Api3::MintedReward {
                 epoch_index,
@@ -1167,5 +1177,6 @@ impl AppState {
             }
             _ => {}
         };
+        self.the_last.update = Some(SystemTime::now());
     }
 }
