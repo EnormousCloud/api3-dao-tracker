@@ -17,6 +17,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::SystemTime;
 use tokio::sync::{mpsc, oneshot, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
@@ -385,6 +386,7 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                 }
+                s.app.the_last.votings = Some(SystemTime::now());
             }
         });
 

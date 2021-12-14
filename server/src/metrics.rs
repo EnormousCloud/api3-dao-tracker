@@ -59,6 +59,11 @@ lazy_static! {
         "Seconds since the last state update",
     ))
     .unwrap();
+    pub static ref SINCE_LAST_VOTINGS: IntGauge = register_int_gauge!(opts!(
+        "since_last_votings_read",
+        "Seconds since the last votings read",
+    ))
+    .unwrap();
 }
 
 pub fn handler(state: &AppState) -> String {
@@ -90,6 +95,7 @@ pub fn handler(state: &AppState) -> String {
     sr.register(Box::new(TOTAL_LOCKED.clone())).unwrap();
     // seconds, passed since various events
     sr.register(Box::new(SINCE_LAST_UPDATE.clone())).unwrap();
+    sr.register(Box::new(SINCE_LAST_VOTINGS.clone())).unwrap();
 
     NUM_ADDRESSES.set(state.wallets.len() as i64);
     NUM_VOTINGS.set(state.votings.len() as i64);
@@ -127,6 +133,10 @@ pub fn handler(state: &AppState) -> String {
     }
     let now = SystemTime::now();
     SINCE_LAST_UPDATE.set(match state.the_last.update {
+        Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
+        None => -1,
+    });
+    SINCE_LAST_VOTINGS.set(match state.the_last.votings {
         Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
         None => -1,
     });

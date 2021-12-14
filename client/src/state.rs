@@ -328,6 +328,7 @@ impl Treasury {
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Times {
     pub update: Option<SystemTime>,
+    pub votings: Option<SystemTime>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
