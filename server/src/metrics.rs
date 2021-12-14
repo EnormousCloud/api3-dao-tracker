@@ -66,7 +66,12 @@ lazy_static! {
     .unwrap();
     pub static ref SINCE_LAST_ENS: IntGauge = register_int_gauge!(opts!(
         "since_last_ens_read",
-        "Seconds since the last ENSs read",
+        "Seconds since the last ENS read",
+    ))
+    .unwrap();
+    pub static ref SINCE_LAST_TREASURIES: IntGauge = register_int_gauge!(opts!(
+        "since_last_treasuries_read",
+        "Seconds since the last treasuries read",
     ))
     .unwrap();
 }
@@ -101,6 +106,9 @@ pub fn handler(state: &AppState) -> String {
     // seconds, passed since various events
     sr.register(Box::new(SINCE_LAST_UPDATE.clone())).unwrap();
     sr.register(Box::new(SINCE_LAST_VOTINGS.clone())).unwrap();
+    sr.register(Box::new(SINCE_LAST_ENS.clone())).unwrap();
+    sr.register(Box::new(SINCE_LAST_TREASURIES.clone()))
+        .unwrap();
 
     NUM_ADDRESSES.set(state.wallets.len() as i64);
     NUM_VOTINGS.set(state.votings.len() as i64);
@@ -146,6 +154,10 @@ pub fn handler(state: &AppState) -> String {
         None => -1,
     });
     SINCE_LAST_ENS.set(match state.the_last.ens {
+        Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
+        None => -1,
+    });
+    SINCE_LAST_TREASURIES.set(match state.the_last.treasuries {
         Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
         None => -1,
     });
