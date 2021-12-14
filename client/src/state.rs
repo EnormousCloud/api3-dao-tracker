@@ -331,6 +331,7 @@ pub struct Times {
     pub votings: Option<SystemTime>,
     pub ens: Option<SystemTime>,
     pub treasuries: Option<SystemTime>,
+    pub circulation: Option<SystemTime>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

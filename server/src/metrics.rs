@@ -74,6 +74,11 @@ lazy_static! {
         "Seconds since the last treasuries read",
     ))
     .unwrap();
+    pub static ref SINCE_LAST_CIRCULATION: IntGauge = register_int_gauge!(opts!(
+        "since_last_circulation_read",
+        "Seconds since the last circulation read",
+    ))
+    .unwrap();
 }
 
 pub fn handler(state: &AppState) -> String {
@@ -108,6 +113,8 @@ pub fn handler(state: &AppState) -> String {
     sr.register(Box::new(SINCE_LAST_VOTINGS.clone())).unwrap();
     sr.register(Box::new(SINCE_LAST_ENS.clone())).unwrap();
     sr.register(Box::new(SINCE_LAST_TREASURIES.clone()))
+        .unwrap();
+    sr.register(Box::new(SINCE_LAST_CIRCULATION.clone()))
         .unwrap();
 
     NUM_ADDRESSES.set(state.wallets.len() as i64);
@@ -158,6 +165,10 @@ pub fn handler(state: &AppState) -> String {
         None => -1,
     });
     SINCE_LAST_TREASURIES.set(match state.the_last.treasuries {
+        Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
+        None => -1,
+    });
+    SINCE_LAST_CIRCULATION.set(match state.the_last.circulation {
         Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
         None => -1,
     });

@@ -450,6 +450,7 @@ async fn main() -> anyhow::Result<()> {
                             tracing::info!("pool info {:?}", pool);
                             let mut s = rc.lock().unwrap();
                             s.app.pool_info = Some(pool);
+                            s.app.the_last.circulation = Some(SystemTime::now());
                         } else {
                             tracing::info!("pool info - failed to update");
                         }
@@ -457,6 +458,7 @@ async fn main() -> anyhow::Result<()> {
                             tracing::info!("circulation info {:?}", circulation);
                             let mut s = rc.lock().unwrap();
                             s.app.circulation = Some(circulation);
+                            s.app.the_last.circulation = Some(SystemTime::now());
                         } else {
                             tracing::info!("circulation info - failed to update");
                         }
