@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use prometheus::{opts, register_gauge, register_int_gauge};
 use prometheus::{Encoder, Gauge, IntGauge, Opts, Registry, TextEncoder};
 use std::collections::HashMap;
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 lazy_static! {
     pub static ref CHAIN_ID_GAUGE: IntGauge =
@@ -152,26 +152,30 @@ pub fn handler(state: &AppState) -> String {
         }
     }
     let now = SystemTime::now();
-    SINCE_LAST_UPDATE.set(match state.the_last.update {
-        Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
-        None => -1,
-    });
-    SINCE_LAST_VOTINGS.set(match state.the_last.votings {
-        Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
-        None => -1,
-    });
-    SINCE_LAST_ENS.set(match state.the_last.ens {
-        Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
-        None => -1,
-    });
-    SINCE_LAST_TREASURIES.set(match state.the_last.treasuries {
-        Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
-        None => -1,
-    });
-    SINCE_LAST_CIRCULATION.set(match state.the_last.circulation {
-        Some(sys_time) => now.duration_since(sys_time).unwrap().as_secs() as i64,
-        None => -1,
-    });
+    let secs_now: i64 = now.duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+
+    if let Some(the_last) = &state.the_last {
+        SINCE_LAST_UPDATE.set(match the_last.update {
+            Some(sys_time) => secs_now - sys_time.timestamp(),
+            None => -1,
+        });
+        SINCE_LAST_VOTINGS.set(match the_last.votings {
+            Some(sys_time) => secs_now - sys_time.timestamp(),
+            None => -1,
+        });
+        SINCE_LAST_ENS.set(match the_last.ens {
+            Some(sys_time) => secs_now - sys_time.timestamp(),
+            None => -1,
+        });
+        SINCE_LAST_TREASURIES.set(match the_last.treasuries {
+            Some(sys_time) => secs_now - sys_time.timestamp(),
+            None => -1,
+        });
+        SINCE_LAST_CIRCULATION.set(match the_last.circulation {
+            Some(sys_time) => secs_now - sys_time.timestamp(),
+            None => -1,
+        });
+    }
 
     let mut buffer = Vec::<u8>::new();
     encoder.encode(&sr.gather(), &mut buffer).unwrap();

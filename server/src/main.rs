@@ -11,13 +11,13 @@ pub mod treasury;
 pub mod web3sync;
 
 use args::DumpMode;
+use chrono::Utc;
 use client::state::{AppState, OnChainEvent};
 use futures::{FutureExt, StreamExt};
 use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::SystemTime;
 use tokio::sync::{mpsc, oneshot, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
@@ -386,7 +386,10 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                 }
-                s.app.the_last.votings = Some(SystemTime::now());
+
+                if let Some(the_last) = &mut s.app.the_last {
+                    the_last.votings = Some(Utc::now());
+                }
             }
         });
 
@@ -419,7 +422,9 @@ async fn main() -> anyhow::Result<()> {
                             if let Some(name) = ens.name(&addr).await {
                                 let mut s = rc.lock().unwrap();
                                 tracing::info!("New ENS for {:?} is {:?}", addr, name);
-                                s.app.the_last.votings = Some(SystemTime::now());
+                                if let Some(the_last) = &mut s.app.the_last {
+                                    the_last.votings = Some(Utc::now());
+                                }
                                 s.app.wallets.get_mut(&addr).unwrap().ens = Some(name)
                             }
                         });
@@ -450,7 +455,9 @@ async fn main() -> anyhow::Result<()> {
                             tracing::info!("pool info {:?}", pool);
                             let mut s = rc.lock().unwrap();
                             s.app.pool_info = Some(pool);
-                            s.app.the_last.circulation = Some(SystemTime::now());
+                            if let Some(the_last) = &mut s.app.the_last {
+                                the_last.circulation = Some(Utc::now());
+                            }
                         } else {
                             tracing::info!("pool info - failed to update");
                         }
@@ -458,7 +465,9 @@ async fn main() -> anyhow::Result<()> {
                             tracing::info!("circulation info {:?}", circulation);
                             let mut s = rc.lock().unwrap();
                             s.app.circulation = Some(circulation);
-                            s.app.the_last.circulation = Some(SystemTime::now());
+                            if let Some(the_last) = &mut s.app.the_last {
+                                the_last.circulation = Some(Utc::now());
+                            }
                         } else {
                             tracing::info!("circulation info - failed to update");
                         }

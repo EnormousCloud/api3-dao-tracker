@@ -2,10 +2,9 @@ use crate::action::{ActionSignature, VotingAction};
 use crate::events::{Api3, VotingAgent};
 use crate::fees::TxFee;
 use crate::nice;
-use chrono::{NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::time::SystemTime;
 use web3::types::{H160, H256, U256};
 
 // General API3 Pool information
@@ -327,11 +326,11 @@ impl Treasury {
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Times {
-    pub update: Option<SystemTime>,
-    pub votings: Option<SystemTime>,
-    pub ens: Option<SystemTime>,
-    pub treasuries: Option<SystemTime>,
-    pub circulation: Option<SystemTime>,
+    pub update: Option<DateTime<Utc>>,
+    pub votings: Option<DateTime<Utc>>,
+    pub ens: Option<DateTime<Utc>>,
+    pub treasuries: Option<DateTime<Utc>>,
+    pub circulation: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -351,19 +350,14 @@ pub struct AppState {
     /// general API3 circulation information
     pub circulation: Option<Api3Circulation>,
     /// the map of epoch rewards
-    //#[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub epochs: BTreeMap<u64, Epoch>,
     /// map of votings
-    //#[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub votings: BTreeMap<u64, Voting>,
     /// log of events, grouped by votings
-    //#[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub votings_events: BTreeMap<u64, Vec<OnChainEvent>>,
     /// map of wallets
-    //#[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub wallets: BTreeMap<H160, Wallet>,
     /// log of events, groupped by wallets
-    //#[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub wallets_events: BTreeMap<H160, Vec<OnChainEvent>>,
     /// list of wallets that are vesting and their balance is excluded from circulating supply
     pub vested: Vec<H160>,
@@ -376,7 +370,8 @@ pub struct AppState {
     /// fees of the transactions
     pub fees: BTreeMap<H256, TxFee>,
     /// seconds since
-    pub the_last: Times,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub the_last: Option<Times>,
 }
 
 pub fn get_known_decimals() -> BTreeMap<String, usize> {
@@ -407,7 +402,7 @@ impl AppState {
             decimals: get_known_decimals(),
             grants: BTreeMap::new(),
             fees: BTreeMap::new(),
-            the_last: Times::default(),
+            the_last: Some(Times::default()),
         }
     }
 
@@ -1181,6 +1176,8 @@ impl AppState {
             }
             _ => {}
         };
-        self.the_last.update = Some(SystemTime::now());
+        if let Some(the_last) = &mut self.the_last {
+            the_last.update = Some(Utc::now());
+        }
     }
 }
