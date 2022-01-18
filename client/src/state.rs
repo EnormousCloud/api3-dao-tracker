@@ -240,6 +240,16 @@ impl Wallet {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddressStake {
+    #[serde(rename="s")]
+    pub staked: U256,
+    #[serde(rename="h")]
+    pub shares: U256,
+    #[serde(rename="r")]
+    pub rewards: U256,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Epoch {
     /// index of an epoch
     pub index: u64,
@@ -250,7 +260,7 @@ pub struct Epoch {
     /// Total stake during the last MintedReward event
     pub total: U256,
     /// Staking amount for each wallet (including locked rewards)
-    pub stake: BTreeMap<H160, U256>,
+    pub stake: BTreeMap<H160, AddressStake>,
     /// Timestamp of the epoch
     pub tm: u64,
     /// Block number of the epoch
@@ -265,7 +275,7 @@ impl Epoch {
         apr: f64,
         minted: U256,
         total: U256,
-        stake: BTreeMap<H160, U256>,
+        stake: BTreeMap<H160, AddressStake>,
         tm: u64,
         block_number: u64,
         tx: H256,
@@ -518,7 +528,7 @@ impl AppState {
             None => return U256::from(0),
         };
         match ep.stake.get(&addr) {
-            Some(x) => x.clone(),
+            Some(x) => x.staked.clone(),
             None => return U256::from(0),
         }
     }
@@ -535,11 +545,11 @@ impl AppState {
         self.epochs
             .iter()
             .map(|(_, epoch)| {
-                let staked = match epoch.stake.get(addr) {
-                    Some(val) => *val,
+                let s: AddressStake = match epoch.stake.get(addr) {
+                    Some(val) => val.clone(),
                     None => return U256::from(0),
                 };
-                if staked == U256::from(0) || epoch.index > epoch_index {
+                if s.staked == U256::from(0) || epoch.index > epoch_index {
                     return U256::from(0);
                 }
 
@@ -550,7 +560,7 @@ impl AppState {
                 //     println!("staked {}", staked);
                 // }
 
-                (epoch.minted * staked) / epoch.total
+                (epoch.minted * s.staked) / epoch.total
             })
             .fold(U256::from(0), |a, b| a + b)
     }
@@ -822,15 +832,19 @@ impl AppState {
         block_number: u64,
         tx: H256,
     ) -> anyhow::Result<()> {
-        let stake: BTreeMap<H160, U256> = self
+        let stake: BTreeMap<H160, AddressStake> = self
             .wallets
             .iter()
-            .map(|(addr, w)| (*addr, w.staked + w.rewards))
+            .map(|(addr, w)| (*addr, AddressStake{
+                    staked: w.staked,
+                    shares: w.shares,
+                    rewards: w.rewards,
+                }))
             .into_iter()
             .collect();
         let total = match total_stake {
             Some(x) => x - amount,
-            None => stake.values().clone().fold(U256::from(0), |a, b| a + b),
+            None => stake.values().clone().fold(U256::from(0), |a, b| a + b.staked),
         };
         let epoch: Epoch = Epoch::new(
             epoch_index.as_u64(),
