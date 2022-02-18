@@ -56,7 +56,7 @@ ul {
     left: 0px;
     z-index: 1;
     background: var(--color-body);
-    box-shadow: 0px 2px 4px #888;
+    border-bottom: 1px #fff solid;
     width: 100%;
   }
 
@@ -64,6 +64,12 @@ ul {
     box-shadow: 0px 2px 4px red;
   }
 
+  @media (min-width: 960px) {
+	header {
+	    padding-top: 20px;
+	    padding-bottom: 20px;
+	}
+  }
 
   .inner {
     margin: 0px auto;
@@ -79,7 +85,7 @@ ul {
   @media (min-width: 960px) {
     main > div > div.inner,
     body > div > div.inner {
-      padding-top: 70px;
+      padding-top: 120px;
       padding-bottom: 50px;
     }  
   }
@@ -180,16 +186,20 @@ ul {
       border-bottom: 3px solid transparent;
     }
     .desktop-menu a.active {
-      color: var(--color-accent);
-      border-bottom: 3px solid var(--color-accent);
+      color: var(--color-menu-active);
+      border-bottom: 3px solid var(--color-menu-active);
     }
     .desktop-menu a:hover {
-      color: var(--color-text);
-      border-bottom: 3px solid var(--color-text);
+      color: var(--color-menu-hover);
+      border-bottom: 3px solid var(--color-menu-hover);
     }
   }
   
-  h1, h2, h3, h4, h5, h6 {
+  h1, h2 {
+      color: #F3F3F3;
+  }
+
+  h3, h4, h5, h6 {
       color: #666;
   }
   
@@ -432,6 +442,7 @@ table.table {
 table.table tbody td {
   color: var(--color-cell-title);
   line-height: 1.5rem;
+  vertical-align: top;
 }
 
 table.table thead th {
@@ -498,7 +509,7 @@ table.table tbody tr:nth-child(odd) {
   color: #000;
 }
 .badge-withdrawn {
-  background: #ffa0a0;
+  background: var(--color-error);
   color: #000;
 }
 
@@ -507,7 +518,7 @@ table.table tbody tr:nth-child(odd) {
 }
 
 .badge-testnet {
-  background: #ffa0a0;
+  background: #fE8315;
   color: #000;
   text-transform: uppercase;
   margin-right: 5px;
@@ -521,13 +532,12 @@ table.table tbody tr:nth-child(odd) {
   background: #ffefc0;
   color: #000;
 }
-
 .badge-primary {
-  background: #d3acbe;
+  background: #7CE3CB;
   color: #000;
 }
 .badge-secondary {
-  background: #ffefc0;
+  background: #D233F2;
   color: #000;
 }
 

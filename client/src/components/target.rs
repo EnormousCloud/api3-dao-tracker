@@ -9,7 +9,7 @@ pub fn staking_note<T>(apr: f64, stake_target: U256, total_staked: U256) -> Node
 
     let (color, txt) = if is_min {
         (
-            "var(--color-warning)",
+            "var(--color-error)",
             "DAO staking target is reached, and APR is at its minimum of 2.5%",
         )
     } else if is_max {
@@ -18,7 +18,7 @@ pub fn staking_note<T>(apr: f64, stake_target: U256, total_staked: U256) -> Node
             "DAO staking target is not reached, and APR is at its maximum of 75%",
         )
     } else if reached {
-        ("var(--color-warning)", "DAO staking target is reached, so APR will be decreased by 1% for the next epoch until it reaches 2.5%")
+        ("var(--color-error)", "DAO staking target is reached, so APR will be decreased by 1% for the next epoch until it reaches 2.5%")
     } else {
         ("var(--color-accent)", "DAO staking target is not reached, so APR will be increased by 1% for the next epoch until it reaches 75%")
     };
