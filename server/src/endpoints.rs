@@ -320,25 +320,17 @@ const LOADING_HTML: &'static str = r#"
 
   <style id="color-theme" class="dark" type="text/css">
     :root {
-    --color-bk: #333333;
-    --color-bk-highlight: #666;
-    --color-text: #ddd;
-    --color-link: #ffe;
-    --color-accent: lightblue;
-    --color-body: #000;
-    --color-well: #666;
-    --color-error: #db3742;
-    --color-success: #50b83c;
-    --color-success-dark: #329b1e;
-    --color-grey: #8c8d9c;
-    --color-grey-light: #ced3dc;
+    --color-bk: #030303;
+    --color-bk-highlight: #000;
+    --color-text: #fff;
+    --color-link: #7ce3cb;
     }
   </style>
   <style type="text/css">
     * {
         font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
     }
-    body, html {
+    body, html, h1, div {
       background: var(--color-bk);
       color: var(--color-text);
     }
