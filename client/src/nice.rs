@@ -92,7 +92,22 @@ where
         let after_dot: String = right_rev.chars().rev().take(precision).collect();
         (before_dot, after_dot)
     } else {
-        ("0".to_owned(), str.chars().take(precision).collect())
+        let num: i32 = decimals as i32 - str.len() as i32;
+        let padded = if num > 0 {
+            std::iter::repeat("0")
+                .take(num as usize)
+                .collect::<String>()
+        } else {
+            "".to_owned()
+        };
+        (
+            "0".to_owned(),
+            format!(
+                "{}{}",
+                padded,
+                str.chars().take(precision).collect::<String>()
+            ),
+        )
     };
     let combined = if precision > 0 {
         format!("{}.{}", before, after)
@@ -198,5 +213,13 @@ mod tests {
         assert_eq!(float(val, 18, 3), 0.129);
         let val2 = U256::from_dec_str("5129350385688932754").unwrap();
         assert_eq!(float(val2, 18, 3), 5.129);
+    }
+
+    #[test]
+    pub fn test_float_pad() {
+        let val = U256::from_dec_str("4957593000000000").unwrap();
+        assert_eq!(float(val, 18, 9), 0.004957593);
+        let val2 = U256::from_dec_str("378890172141985292").unwrap();
+        assert_eq!(float(val2, 18, 6), 0.378890);
     }
 }
