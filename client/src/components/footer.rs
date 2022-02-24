@@ -22,7 +22,7 @@ pub fn render<T>(state: &AppState) -> Node<T> {
             <div class="inner">
                 <div class="copyright">
                     {testnet} " "
-                    <span class="mdiv">" © 2021 Enormous Cloud "</span>
+                    <span class="mdiv">" © 2022 Enormous Cloud "</span>
                     <span class="desktop-only">" | "</span>
                     <span class="mdiv">
                         <a
