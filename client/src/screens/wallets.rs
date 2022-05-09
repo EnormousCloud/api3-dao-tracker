@@ -39,8 +39,11 @@ impl Screen {
     }
 
     pub fn render_info(&self) -> Node<Msg> {
-        let total_shares = self.state.get_shares_total();
-        let total_votes = self.state.get_votes_total();
+        let total_shares = match &self.state.pool_info {
+            Some(x) => x.total_shares,
+            None => self.state.get_shares_total(),
+        };
+        let _total_votes = self.state.get_votes_total();
         let total_minted = self.state.get_minted_total();
         let total_vesting_members = self.state.get_vested_num();
         let total_vesting_shares = self.state.get_vested_shares();
@@ -68,15 +71,6 @@ impl Screen {
                                 { text(nice::ceil(total_minted, 18)) }
                             </strong>
                             <span class="darken">" API3 tokens minted and locked as staking rewards "</span>
-                            {
-                                if total_votes == total_shares {
-                                    span(vec![], vec![])
-                                } else {
-                                    div(vec![class("warn")], vec![
-                                        text("There is a calculation mismatch. Numbers might be not accurate")
-                                    ])
-                                }
-                            }
                         </p>
                     }
                 } else {

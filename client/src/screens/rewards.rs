@@ -135,7 +135,14 @@ impl Screen {
 impl Component<Msg> for Screen {
     fn view(&self) -> Node<Msg> {
         let minted = self.state.get_minted_total();
-        let total_shares = self.state.get_shares_total();
+        let total_shares = match &self.state.pool_info {
+            Some(x) => x.total_shares,
+            None => self.state.get_shares_total(),
+        };
+        let total_stake: U256 = match &self.state.pool_info {
+            Some(x) => x.total_stake,
+            None => total_shares + minted,
+        };
         let stake_target: U256 = match &self.state.pool_info {
             Some(x) => match &self.state.circulation {
                 Some(c) => c.total_supply * x.stake_target / U256::exp10(26),
@@ -169,7 +176,7 @@ impl Component<Msg> for Screen {
                             </strong>
                             <span class="darken">" to your current stake and your locked rewards."</span>
                         </p>
-                        {staking_note(self.state.apr, stake_target, total_shares + minted)}
+                        {staking_note(self.state.apr, stake_target, total_stake)}
                         {if self.state.epochs.len() > 0 {
                             div(vec![], vec![
                                 div(vec![class("desktop-only")], vec![

@@ -38,6 +38,7 @@ impl Screen {
             None => 1f64,
         }
     }
+
     pub fn render_supply(&self) -> Node<Msg> {
         match &self.state.circulation {
             Some(c) => {
@@ -46,7 +47,14 @@ impl Screen {
                     None => U256::from(0),
                 };
                 let minted = self.state.get_minted_total();
-                let total_shares = self.state.get_shares_total();
+                let total_shares = match &self.state.pool_info {
+                    Some(x) => x.total_shares,
+                    None => self.state.get_shares_total(),
+                };
+                let total_stake: U256 = match &self.state.pool_info {
+                    Some(x) => x.total_stake,
+                    None => total_shares + minted,
+                };
                 node! {
                     <div>
                         {panel::render("API3 Circulating Supply", "", node! {
@@ -66,8 +74,8 @@ impl Screen {
                         <div class="dash-row" id="staking">
                             <div class="dash-col dash-col-2 cell-t">
                                 <h3 class="cell-title"> "Total Staked" </h3>
-                                <strong title={nice::amount(total_shares + minted, 18)}>
-                                    {text(nice::ceil(total_shares + minted, 18))}
+                                <strong title={nice::amount(total_stake, 18)}>
+                                    {text(nice::ceil(total_stake, 18))}
                                     " tokens"
                                 </strong>
                             </div>
@@ -80,7 +88,7 @@ impl Screen {
                             </div>
                         </div>
                         <div class="dash-row">
-                            {staking_note(self.state.apr, stake_target, total_shares + minted)}
+                            {staking_note(self.state.apr, stake_target, total_stake)}
                         </div>
                     </div>
                 }

@@ -159,6 +159,28 @@ impl<T: web3::Transport> Pool<T> {
                 return None;
             }
         };
+        let total_shares: U256 = match self
+            .contract
+            .query("totalShares", (), None, Options::default(), None)
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("totalShares {}", e);
+                return None;
+            }
+        };
+        let total_stake: U256 = match self
+            .contract
+            .query("totalStake", (), None, Options::default(), None)
+            .await
+        {
+            Ok(x) => x,
+            Err(e) => {
+                warn!("totalStake {}", e);
+                return None;
+            }
+        };
         let stake_target: U256 = match self
             .contract
             .query("stakeTarget", (), None, Options::default(), None)
@@ -179,6 +201,8 @@ impl<T: web3::Transport> Pool<T> {
             reward_vesting_period: reward_vesting_period.as_u64(),
             unstake_wait_period: unstake_wait_period.as_u64(),
             stake_target,
+            total_shares,
+            total_stake,
         })
     }
 }

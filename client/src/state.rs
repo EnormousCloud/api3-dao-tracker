@@ -22,6 +22,10 @@ pub struct Api3PoolInfo {
     pub epoch_length: u64,
     /// number of epochs before rewards are unlocked
     pub reward_vesting_period: u64,
+    /// total stake - from API3 pool contract
+    pub total_stake: U256,
+    /// total shares - from API3 pool contract
+    pub total_shares: U256,
     /// staking target
     pub stake_target: U256,
     /// number of seconds before unstaking is allowed after claim
