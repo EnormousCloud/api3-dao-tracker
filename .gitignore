@@ -13,5 +13,7 @@ dist/
 .env
 
 .cache/
+cache/
+cache.tar.gz
 appstate.json
 *.swp

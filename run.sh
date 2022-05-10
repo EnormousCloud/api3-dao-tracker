@@ -34,6 +34,7 @@ export STATIC_DIR=$(pwd)/client/dist
 
 [[ "$1" == "copy-cache-mainnet" ]] && {
     shift
+    rm -f ./.cache/snapshot1/* || true
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@enormous.cloud 'cd /opt; tar zcf cache.tar.gz ./cache'
     scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@enormous.cloud:/opt/cache.tar.gz ./
     tar xvzf ./cache.tar.gz 
@@ -43,6 +44,7 @@ export STATIC_DIR=$(pwd)/client/dist
     
 [[ "$1" == "copy-cache-rinkeby" ]] && {
     shift
+    rm -f ./.cache/snapshot4/* || true
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@rinkeby.enormous.cloud 'cd /opt; tar zcf cache.tar.gz ./cache'
     scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@rinkeby.enormous.cloud:/opt/cache.tar.gz ./
     tar xvzf ./cache.tar.gz 
