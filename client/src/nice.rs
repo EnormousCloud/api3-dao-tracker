@@ -137,6 +137,12 @@ pub fn pct4_of(amt: U256, total: U256, decimals: usize) -> String {
     format!("{:.4}", value)
 }
 
+pub fn pct6_of(amt: U256, total: U256, decimals: usize) -> String {
+    let prec = decimals - 4;
+    let value: f64 = 100.0 * dec(amt, prec) / dec(total, prec);
+    format!("{:.6}", value)
+}
+
 pub fn pct_val(amt: U256, total: U256, decimals: usize) -> f64 {
     let prec = decimals;
     dec(amt, prec) / dec(total, prec)

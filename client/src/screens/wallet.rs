@@ -127,8 +127,12 @@ impl Screen {
 
     pub fn render_wallet_info(&self, w: &Wallet) -> Node<Msg> {
         let labels = self.state.get_labels(w);
-        let total_votes = self.state.get_votes_total();
-        let pct = format!("{}%", nice::pct3_of(w.voting_power, total_votes, 18));
+        let total_shares = match &self.state.pool_info {
+            Some(x) => x.total_shares,
+            None => self.state.get_shares_total(),
+        };
+        let pct = format!("{}%", nice::pct3_of(w.voting_power, total_shares, 18));
+        let pct6 = format!("{}%", nice::pct6_of(w.voting_power, total_shares, 18));
 
         let mut out: Vec<Node<Msg>> = vec![
             // text(format!("{}", serde_json::to_string_pretty(&w).unwrap())),
@@ -156,7 +160,7 @@ impl Screen {
                             </div>
 
                             <div style="padding-top: 30px; text-align: center">
-                                <strong class="big-title">
+                                <strong class="big-title" title={pct6}>
                                     {if pct != "000.0%" {
                                         text(pct)
                                     } else {
