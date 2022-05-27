@@ -43,7 +43,6 @@ impl Screen {
             Some(x) => x.total_shares,
             None => self.state.get_shares_total(),
         };
-        let _total_votes = self.state.get_votes_total();
         let total_minted = self.state.get_minted_total();
         let total_vesting_members = self.state.get_vested_num();
         let total_vesting_shares = self.state.get_vested_shares();
@@ -153,6 +152,7 @@ impl Screen {
 
     pub fn render_wallet_tr(&self, index: usize, w: &Wallet, total_votes: U256) -> Node<Msg> {
         let pct = nice::pct3_of(w.voting_power, total_votes, 18);
+        let pct6 = nice::pct6_of(w.voting_power, total_votes, 18);
         let voting_class = if nice::pct_val(w.voting_power, total_votes, 16) >= 0.001 {
             "r enough_power"
         } else {
@@ -196,7 +196,7 @@ impl Screen {
                 <td class={voting_class} title={nice::amount(w.voting_power, 18)}>{text(nice::ceil(w.voting_power,18))}</td>
                 {if pct != "000.0" {
                     node! {
-                        <td class={voting_class}>{text(pct)}"%"</td>
+                        <td title={pct6} class={voting_class}>{text(pct)}"%"</td>
                     }
                 } else {
                     td(vec![class("r")],vec![text("-")])
@@ -279,7 +279,11 @@ impl Component<Msg> for Screen {
                 .then((a.rewards).cmp(&b.rewards).reverse())
         });
 
-        let total_votes = self.state.get_votes_total();
+        // let total_votes = self.state.get_votes_total();
+        let total_shares = match &self.state.pool_info {
+            Some(x) => x.total_shares,
+            None => self.state.get_shares_total(),
+        };
         node! {
             <div class="screen-wallets">
                 { header::render("/wallets", &self.state) }
@@ -293,14 +297,14 @@ impl Component<Msg> for Screen {
                                     ![class("table wallets-table")],
                                     vec![
                                         thead(vec![], vec![ self.render_wallet_header() ]),
-                                        tbody(vec![], sorted.iter().enumerate().map(|(i, w)| self.render_wallet_tr(i, w, total_votes)).collect::<Vec<Node<Msg>>>()),
+                                        tbody(vec![], sorted.iter().enumerate().map(|(i, w)| self.render_wallet_tr(i, w, total_shares)).collect::<Vec<Node<Msg>>>()),
                                     ]
                                 )
                             ]),
                             div(vec![class("mobile-only")], vec![
                                 ol(vec
                                     ![class("wallets-list")],
-                                    sorted.iter().enumerate().map(|(_, w)| self.render_wallet(w, total_votes)).collect::<Vec<Node<Msg>>>()
+                                    sorted.iter().enumerate().map(|(_, w)| self.render_wallet(w, total_shares)).collect::<Vec<Node<Msg>>>()
                                 )
                             ])
                         ])
