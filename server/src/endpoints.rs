@@ -313,10 +313,14 @@ const LOADING_HTML: &'static str = r#"
   <meta property="og:description" content="API3 DAO Tracker" />
   <meta property="og:url" content="https://enormous.cloud/dao/api3/tracker" />
   <meta property="og:site_name" content="Enormous Cloud" />
-  <meta property="og:image" content="https://enormous.cloud/favicon-17b88549a4840abb.jpg" />
+  <meta property="og:image" content="https://enormous.cloud/dao/icons/api3/API3x64-white-iso-c8b5fe8c70937dbb.png" />
   <meta property="og:image:width" content="64" />
   <meta property="og:image:height" content="64" />
-  <link rel="icon" href="https://enormous.cloud/favicon-17b88549a4840abb.jpg" />
+  <link rel="icon" href="https://enormous.cloud/dao/icons/api3/favicon-2100abdf8288af68.ico" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600&display=swap" />
 
   <style id="color-theme" class="dark" type="text/css">
     :root {
@@ -328,7 +332,7 @@ const LOADING_HTML: &'static str = r#"
   </style>
   <style type="text/css">
     * {
-        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
+        font-family: "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI","Roboto","Oxygen","Ubuntu","Cantarell","Fira Sans","Droid Sans","Helvetica Neue",sans-serif;
     }
     body, html, h1, div {
       background: var(--color-bk);

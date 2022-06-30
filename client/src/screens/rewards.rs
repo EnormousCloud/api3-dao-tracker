@@ -163,7 +163,7 @@ impl Component<Msg> for Screen {
                             </strong>
                             <span class="darken"> " API3 tokens as staking rewards for its members." </span>
                         </p>
-                        <p>
+                        <p style="text-align: center">
                             <span class="darken">" Current Epoch is "</span>
                             <strong>{text(nice::int(self.state.epoch_index))}</strong>
                             <span class="darken">" with APR "</span>
